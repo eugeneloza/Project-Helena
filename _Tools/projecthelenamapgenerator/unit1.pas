@@ -202,6 +202,7 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   maxx:=16;
   maxy:=16;
+  Form1.DoubleBuffered:=true;
   oldbutton:=0;
   refreshfileslist;
   filechanged:=false;

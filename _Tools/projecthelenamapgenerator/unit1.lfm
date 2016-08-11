@@ -7,7 +7,7 @@ object Form1: TForm1
   ClientHeight = 615
   ClientWidth = 822
   OnCreate = FormCreate
-  LCLVersion = '1.0.10.0'
+  LCLVersion = '1.0.14.0'
   object Image1: TImage
     Left = 8
     Height = 600
@@ -63,10 +63,10 @@ object Form1: TForm1
   end
   object ComboBox1: TComboBox
     Left = 616
-    Height = 23
+    Height = 21
     Top = 8
     Width = 200
-    ItemHeight = 0
+    ItemHeight = 13
     ParentBidiMode = False
     TabOrder = 5
     Text = 'ComboBox1'
@@ -100,25 +100,25 @@ object Form1: TForm1
   end
   object Label1: TLabel
     Left = 616
-    Height = 16
+    Height = 14
     Top = 200
-    Width = 57
+    Width = 43
     Caption = 'Left-click'
     ParentColor = False
   end
   object Label2: TLabel
     Left = 616
-    Height = 16
-    Top = 288
-    Width = 65
+    Height = 14
+    Top = 312
+    Width = 49
     Caption = 'Right-click'
     ParentColor = False
   end
   object Label3: TLabel
     Left = 616
-    Height = 16
-    Top = 384
-    Width = 73
+    Height = 14
+    Top = 424
+    Width = 53
     Caption = 'Middle click'
     ParentColor = False
   end
@@ -134,7 +134,7 @@ object Form1: TForm1
   object TrackBar2: TTrackBar
     Left = 616
     Height = 33
-    Top = 312
+    Top = 328
     Width = 195
     Max = 100
     Position = 0
@@ -143,7 +143,7 @@ object Form1: TForm1
   object TrackBar3: TTrackBar
     Left = 616
     Height = 33
-    Top = 400
+    Top = 440
     Width = 195
     Max = 100
     Position = 50
@@ -151,8 +151,8 @@ object Form1: TForm1
   end
   object RadioGroup1: TRadioGroup
     Left = 616
-    Height = 26
-    Top = 256
+    Height = 40
+    Top = 248
     Width = 192
     AutoFill = True
     ChildSizing.LeftRightSpacing = 6
@@ -163,57 +163,57 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclTopToBottomThenLeftToRight
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 24
-    ClientWidth = 190
+    ClientHeight = 22
+    ClientWidth = 188
     ColumnLayout = clVerticalThenHorizontal
     TabOrder = 12
     object RadioButton1: TRadioButton
       Left = 6
-      Height = 12
+      Height = 10
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '1'
+      Checked = True
       TabOrder = 0
+      TabStop = True
     end
     object RadioButton2: TRadioButton
-      Left = 38
-      Height = 12
+      Left = 39
+      Height = 10
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '2'
       TabOrder = 1
     end
     object RadioButton3: TRadioButton
-      Left = 70
-      Height = 12
+      Left = 72
+      Height = 10
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '3'
       TabOrder = 2
     end
     object RadioButton4: TRadioButton
-      Left = 102
-      Height = 12
+      Left = 105
+      Height = 10
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '4'
       TabOrder = 3
     end
     object RadioButton5: TRadioButton
-      Left = 134
-      Height = 12
+      Left = 138
+      Height = 10
       Top = 6
-      Width = 50
+      Width = 44
       Caption = 'RND'
-      Checked = True
       TabOrder = 4
-      TabStop = True
     end
   end
   object RadioGroup2: TRadioGroup
     Left = 616
-    Height = 26
-    Top = 352
+    Height = 42
+    Top = 360
     Width = 192
     AutoFill = True
     ChildSizing.LeftRightSpacing = 6
@@ -225,56 +225,56 @@ object Form1: TForm1
     ChildSizing.Layout = cclTopToBottomThenLeftToRight
     ChildSizing.ControlsPerLine = 1
     ClientHeight = 24
-    ClientWidth = 190
+    ClientWidth = 188
     ColumnLayout = clVerticalThenHorizontal
     TabOrder = 13
     object RadioButton6: TRadioButton
       Left = 6
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '1'
+      Checked = True
       TabOrder = 0
+      TabStop = True
     end
     object RadioButton7: TRadioButton
-      Left = 38
+      Left = 39
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '2'
       TabOrder = 1
     end
     object RadioButton8: TRadioButton
-      Left = 70
+      Left = 72
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '3'
       TabOrder = 2
     end
     object RadioButton9: TRadioButton
-      Left = 102
+      Left = 105
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '4'
       TabOrder = 3
     end
     object RadioButton10: TRadioButton
-      Left = 134
+      Left = 138
       Height = 12
       Top = 6
-      Width = 50
+      Width = 44
       Caption = 'RND'
-      Checked = True
       TabOrder = 4
-      TabStop = True
     end
   end
   object RadioGroup3: TRadioGroup
     Left = 616
-    Height = 26
-    Top = 440
+    Height = 42
+    Top = 488
     Width = 192
     AutoFill = True
     ChildSizing.LeftRightSpacing = 6
@@ -286,46 +286,46 @@ object Form1: TForm1
     ChildSizing.Layout = cclTopToBottomThenLeftToRight
     ChildSizing.ControlsPerLine = 1
     ClientHeight = 24
-    ClientWidth = 190
+    ClientWidth = 188
     ColumnLayout = clVerticalThenHorizontal
     TabOrder = 14
     object RadioButton11: TRadioButton
       Left = 6
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '1'
       TabOrder = 0
     end
     object RadioButton12: TRadioButton
-      Left = 38
+      Left = 39
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '2'
       TabOrder = 1
     end
     object RadioButton13: TRadioButton
-      Left = 70
+      Left = 72
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '3'
       TabOrder = 2
     end
     object RadioButton14: TRadioButton
-      Left = 102
+      Left = 105
       Height = 12
       Top = 6
-      Width = 32
+      Width = 33
       Caption = '4'
       TabOrder = 3
     end
     object RadioButton15: TRadioButton
-      Left = 134
+      Left = 138
       Height = 12
       Top = 6
-      Width = 50
+      Width = 44
       Caption = 'RND'
       Checked = True
       TabOrder = 4
