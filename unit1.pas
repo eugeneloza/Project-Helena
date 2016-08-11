@@ -116,9 +116,9 @@ const datafolder='DAT'+pathdelim;
       scriptfolder=datafolder+'default'+pathdelim;
 
 const strategy_hide=true;
-      strategy_caution=1;
-      strategy_finishhim=true;
-      strategy_cheater=255;
+
+      strategy_type_cheater=true;
+      strategy_type_damncheater=false;
 
       strategy_real_los=255;
       strategy_possibleloc=50;
@@ -156,6 +156,7 @@ type
     CheckBox4: TCheckBox;
     CheckBox5: TCheckBox;
     CheckBox6: TCheckBox;
+    CheckBox7: TCheckBox;
     ComboBox1: TComboBox;
     Edit1: TEdit;
     Edit2: TEdit;
@@ -178,7 +179,12 @@ type
     Label13: TLabel;
     Label14: TLabel;
     Label15: TLabel;
+    Label16: TLabel;
+    Label17: TLabel;
+    Label18: TLabel;
+    Label19: TLabel;
     Label2: TLabel;
+    Label20: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
@@ -198,6 +204,8 @@ type
     ScrollBar4: TScrollBar;
     Togglebox1: TToggleBox;
     TrackBar1: TTrackBar;
+    TrackBar2: TTrackBar;
+    TrackBar3: TTrackBar;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -253,9 +261,11 @@ type
     procedure clear_visible;
     procedure bot_clear_visible;
     procedure bot_recalc_visible;
+    procedure bot_calculate_possibleloc(thisbot:integer);
+    procedure bot_calculate_possible_LOS;
     procedure read_buildings;
     function generate_enemy_list(messageflag:boolean):boolean;
-    procedure generatemovement_generic(from_x,from_y,to_x,to_y,maxdistance:byte;clearit,playergo:boolean);
+    procedure generatemovement_generic(from_x,from_y,to_x,to_y,maxdistance:byte;clearit,playergo{,stealth}:boolean);
     procedure generatemovement(thisbot,target_x,target_y:integer);
     procedure move_bot(thisbot,to_x,to_y,use_waypoints:integer);
     procedure end_turn;
@@ -378,6 +388,11 @@ var
   movement_map_for: integer;
   nx1,nx2,ny1,ny2:integer;
 
+  recalculate_los_strategy,use_los_strategy,cheater_type:boolean;
+  strategy_caution:float;
+  strategy_cheater:byte;
+  strategy_finishhim:boolean;
+
   w_types,a_types:integer;
 
 //  sintable,costable: array[0..maxangle] of float;
@@ -410,7 +425,7 @@ end;
 {================================================================================}
 {================================================================================}
 
-procedure Tform1.generatemovement_generic(from_x,from_y,to_x,to_y,maxdistance:byte;clearit,playergo:boolean);
+procedure Tform1.generatemovement_generic(from_x,from_y,to_x,to_y,maxdistance:byte;clearit,playergo{,stealth}:boolean);
 var ix,iy:integer;
     x1,x2,y1,y2:integer;
     nomoves,distanceexceeded:boolean;
@@ -425,7 +440,11 @@ begin
        distance^[ix,iy]:=255;
     end;
 
-   if playergo then begin
+{    if stealth then
+     for ix:=1 to maxx do
+        for iy:=1 to maxy do if botvis^[ix,iy]=strategy_visible then movement^[ix,iy]:=253;
+}
+  if playergo then begin
     for ix:=1 to maxx do
       for iy:=1 to maxy do if vis^[ix,iy]=0 then movement^[ix,iy]:=253;
 
@@ -477,25 +496,27 @@ begin
           if iy+1<=maxy then
             if movement^[ix  ,iy+1]<10 then begin movement_new^[ix,iy]:=2; distance_new:=distance^[ix  ,iy+1]+distance_accuracy; end;
 
+
         if movement_new^[ix,iy]<>100 then begin
           nomoves:=false;
-          if distance_new<255 then distance^[ix,iy]:=distance_new else distance^[ix,iy]:=255;
+          if distance_new>255 then distance_new:=255;
+          distance^[ix,iy]:=distance_new;
           if (ix=nx1) and ((nx1-1)>0) then nx1:=nx1-1;
           if (iy=ny1) and ((ny1-1)>0) then ny1:=ny1-1;
           if (ix=nx2) and ((nx2+1)<=maxx) then nx2:=nx2+1;
           if (iy=ny2) and ((ny2+1)<=maxy) then ny2:=ny2+1;
+          if (distance_new<=maxdistance) then distanceexceeded:=false;
         end else distance^[ix,iy]:=255;
-        if distance_new<maxdistance then distanceexceeded:=false;
       end;
      movement^:=movement_new^;
-  until (nomoves) or (distanceexceeded) or (movement^[to_x,to_x]<10);
+  until (nomoves) or (distanceexceeded) or (movement^[to_x,to_y]<10);
   dispose(movement_new);
 end;
 
 procedure Tform1.generatemovement(thisbot,target_x,target_y:integer); // generatenewmap,target
 begin
 if (target_x>0) and (target_x<=maxx) and (target_y>0) and (target_y<=maxy) then begin
-  generatemovement_generic(bot[thisbot].x,bot[thisbot].y,target_x,target_y,255,movement_map_for<>thisbot,bot[thisbot].owner=player);
+  generatemovement_generic(bot[thisbot].x,bot[thisbot].y,target_x,target_y,255,movement_map_for<>thisbot,bot[thisbot].owner=player{,false});
   movement_map_for:=thisbot;
 end;
 end;
@@ -618,13 +639,20 @@ end;
 procedure Tform1.bot_look_around(thisbot:integer);
 var ix,iy:integer;
     LOS:integer;
+    playerbot:integer;
 begin
  if (bot[thisbot].hp>0) then begin
    for ix:=bot[thisbot].x-visiblerange to bot[thisbot].x+visiblerange do if (ix>0) and (ix<=maxx) then
     for iy:=bot[thisbot].y-visiblerange to bot[thisbot].y+visiblerange do if (iy>0) and (iy<=maxy) then begin
       LOS:=check_LOS(bot[thisbot].x,bot[thisbot].y,ix,iy,true);
       if (bot[thisbot].owner=computer) then begin
-        if LOS>0 then if botvis^[ix,iy]<strategy_real_los then botvis^[ix,iy]:=strategy_visible;
+        if LOS>0 then begin
+           if (botvis^[ix,iy]=strategy_possibleloc) then recalculate_los_strategy:=true;
+           if cheater_type=strategy_type_cheater then
+           for playerbot:=1 to nbot do if bot[playerbot].owner=player then
+             if (bot[playerbot].x=ix) and (bot[playerbot].y=iy) then bot_look_around(playerbot);
+           if botvis^[ix,iy]<strategy_real_los then botvis^[ix,iy]:=strategy_visible;
+        end;
       end else
         if LOS>0 then botvis^[ix,iy]:=strategy_real_los;
     end;
@@ -659,10 +687,11 @@ begin
    if bot[thisbot].items[1].rechargestate>tus then dec(bot[thisbot].items[1].rechargestate,tus) else bot[thisbot].items[1].rechargestate:=0;
 
    if (bot[thisbot].owner=player) then
-     if ((oldtu>=strategy_cheater) and (bot[thisbot].tu<=strategy_cheater)) or (botvis^[bot[thisbot].x,bot[thisbot].y]=strategy_visible) then begin
+     if ((oldtu>=strategy_cheater) and (bot[thisbot].tu<=strategy_cheater)) or (botvis^[bot[thisbot].x,bot[thisbot].y]=strategy_visible) or (botvis^[bot[thisbot].x,bot[thisbot].y]=strategy_real_los) then begin
        bot[thisbot].lastseen_x :=bot[thisbot].x;
        bot[thisbot].lastseen_y :=bot[thisbot].y;
-       bot[thisbot].lastseen_tu:=bot[thisbot].tu;
+       bot[thisbot].lastseen_tu:=oldtu;
+       memo1.lines.add('[dbg/spend] '+bot[thisbot].name+' lastseen: '+inttostr(bot[thisbot].lastseen_x)+'.'+inttostr(bot[thisbot].lastseen_y)+' / '+inttostr(bot[thisbot].lastseen_tu)+' tu');
      end;
 
    spend_tu:=true;
@@ -707,7 +736,7 @@ begin
     end;
 
 //    inc(waypoint_distance,round(bot[thisbot].speed*sqrt(sqr(xx1-waypointx[waypointn])+sqr(yy1-waypointy[waypointn]))));
-  until (xx1=bot[thisbot].x) and (yy1=bot[thisbot].y);
+  until ((xx1=bot[thisbot].x) and (yy1=bot[thisbot].y)) or (waypointn>=maxwaypoints);
 end;
 
 procedure Tform1.move_bot(thisbot,to_x,to_y,use_waypoints:integer);
@@ -759,7 +788,15 @@ begin
 
      if bot[thisbot].owner=player then begin
        look_around(thisbot);
+       if botvis^[oldx,oldy]>0 then begin
+         bot[thisbot].lastseen_x :=bot[thisbot].x;
+         bot[thisbot].lastseen_y :=bot[thisbot].y;
+         bot[thisbot].lastseen_tu:=bot[thisbot].tu;
+         memo1.lines.add('[dbg/move] '+bot[thisbot].name+' lastseen: '+inttostr(bot[thisbot].lastseen_x)+'.'+inttostr(bot[thisbot].lastseen_y)+' / '+inttostr(bot[thisbot].lastseen_tu)+' tu');
+       end;
        if generate_enemy_list(true) then waypointn:=0
+     end else begin
+        if (cheater_type=strategy_type_cheater) then bot_look_around(thisbot);
      end;
      if (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) or (bot[thisbot].owner=player) then begin
        mytimer:=now;
@@ -2736,7 +2773,7 @@ begin
     if bot[nbot].owner<>player then begin
       if random<0.3 then weapon_kind:=2;
       if random<0.05 then weapon_kind:=3;
-      bot[nbot].caution:=round(sqr(random)*50);
+      bot[nbot].caution:=round(sqr(random)*50*strategy_caution);
       bot[nbot].bottype:=2;
       if random<0.1 then begin
         bot[nbot].bottype:=3;
@@ -2750,7 +2787,7 @@ begin
         bot[nbot].maxhp:=bot[nbot].maxhp div 2;
         bot[nbot].hp:=bot[nbot].maxhp;
         bot[nbot].speed:=20;
-        bot[nbot].caution:=50+round(sqrt(random)*50);
+        bot[nbot].caution:=round((50+(sqrt(random)*50))*strategy_caution);
         bot[nbot].name:=name+'(Q)';
       end;
 
@@ -3064,6 +3101,16 @@ begin
   if generatedbots>maxbots then generatedbots:=maxbots;
   edit1.text:=inttostr(generatedbots-playersn);
 
+  memo1.lines.add('...');
+
+  strategy_caution:=trackbar3.Position/100;
+  strategy_finishhim:=checkbox7.checked;
+  strategy_cheater:=trackbar2.position;
+
+  memo1.lines.add('Strategy settings:');
+  memo1.lines.add('Cheater: '+inttostr(strategy_cheater)+' tu');
+  memo1.lines.add('Caution: '+inttostr(round(100*strategy_caution))+' %');
+  if strategy_finishhim then memo1.lines.add('Shall attack WEAKER target') else memo1.lines.add('Shall attack CLOSER target');
   memo1.lines.add('...');
 
   i_bot:=playersn;
@@ -3767,37 +3814,72 @@ end;
 procedure Tform1.bot_clear_visible;
 var x1,y1,i:integer;
 begin
+  cheater_type:=strategy_type_damncheater;
+  if strategy_cheater>0 then
+  for i:=1 to nbot do if (bot[i].owner=computer) and (bot[i].action=action_attack) and (bot[i].hp>0) then cheater_type:=strategy_type_cheater;
+
+//  if cheater_type=strategy_type_cheater then
+  begin
+    for x1:=1 to maxx do
+      for y1:=1 to maxy do botvis^[x1,y1]:=0;
+    for i:=1 to nbot do if bot[i].owner=computer then bot_look_around(i);
+  end{ else begin
+    for x1:=1 to maxx do
+      for y1:=1 to maxy do if vis^[x1,y1]>oldvisible then botvis^[x1,y1]:=strategy_real_los;
+  end;}
+end;
+
+procedure Tform1.bot_calculate_possibleloc(thisbot:integer);
+var x1,y1:integer;
+    expecteddistance:byte;
+begin
+  expecteddistance:=distance_accuracy*bot[thisbot].lastseen_tu div bot[thisbot].speed;
+  generatemovement_generic(bot[thisbot].lastseen_x,bot[thisbot].lastseen_y,1,1,expecteddistance,true,false{,true});
   for x1:=1 to maxx do
-    for y1:=1 to maxy do botvis^[x1,y1]:=0;
+    for y1:=1 to maxy do if (distance^[x1,y1]<=expecteddistance) and (botvis^[x1,y1]<>strategy_visible) and (botvis^[x1,y1]<strategy_real_los) then botvis^[x1,y1]:=strategy_possibleloc;
+end;
+
+procedure Tform1.bot_calculate_possible_LOS;
+var i,x1,y1,x2,y2:integer;
+begin
+  memo1.lines.add('[dbg] los recalculated');
+  for x1:=1 to maxx do
+   for y1:=1 to maxy do if botvis^[x1,y1]=strategy_possible_los then botvis^[x1,y1]:=0;
+  for i:=1 to nbot do if bot[i].owner=computer then bot_look_around(i);
+
+  for x1:=1 to maxx do
+   for y1:=1 to maxy do if botvis^[x1,y1]=strategy_possibleloc then begin
+     for x2:=1 to maxx do
+      for y2:=1 to maxy do if (map^[x2,y2]<map_wall) and (botvis^[x2,y2]<>strategy_possibleloc) and (botvis^[x2,y2]<>strategy_possible_los) and (botvis^[x2,y2]<strategy_real_los) then
+       if check_LOS(x1,y1,x2,y2,true)>0 then botvis^[x2,y2]:=strategy_possible_los;
+   end;
+  recalculate_los_strategy:=false;
 end;
 
 procedure Tform1.bot_recalc_visible;
 var i:integer;
-    x1,y1,x2,y2:integer;
-    expecteddistance:byte;
-    calculatelos:boolean;
 begin
-  for i:=1 to nbot do if bot[i].owner=computer then bot_look_around(i);
-  calculatelos:=false;
+  memo1.lines.add('[dbg] visible recalculated');
+  recalculate_los_strategy:=false;
+  use_los_strategy:=false;
   for i:=1 to nbot do if (bot[i].owner=player) and (bot[i].hp>0) then begin
-    if (botvis^[bot[i].x,bot[i].y]=strategy_visible) {or (strategy_cheater<=bot[i].lastseen_tu) or (bot[i].lastseen_tu<bot[i].speed)} then begin
+    if (cheater_type=strategy_type_damncheater) or (botvis^[bot[i].x,bot[i].y]=strategy_visible) or (botvis^[bot[i].x,bot[i].y]=strategy_real_los) or (bot[i].lastseen_tu<bot[i].speed) then begin
       bot_look_around(i);  // REAL LOS
     end else begin
-      calculatelos:=true;
-      expecteddistance:=distance_accuracy*bot[i].lastseen_tu div bot[i].speed;
-      generatemovement_generic(bot[i].lastseen_x,bot[i].lastseen_y,1,1,expecteddistance,true,false);
-      for x1:=1 to maxx do
-        for y1:=1 to maxy do if (distance^[x1,y1]<=expecteddistance) and (botvis^[x1,y1]<>strategy_visible) and (botvis^[x1,y1]<strategy_real_los) then botvis^[x1,y1]:=strategy_possibleloc;
-    end
+      if bot[i].lastseen_tu>strategy_cheater then begin
+        bot[i].lastseen_x:=bot[i].x;
+        bot[i].lastseen_y:=bot[i].y;
+        bot[i].lastseen_tu:=strategy_cheater;
+      end;
+      recalculate_los_strategy:=true;
+      use_los_strategy:=true;
+      bot_calculate_possibleloc(i);
+    end;
+    memo1.lines.add('[dbg/recalc] '+bot[i].name+' lastseen: '+inttostr(bot[i].lastseen_x)+'.'+inttostr(bot[i].lastseen_y)+' / '+inttostr(bot[i].lastseen_tu)+' tu');
   end;
-  if calculatelos then begin
-    for x1:=1 to maxx do
-     for y1:=1 to maxy do if botvis^[x1,y1]=strategy_possibleloc then begin
-       for x2:=1 to maxx do
-        for y2:=1 to maxy do if (map^[x2,y2]<map_wall) and (botvis^[x2,y2]<>strategy_possibleloc) and (botvis^[x2,y2]<>strategy_possible_los) and (botvis^[x2,y2]<strategy_real_los) then
-         if check_LOS(x1,y1,x2,y2,true)>0 then botvis^[x2,y2]:=strategy_possible_los;
-     end;
-  end;
+  if not use_los_strategy then cheater_type:=strategy_type_damncheater;
+{  need_los_strategy:=false;
+  for i:=1 to nbot do if (bot[i].owner=player) and (bot[i].owner=attack) then need_los_strategy:=true;}
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -3817,7 +3899,12 @@ var LOS_targets:array[1..max_los_targets] of integer;
     I_am_visible:boolean;
 begin
   passcount:=0;
+//  if cheater_type=strategy_type_cheater then bot_look_around(thisbot);
   repeat
+      if cheater_type=strategy_type_cheater then begin
+        if {(bot[thisbot].action=action_attack) and} (recalculate_los_strategy) and (use_los_strategy) then bot_calculate_possible_los;
+      end;
+
     stopactions:=false;
     inc(passcount);
     if passcount>250 then stopactions:=true;
@@ -3926,10 +4013,11 @@ begin
 
     //Escape visible range or at least minimize LOS
     timetoshot:=bot[thisbot].items[1].rechargestate+weapon_specifications[bot[thisbot].items[1].w_id].aim;
-    cautiontime:=timetoshot+round(bot[thisbot].caution*strategy_caution);
+    cautiontime:=timetoshot+bot[thisbot].caution;
     if 255-cautiontime<timetoshot then cautiontime:=timetoshot;
     if strategy_hide then
     if (bot[thisbot].tu<cautiontime) and (bot[thisbot].tu>=bot[thisbot].speed) and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) then begin
+     memo1.lines.add('[dbg] '+bot[thisbot].name+' caution time used '+inttostr(bot[thisbot].tu)+' of '+inttostr(cautiontime));
       x1:=bot[thisbot].x;
       y1:=bot[thisbot].y;
       generatemovement(thisbot,bot[bot[thisbot].target].x,bot[bot[thisbot].target].y); //buggy
@@ -3989,7 +4077,7 @@ begin
           if ((k<>0) and (j<=1+timetoshot/(bot[thisbot].speed*sqrt(2))) and (bot[thisbot].items[1].rechargestate>=bot[thisbot].speed*sqrt(sqr(bot[thisbot].x-x1)+sqr(bot[thisbot].y-y1)))) or (k=0) then move_bot(thisbot,x1,y1,1)
         end else
           if (k=0) then stopactions:=true;
-        bot_recalc_visible;
+//        bot_recalc_visible;
       end;
     end;
     //action/random - walk around
@@ -4029,7 +4117,9 @@ begin
   end;
 
   bot_clear_visible;
+  if cheater_type=strategy_type_cheater then memo1.lines.add('[dbg/clear] weak cheater') else memo1.lines.add('[dbg] damncheater');
   bot_recalc_visible;
+  if cheater_type=strategy_type_cheater then memo1.lines.add('[dbg/recalc] weak cheater') else memo1.lines.add('[dbg] damncheater');
 
   set_progressbar(true);
   progressbar1.max:=nbot;
@@ -4054,13 +4144,23 @@ begin
   set_progressbar(false);
   memo1.lines.add('TURN: '+inttostr(current_turn));
   grow_smoke;
-  clear_visible;
 
+  clear_visible;
   bot_clear_visible;
-  bot_recalc_visible;
 
   n1:=0; n2:=0;
-  for i:=1 to nbot do if bot[i].hp>0 then begin if bot[i].owner=player then begin spend_tu(i,bot[i].tu); bot[i].tu:=255; inc(n2) end else inc(n1); end;
+  for i:=1 to nbot do if bot[i].hp>0 then begin
+    if (bot[i].owner=player) then begin
+      if (bot[i].tu>0) then spend_tu(i,bot[i].tu);
+      bot[i].tu:=255;
+      bot[i].lastseen_x :=bot[i].x;
+      bot[i].lastseen_y :=bot[i].y;
+      bot[i].lastseen_tu:=bot[i].tu;
+      memo1.lines.add('[dbg/newturn] '+bot[i].name+' lastseen: '+inttostr(bot[i].lastseen_x)+'.'+inttostr(bot[i].lastseen_y)+' / '+inttostr(bot[i].lastseen_tu)+' tu');
+      inc(n2)
+    end else
+      inc(n1);
+  end;
   if (n1<n2) or (n1<3) then begin
     for i:=1 to nbot do if (bot[i].hp>0) and (bot[i].owner=computer) and (bot[i].action<>action_attack) then begin
       bot[i].action:=action_attack;
@@ -4835,6 +4935,15 @@ begin
  label13.visible:=false;
  {$ENDIF}
 
+  label16.visible:=flg;
+  label17.visible:=flg;
+  label18.visible:=flg;
+  label19.visible:=flg;
+  label20.visible:=flg;
+  checkbox7.visible:=flg;
+  trackbar2.visible:=flg;
+  trackbar3.visible:=flg;
+
  if mapgenerated then begin
    if gamemode>200 then button4.enabled:=true else button4.enabled:=false;
    if gamemode>200 then button3.enabled:=true else button3.enabled:=false;
@@ -5405,7 +5514,7 @@ begin
               end;
             end;
           end;
-          //++++++++++++++++++++++++++++++++++++++++++++++++++++++
+{          //++++++++++++++++++++++++++++++++++++++++++++++++++++++
           if (botvis^[mx,my]=strategy_possibleloc) then begin
               brush.style:= bsCross;
               brush.color:= clred;
@@ -5416,7 +5525,7 @@ begin
               brush.color:= clyellow;
               fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
           end;
-          //++++++++++++++++++++++++++++++++++++++++++++++
+          //++++++++++++++++++++++++++++++++++++++++++++++}
           if vis^[mx,my]=0 then begin
             brush.style:= bsDiagCross;
             brush.color:=$990000;
