@@ -40,9 +40,9 @@ object Form1: TForm1
   end
   object Label1: TLabel
     Left = 869
-    Height = 10
+    Height = 9
     Top = 483
-    Width = 35
+    Width = 43
     Caption = 'display ms'
     Font.Color = clWhite
     Font.Height = -8
@@ -154,9 +154,9 @@ object Form1: TForm1
   end
   object CheckBox2: TCheckBox
     Left = 866
-    Height = 17
+    Height = 18
     Top = 464
-    Width = 59
+    Width = 78
     Caption = 'Confirm?'
     Color = clDefault
     Font.Color = clWhite
@@ -169,12 +169,12 @@ object Form1: TForm1
   end
   object ComboBox1: TComboBox
     Left = 334
-    Height = 24
+    Height = 21
     Top = 224
     Width = 261
     Font.Height = -13
     Font.Name = 'Sans'
-    ItemHeight = 16
+    ItemHeight = 0
     ItemIndex = 0
     Items.Strings = (
       '* Any *'
@@ -228,9 +228,9 @@ object Form1: TForm1
   end
   object RadioButton1: TRadioButton
     Left = 334
-    Height = 20
+    Height = 18
     Top = 288
-    Width = 79
+    Width = 86
     Caption = 'No smoke'
     Checked = True
     Font.CharSet = RUSSIAN_CHARSET
@@ -246,9 +246,9 @@ object Form1: TForm1
   end
   object RadioButton2: TRadioButton
     Left = 334
-    Height = 20
+    Height = 18
     Top = 312
-    Width = 149
+    Width = 163
     Caption = '20% chance of smoke'
     Font.CharSet = RUSSIAN_CHARSET
     Font.Color = clWhite
@@ -262,9 +262,9 @@ object Form1: TForm1
   end
   object RadioButton3: TRadioButton
     Left = 334
-    Height = 20
+    Height = 18
     Top = 336
-    Width = 157
+    Width = 174
     Caption = '100% smoke generated'
     Font.Color = clWhite
     Font.Height = -13
@@ -303,7 +303,7 @@ object Form1: TForm1
     Left = 379
     Height = 22
     Top = 176
-    Width = 202
+    Width = 232
     Caption = 'Map generation options:'
     Font.Color = clWhite
     Font.Height = -19
@@ -313,9 +313,9 @@ object Form1: TForm1
   end
   object Label3: TLabel
     Left = 334
-    Height = 13
+    Height = 15
     Top = 208
-    Width = 49
+    Width = 64
     Caption = 'Map type:'
     Font.Color = clWhite
     ParentColor = False
@@ -323,7 +323,7 @@ object Form1: TForm1
   end
   object Edit1: TEdit
     Left = 390
-    Height = 21
+    Height = 25
     Top = 384
     Width = 48
     Color = 6902354
@@ -336,9 +336,9 @@ object Form1: TForm1
   end
   object Label4: TLabel
     Left = 344
-    Height = 13
+    Height = 15
     Top = 391
-    Width = 30
+    Width = 39
     Caption = 'BOTS:'
     Font.Color = clWhite
     ParentColor = False
@@ -374,7 +374,7 @@ object Form1: TForm1
   end
   object Edit2: TEdit
     Left = 555
-    Height = 24
+    Height = 25
     Top = 256
     Width = 48
     Color = 6902354
@@ -391,7 +391,7 @@ object Form1: TForm1
   end
   object Label5: TLabel
     Left = 336
-    Height = 16
+    Height = 15
     Top = 264
     Width = 163
     Caption = 'Map size (min 30...max 50):'
@@ -406,9 +406,9 @@ object Form1: TForm1
   end
   object Label6: TLabel
     Left = 393
-    Height = 13
+    Height = 15
     Top = 368
-    Width = 32
+    Width = 45
     Caption = 'Enemy'
     Font.Color = clWhite
     ParentColor = False
@@ -416,7 +416,7 @@ object Form1: TForm1
   end
   object Edit3: TEdit
     Left = 390
-    Height = 21
+    Height = 25
     Top = 408
     Width = 48
     Color = 6902354
@@ -428,9 +428,9 @@ object Form1: TForm1
   end
   object Label7: TLabel
     Left = 526
-    Height = 13
+    Height = 15
     Top = 368
-    Width = 21
+    Width = 27
     Caption = 'YOU'
     Font.Color = clWhite
     ParentColor = False
@@ -438,7 +438,7 @@ object Form1: TForm1
   end
   object Edit4: TEdit
     Left = 518
-    Height = 21
+    Height = 25
     Top = 408
     Width = 48
     Color = 6902354
@@ -450,9 +450,9 @@ object Form1: TForm1
   end
   object Label8: TLabel
     Left = 584
-    Height = 13
+    Height = 15
     Top = 496
-    Width = 68
+    Width = 94
     Caption = 'Formal test ok'
     Color = clLime
     Font.Color = clBlack
@@ -462,9 +462,9 @@ object Form1: TForm1
   end
   object Label10: TLabel
     Left = 328
-    Height = 13
+    Height = 15
     Top = 472
-    Width = 111
+    Width = 154
     Caption = 'Difficulty estimate here'
     Font.Color = clWhite
     ParentColor = False
@@ -489,7 +489,7 @@ object Form1: TForm1
   end
   object Edit5: TEdit
     Left = 518
-    Height = 21
+    Height = 25
     Top = 385
     Width = 48
     Color = 6902354
@@ -501,7 +501,7 @@ object Form1: TForm1
   end
   object Label12: TLabel
     Left = 576
-    Height = 16
+    Height = 15
     Top = 388
     Width = 37
     Caption = '(1..16)'
@@ -516,9 +516,9 @@ object Form1: TForm1
   end
   object CheckBox1: TCheckBox
     Left = 328
-    Height = 20
+    Height = 18
     Top = 440
-    Width = 103
+    Width = 115
     Caption = 'Defense mode'
     Color = clDefault
     Font.CharSet = RUSSIAN_CHARSET
@@ -555,9 +555,9 @@ object Form1: TForm1
   end
   object CheckBox3: TCheckBox
     Left = 491
-    Height = 20
+    Height = 18
     Top = 440
-    Width = 104
+    Width = 114
     Caption = 'Bazooka party'
     Color = clDefault
     Font.CharSet = RUSSIAN_CHARSET
@@ -587,9 +587,9 @@ object Form1: TForm1
   end
   object CheckBox4: TCheckBox
     Left = 320
-    Height = 17
+    Height = 18
     Top = 144
-    Width = 85
+    Width = 109
     Caption = 'Tutorial mode'
     Color = clDefault
     Enabled = False
@@ -600,9 +600,9 @@ object Form1: TForm1
   end
   object Label14: TLabel
     Left = 344
-    Height = 13
+    Height = 15
     Top = 415
-    Width = 17
+    Width = 22
     Caption = 'HP:'
     Font.Color = clWhite
     ParentColor = False
@@ -610,7 +610,7 @@ object Form1: TForm1
   end
   object Edit6: TEdit
     Left = 512
-    Height = 21
+    Height = 25
     Top = 491
     Width = 48
     Color = 6902354
@@ -622,9 +622,9 @@ object Form1: TForm1
   end
   object CheckBox5: TCheckBox
     Left = 328
-    Height = 17
+    Height = 18
     Top = 495
-    Width = 103
+    Width = 136
     Caption = 'Demand difficulty'
     Checked = True
     Color = clDefault
@@ -637,15 +637,15 @@ object Form1: TForm1
   end
   object Label15: TLabel
     Left = 608
-    Height = 13
+    Height = 15
     Top = 261
-    Width = 6
+    Width = 8
     Caption = 'x'
     ParentColor = False
   end
   object Edit7: TEdit
     Left = 624
-    Height = 24
+    Height = 25
     Top = 256
     Width = 48
     Color = 6902354
@@ -662,9 +662,9 @@ object Form1: TForm1
   end
   object CheckBox6: TCheckBox
     Left = 544
-    Height = 17
+    Height = 18
     Top = 280
-    Width = 109
+    Width = 143
     Caption = 'Generate buildings'
     Checked = True
     Font.Color = clWhite
@@ -674,9 +674,9 @@ object Form1: TForm1
   end
   object Label16: TLabel
     Left = 76
-    Height = 16
+    Height = 15
     Top = 496
-    Width = 120
+    Width = 124
     Caption = 'STRATEGY settings'
     Font.CharSet = RUSSIAN_CHARSET
     Font.Color = clWhite
@@ -701,9 +701,9 @@ object Form1: TForm1
   end
   object Label17: TLabel
     Left = 20
-    Height = 12
+    Height = 10
     Top = 528
-    Width = 33
+    Width = 38
     Caption = 'Cheater'
     Font.Color = clWhite
     Font.Height = -9
@@ -713,9 +713,9 @@ object Form1: TForm1
   end
   object Label18: TLabel
     Left = 228
-    Height = 12
+    Height = 10
     Top = 528
-    Width = 30
+    Width = 34
     Caption = 'Honest'
     Font.Color = clWhite
     Font.Height = -9
@@ -735,9 +735,9 @@ object Form1: TForm1
   end
   object Label19: TLabel
     Left = 18
-    Height = 12
+    Height = 10
     Top = 568
-    Width = 42
+    Width = 46
     Caption = 'Agressive'
     Font.Color = clWhite
     Font.Height = -9
@@ -747,9 +747,9 @@ object Form1: TForm1
   end
   object Label20: TLabel
     Left = 228
-    Height = 12
+    Height = 10
     Top = 568
-    Width = 37
+    Width = 42
     Caption = 'Cautious'
     Font.Color = clWhite
     Font.Height = -9
@@ -759,9 +759,9 @@ object Form1: TForm1
   end
   object CheckBox7: TCheckBox
     Left = 16
-    Height = 17
+    Height = 18
     Top = 592
-    Width = 127
+    Width = 164
     Caption = 'Attack weaker targets'
     Checked = True
     Color = clDefault
@@ -773,9 +773,9 @@ object Form1: TForm1
   end
   object Label21: TLabel
     Left = 16
-    Height = 13
+    Height = 15
     Top = 672
-    Width = 51
+    Width = 67
     Caption = 'Language:'
     Font.Color = clWhite
     ParentColor = False
@@ -787,7 +787,7 @@ object Form1: TForm1
     Top = 665
     Width = 100
     BorderStyle = bsSingle
-    ItemHeight = 13
+    ItemHeight = 0
     ItemIndex = 0
     Items.Strings = (
       'English'
@@ -800,9 +800,9 @@ object Form1: TForm1
   end
   object CheckBox8: TCheckBox
     Left = 16
-    Height = 17
+    Height = 18
     Top = 640
-    Width = 117
+    Width = 151
     Caption = 'Generate battle info'
     Font.Color = clWhite
     ParentFont = False

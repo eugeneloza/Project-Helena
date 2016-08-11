@@ -5727,9 +5727,6 @@ begin
  edit6.Visible:=flg;
  checkbox5.Visible:=flg;
  checkbox6.visible:=flg;
- {$IFDEF UNIX}
- label13.visible:=false;
- {$ENDIF}
 
   label16.visible:=flg;
   label17.visible:=flg;
