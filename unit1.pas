@@ -90,13 +90,13 @@ const map_free=0;
       map_generation3=244;
       map_generation4=243;
 
-      statuspattern=32-1; //00011111
-      tilepattern=96;     //01100000 shr 5
+//      statuspattern=32-1; //00011111
+//      tilepattern=96;     //01100000 shr 5
 
-      map_tile1=0;        // .00.....
-      map_tile2=32;       // .01.....
-      map_tile3=64;       // .10.....
-      map_tile4=96;       // .11.....
+//      map_tile1=0;        // .00.....
+//      map_tile2=32;       // .01.....
+//      map_tile3=64;       // .10.....
+//      map_tile4=96;       // .11.....
 
 const gamemode_game=255;
       gamemode_victory=254;
@@ -318,7 +318,8 @@ var
   Form1: TForm1;
 {  MapDrawing: TDrawMap;     }
 
-  map,vis,movement,distance,mapchanged:^map_array;
+  map,map_status,vis,movement,distance,mapchanged:^map_array;
+  mapg:^map_array;
   mapbuildings:array[1..maxbuildings]of string;
   nbuildings:integer;
   LOS_base:^map_array;
@@ -493,7 +494,7 @@ begin
     xx1:=x1+round(dx*range / maxrange);
     yy1:=y1+round(dy*range / maxrange);
     if smoker=true then begin
-      if map^[xx1,yy1]<map_wall then dec(L,map^[xx1,yy1] and statuspattern+2)
+      if map^[xx1,yy1]<map_wall then dec(L,map_status^[xx1,yy1])
     end else
       if map^[xx1,yy1]<map_wall then dec(L,2);
     if (map^[xx1,yy1]>=map_wall) and ((xx1<>x2) or (yy1<>y2)) then L:=-1;
@@ -717,11 +718,11 @@ procedure generate_map_makewalls(generatorseed:byte);
 var ix,iy:integer;
 begin
  for ix:=1 to maxx do
-   for iy:= 1 to maxy do map^[ix,iy]:=generatorseed;
+   for iy:= 1 to maxy do mapg^[ix,iy]:=generatorseed;
 end;
 
 {--------------------------------------------------------------------------------------}
-procedure generate_map_cocon; //???
+procedure generate_map_cocon;
 var ix,iy,cx,cy:integer;
     dx,dy:integer;
     map_seed:float;
@@ -730,32 +731,34 @@ var ix,iy,cx,cy:integer;
 begin
   random_tiles:=false;
   form1.memo1.lines.add('COCON MAP * no');
-  cx:=round((2+random)*maxx/5);
-  cy:=round((2+random)*maxy/5);
+  if map_parameter1=-1 then map_parameter1:=(2+random)*maxx/5;
+  cx:=round(map_parameter1);
+  if map_parameter2=-1 then map_parameter2:=(2+random)*maxy/5;
+  cy:=round(map_parameter2);
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
        map_seed:=1.5*sqrt((sqr(ix-cx+0.0001)+sqr(iy-cy+0.0001)+1)/(sqr((maxx +0.0001)/ 2)+sqr((maxy+0.0001) / 2)+1));
        if 1>map_seed then tile:=3 else
        if 0.5>map_seed then tile:=2 else
                             tile:=1;
-       if (random>map_seed) or (random<0.3) then map^[ix,iy]:=map_generation_wall+tile else map^[ix,iy]:=map_generation_free+tile;
+       if (random>map_seed) or (random<0.3) then mapg^[ix,iy]:=map_generation_wall+tile else mapg^[ix,iy]:=map_generation_free+tile;
      end;
 
-  map^[cx,cy]:=map_generation1;
+  mapg^[cx,cy]:=map_generation1;
   repeat
    flgx:=true;
    for ix:=2 to maxx-1 do
-     for iy:=2 to maxy-1 do if (map^[ix,iy]<map_generation_free) and (map^[ix,iy]>=map_generation_wall) then begin
+     for iy:=2 to maxy-1 do if (mapg^[ix,iy]<map_generation_free) and (mapg^[ix,iy]>=map_generation_wall) then begin
        flg:=false;
        for dx:=-1 to 1 do
         for dy:=-1 to 1 do
-           if map^[ix+dx,iy+dy]=map_generation1 then flg:=true;
+           if mapg^[ix+dx,iy+dy]=map_generation1 then flg:=true;
        for dx:=-1 to 1 do
          for dy:=-1 to 1 do
-           if map^[ix+dx,iy+dy]>=map_generation_free then flg:=false;
+           if mapg^[ix+dx,iy+dy]>=map_generation_free then flg:=false;
 
        if flg then begin
-         map^[ix,iy]:=map_generation1;
+         mapg^[ix,iy]:=map_generation1;
          flgx:=false;
        end;
      end;
@@ -764,14 +767,14 @@ begin
   repeat
     ix:=round(random*(maxx-3))+2;
     iy:=round(random*(maxy-3))+2;
-  until (map^[ix,iy]>=map_generation_free);
+  until (mapg^[ix,iy]>=map_generation_free);
 
   for dx:=0 to max_max_value do
-    map^[cx+round((ix-cx)*dx/max_max_value),cy+round((iy-cy)*dx/max_max_value)]:=map_generation1;
+    mapg^[cx+round((ix-cx)*dx/max_max_value),cy+round((iy-cy)*dx/max_max_value)]:=map_generation1;
 
   for ix:=2 to maxx-1 do
     for iy:=2 to maxy-1 do
-      if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_free+0;
+      if mapg^[ix,iy]=map_generation1 then mapg^[ix,iy]:=map_generation_free+0;
 end;
 
 {----------------------------------------------------------------------------------}
@@ -780,11 +783,12 @@ procedure generate_map_random;
 var ix,iy:integer;
     map_seed:float;
 begin
-  map_seed:=0.4+0.3*random;
+  if map_parameter1=-1 then map_parameter1:=0.4+0.3*random;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('RANDOM MAP * '+inttostr(round(map_seed*100)));
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
-       if random>map_seed then map^[ix,iy]:=map_generation_wall else map^[ix,iy]:=map_generation_free;
+       if random>map_seed then mapg^[ix,iy]:=map_generation_wall else mapg^[ix,iy]:=map_generation_free;
      end;
 end;
 
@@ -797,7 +801,8 @@ var ix,iy,i:integer;
     cx,cy,r:array[1..maxcircles] of integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  Ncircles:=round(sqr(sqr(random))*(max_max_value/10-1))+1;
+  if map_parameter1=-1 then map_parameter1:=sqr(sqr(random))*(max_max_value/10-1);
+  Ncircles:=round(map_parameter1)+1;
   if NCircles>maxcircles then NCircles:=maxcircles;
   form1.memo1.lines.add('RANDOM CIRCLES MAP * '+inttostr(Ncircles));
   for i:=1 to NCircles do begin
@@ -808,7 +813,7 @@ begin
   for ix:=1 to maxx do
     for iy:= 1 to maxy do
       for i:=1 to NCircles do begin
-       if ((sqrt(random))>sqrt(sqr(ix-cx[i])+sqr(iy-cy[i]))/r[i]) or (random>0.9) then map^[ix,iy]:=map_generation_free;
+       if ((sqrt(random))>sqrt(sqr(ix-cx[i])+sqr(iy-cy[i]))/r[i]) or (random>0.9) then mapg^[ix,iy]:=map_generation_free;
      end;
 end;
 
@@ -819,7 +824,8 @@ var ix,iy,i,dx,dy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_seed:=0.4+random/4;
+  if map_parameter1=-1 then map_parameter1:=0.4+random/4;
+  map_seed:=map_parameter;
   form1.memo1.lines.add('CIRCLES MAP * '+inttostr(round(map_seed*100)));
   repeat
     i:=round(sqr(sqr(random))*max_max_value/5)+4;
@@ -827,10 +833,10 @@ begin
     iy:=round(random*(maxy-1)+1);
     for dx:=-i to i do
      for dy:=-i to i do
-      if (sqr(dx)+sqr(dy)<=i) and (ix+dx>0) and (iy+dy>0) and (ix+dx<=maxx) and (iy+dy<=maxy) then map^[ix+dx,iy+dy]:=map_generation_free;
+      if (sqr(dx)+sqr(dy)<=i) and (ix+dx>0) and (iy+dy>0) and (ix+dx<=maxx) and (iy+dy<=maxy) then mapg^[ix+dx,iy+dy]:=map_generation_free;
         i:=0;
         for ix:=1 to maxx do
-          for iy:= 1 to maxy do if map^[ix,iy]=map_generation_free then inc(i);
+          for iy:= 1 to maxy do if mapg^[ix,iy]=map_generation_free then inc(i);
   until (i/maxx/maxy>map_seed);
 end;
 
@@ -840,8 +846,9 @@ procedure generate_map_anticircles;
 var ix,iy,i,dx,dy:integer;
     map_seed:float;
 begin
-  map_seed:=0.3+random/3;
   generate_map_makewalls(map_generation_free);
+  if map_parameter1=-1 then map_parameter1:=0.3+random/3;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('ANTI-CIRCLES MAP * '+inttostr(round(map_seed*100)));
   repeat
     i:=round(sqr(sqr(random))*max_max_value/5)+1;
@@ -849,10 +856,10 @@ begin
     iy:=round(random*(maxy-1)+1);
     for dx:=-i to i do
      for dy:=-i to i do
-      if (sqr(dx)+sqr(dy)<=i) and (ix+dx>0) and (iy+dy>0) and (ix+dx<=maxx) and (iy+dy<=maxy) then map^[ix+dx,iy+dy]:=map_generation_wall;
+      if (sqr(dx)+sqr(dy)<=i) and (ix+dx>0) and (iy+dy>0) and (ix+dx<=maxx) and (iy+dy<=maxy) then mapg^[ix+dx,iy+dy]:=map_generation_wall;
         i:=0;
          for ix:=1 to maxx do
-           for iy:= 1 to maxy do if map^[ix,iy]=map_generation_free then inc(i);
+           for iy:= 1 to maxy do if mapg^[ix,iy]=map_generation_free then inc(i);
    until (i/maxx/maxy<map_seed) or (random<0.00001);
 end;
 
@@ -862,9 +869,10 @@ procedure generate_map_rectagonal;
 var ix,iy,i,dx,dy:integer;
     map_seed:float;
 begin
-  map_seed:=0.2+random*0.6;
-  form1.memo1.lines.add('RECTAGONAL MAP * '+inttostr(round(map_seed*100)));
   generate_map_makewalls(map_generation_wall);
+  if map_parameter1=-1 then map_parameter1:=0.2+random*0.6;
+  map_seed:=map_parameter1;
+  form1.memo1.lines.add('RECTAGONAL MAP * '+inttostr(round(map_seed*100)));
 
   repeat
     i:=round(random*max_max_value/3);
@@ -872,20 +880,20 @@ begin
     iy:=round(random*(maxy-1))+1;
     if random>0.5 then begin
      if random>0.5 then begin
-       for dx:=ix to ix+i do if dx<=maxx then map^[dx,iy]:=map_generation_free
+       for dx:=ix to ix+i do if dx<=maxx then mapg^[dx,iy]:=map_generation_free
      end else begin
-       for dx:=ix-i to ix do if dx>0 then map^[dx,iy]:=map_generation_free;
+       for dx:=ix-i to ix do if dx>0 then mapg^[dx,iy]:=map_generation_free;
      end;
     end else begin
      if random>0.5 then begin
-       for dy:=iy to iy+i do if dy<=maxy then map^[ix,dy]:=map_generation_free;
+       for dy:=iy to iy+i do if dy<=maxy then mapg^[ix,dy]:=map_generation_free;
      end else begin
-       for dy:=iy-i to iy do if dy>0 then map^[ix,dy]:=map_generation_free;
+       for dy:=iy-i to iy do if dy>0 then mapg^[ix,dy]:=map_generation_free;
      end
     end;
     i:=0;
     for ix:=1 to maxx do
-      for iy:= 1 to maxy do if map^[ix,iy]=map_generation_free then inc(i);
+      for iy:= 1 to maxy do if mapg^[ix,iy]=map_generation_free then inc(i);
   until (i/maxx/maxy>map_seed);
 end;
 
@@ -895,18 +903,21 @@ procedure generate_map_block;
 var ix,iy,iix,iiy,dx,dy:integer;
     map_seed:float;
 begin
-  map_seed:=0.45+random/5;
   generate_map_makewalls(map_generation_wall);
+  if map_parameter1=-1 then map_parameter1:=0.45+random/5;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('BLOCK MAP * '+inttostr(round(map_seed*100)));
 
 
-  dx:=round(random*5)+1;
-  dy:=round(random*5)+1;
+  if map_parameter2=-1 then map_parameter2:=random*5;
+  dx:=round(map_parameter2)+1;
+  if map_parameter3=-1 then map_parameter3:=random*5;
+  dy:=round(map_parameter3)+1;
   if (dx=1) and (dy=1) then dx:=2;
   for ix:=1 to maxx div dx do
    for iy:=1 to maxy div dy do if random>map_seed then begin
      for iix:=ix*dx to (ix+1)*dx-1 do
-      for iiy:=iy*dy to (iy+1)*dy-1 do if (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then map^[iix,iiy]:=map_generation_free;
+      for iiy:=iy*dy to (iy+1)*dy-1 do if (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then mapg^[iix,iiy]:=map_generation_free;
    end;
 end;
 
@@ -916,17 +927,19 @@ procedure generate_map_diamonds;
 var ix,iy,iix,iiy,dx,dy:integer;
     map_seed:float;
 begin
-  map_seed:=0.22+random/8;
   generate_map_makewalls(map_generation_wall);
+  if map_parameter1=-1 then map_parameter1:=0.22+random/8;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('DIAMONDS MAP * '+inttostr(round(map_seed*100)));
 
-  dx:=round(random*5)+3;
+  if map_parameter2=-1 then map_parameter2:=random*5;
+  dx:=round(map_parameter2)+3;
   dy:=dx;
 //      if (dx=1) and (dy=1) then dx:=2;
   for ix:=0 to maxx div dx do
   for iy:=0 to maxy div dy do if (random>map_seed) then begin
     for iix:=ix*dx to (ix+1)*dx do
-    for iiy:=iy*dy to (iy+1)*dy do if (abs((ix+0.5)*dx-iix)+abs((iy+0.5)*dy-iiy)<dx/1.9) and (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then map^[iix,iiy]:=map_generation_free;
+    for iiy:=iy*dy to (iy+1)*dy do if (abs((ix+0.5)*dx-iix)+abs((iy+0.5)*dy-iiy)<dx/1.9) and (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then mapg^[iix,iiy]:=map_generation_free;
   end;
 end;
 
@@ -936,31 +949,32 @@ procedure generate_map_tmap;
 var ix,iy:integer;
     map_seed:float;
 begin
-  map_seed:=0.2+random/8;
   generate_map_makewalls(map_generation_wall);
+  if map_parameter1=-1 then map_parameter1:=0.2+random/8;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('T MAP * '+inttostr(round(map_seed*100)));
 
   for ix:=0 to maxx div 4-1 do
    for iy:=0 to maxy div 4-1 do begin
-     map^[ix*4+2,iy*4+2]:=map_generation_free;
-     map^[ix*4+3,iy*4+3]:=map_generation_free;
-     map^[ix*4+3,iy*4+2]:=map_generation_free;
-     map^[ix*4+2,iy*4+3]:=map_generation_free;
+     mapg^[ix*4+2,iy*4+2]:=map_generation_free;
+     mapg^[ix*4+3,iy*4+3]:=map_generation_free;
+     mapg^[ix*4+3,iy*4+2]:=map_generation_free;
+     mapg^[ix*4+2,iy*4+3]:=map_generation_free;
      if random>map_seed then begin
-       map^[ix*4+1,iy*4+2]:=map_generation_free;
-       map^[ix*4+1,iy*4+3]:=map_generation_free;
+       mapg^[ix*4+1,iy*4+2]:=map_generation_free;
+       mapg^[ix*4+1,iy*4+3]:=map_generation_free;
      end;
      if random>map_seed then begin
-       map^[ix*4+4,iy*4+2]:=map_generation_free;
-       map^[ix*4+4,iy*4+3]:=map_generation_free;
+       mapg^[ix*4+4,iy*4+2]:=map_generation_free;
+       mapg^[ix*4+4,iy*4+3]:=map_generation_free;
      end;
      if random>map_seed then begin
-       map^[ix*4+2,iy*4+1]:=map_generation_free;
-       map^[ix*4+3,iy*4+1]:=map_generation_free;
+       mapg^[ix*4+2,iy*4+1]:=map_generation_free;
+       mapg^[ix*4+3,iy*4+1]:=map_generation_free;
      end;
      if random>map_seed then begin
-       map^[ix*4+2,iy*4+4]:=map_generation_free;
-       map^[ix*4+3,iy*4+4]:=map_generation_free;
+       mapg^[ix*4+2,iy*4+4]:=map_generation_free;
+       mapg^[ix*4+3,iy*4+4]:=map_generation_free;
      end;
   end;
 end;
@@ -976,7 +990,8 @@ var ix,iy,i:integer;
     maxlinearsinus:integer;
 begin
  maxlinearsinus:=max_max_value div 2;
- maptype:=round(random*1.3+0.45);
+ if map_parameter1=-1 then map_parameter1:=random*1.3+0.45;
+ maptype:=round(map_parameter1);
  form1.memo1.lines.add('LINEAR SINUS MAP * type'+inttostr(maptype));
  for i:=1 to maxlinearsinus do begin
    sum:=random;
@@ -994,7 +1009,7 @@ begin
   for iy:=1 to maxy do begin
     sum:=0;
     for i:=1 to maxlinearsinus do sum:=sum+(amp[i]*sin(frqx[i]*ix/maxx+frqy[i]*iy/maxy+phase[i]));
-    if sum>0 then map^[ix,iy]:=map_generation_wall else map^[ix,iy]:=map_generation_free;
+    if sum>0 then mapg^[ix,iy]:=map_generation_wall else mapg^[ix,iy]:=map_generation_free;
  end;
 end;
 
@@ -1010,7 +1025,8 @@ begin
   generate_map_makewalls(map_generation_wall);
   room_min:=3;
   room_max:=min_max_value div 5;
-  room_n:=round(sqr(sqr(random))*(sqrt(maxx*maxy/sqr(room_max+3))))+3;
+  if map_parameter1=-1 then map_parameter1:=sqr(sqr(random))*(sqrt(maxx*maxy/sqr(room_max+3)));
+  room_n:=round(map_parameter1)+3;
   pass_min:=min_max_value div 5;
   pass_max:=max_max_value div 2;
   form1.memo1.lines.add('ROOMS MAP * '+inttostr(room_n));
@@ -1023,8 +1039,8 @@ begin
     pass:=0;
     for ix:=sx to sx+roomx do
      for iy:=sy to sy+roomy do begin
-        map^[ix,iy]:=map_generation_free;
-       // if (ix=sx) or (ix=sx+roomx) or (iy=sy) or (iy=roomy) then if random>0.1/(roomx+roomy) then map^[ix,iy]:=map_generation1 else begin inc(pass); map^[ix,iy]:=map_generation2; end;
+        mapg^[ix,iy]:=map_generation_free;
+       // if (ix=sx) or (ix=sx+roomx) or (iy=sy) or (iy=roomy) then if random>0.1/(roomx+roomy) then mapg^[ix,iy]:=map_generation1 else begin inc(pass); mapg^[ix,iy]:=map_generation2; end;
      end;
 
      //make 1 tunnel
@@ -1038,7 +1054,7 @@ begin
           ix:=ix+dx;
           iy:=iy+dy;
           if (ix>0) and (ix<maxx) and (iy>0) and (iy<maxy) then
-             map^[ix,iy]:=map_generation_free
+             mapg^[ix,iy]:=map_generation_free
           else pass:=0;
           dec(pass);
         until (pass<=0);
@@ -1057,29 +1073,29 @@ begin
       ix:=round(random*(maxx-4))+2;
       iy:=round(random*(maxy-4))+2;
       generatecoords:=false;
-    until map^[ix,iy]=map_generation2;
+    until mapg^[ix,iy]=map_generation2;
 
     if random>0.5 then begin dx:=round(random*2)-1; dy:=0 end else begin dy:=round(random*2)-1; dx:=0 end;
     repeat
       ix:=ix+dx;
       iy:=iy+dy;
       if (ix>0) and (ix<maxx) and (iy>0) and (iy<maxy) then begin
-        if map^[ix,iy]>250 then pass:=0 else
-         begin map^[ix,iy]:=map_generation_free; inc(i) end;
+        if mapg^[ix,iy]>250 then pass:=0 else
+         begin mapg^[ix,iy]:=map_generation_free; inc(i) end;
       end else pass:=0;
       dec(pass);
     until (pass<=0);
     if pass=-1 then generatecoords:=true;
     if (pass=0) and (random>0.9) then begin
       generatecoords:=true;
-      map^[ix,iy]:=map_generation2;
+      mapg^[ix,iy]:=map_generation2;
     end;
   until (i/maxx/maxy>0.01) or (random<0.0001);
 
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
-       if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_wall;
-       if map^[ix,iy]=map_generation2 then map^[ix,iy]:=map_generation_free;
+       if mapg^[ix,iy]=map_generation1 then mapg^[ix,iy]:=map_generation_wall;
+       if mapg^[ix,iy]=map_generation2 then mapg^[ix,iy]:=map_generation_free;
     end;  }
 end;
 
@@ -1092,7 +1108,8 @@ var ix,iy,iix,iiy,dx,dy:integer;
 begin
  // map_seed:=0.22+random/8;
   generate_map_makewalls(map_generation_wall);
-  dx:=round(sqr(random)*max_max_value/2)+3;
+  if map_parameter1=-1 then map_parameter1:=sqr(random)*max_max_value/2;
+  dx:=round(map_parameter1)+3;
  // if random>0.1 then dx:=round(max_max_value/2+random*max_max_value/2)+1;
 
   form1.memo1.lines.add('CONCENTRIC MAP * '+inttostr(dx));
@@ -1106,7 +1123,7 @@ begin
     circle_rin:=random*(circle_rout-2)+1;
     for iix:=(ix-2)*dx to (ix+3)*dx do
      for iiy:=(iy-2)*dy to (iy+3)*dy do
-       if (sqr((ix+0.5)*dx-iix+start_phase_x)+sqr((iy+0.5)*dx-iiy+start_phase_y)<sqr(circle_rout)) and ((sqr((ix+0.5)*dx-iix+start_phase_x)+sqr((iy+0.5)*dx-iiy+start_phase_y)>sqr(circle_rin))) and (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then map^[iix,iiy]:=map_generation_free;
+       if (sqr((ix+0.5)*dx-iix+start_phase_x)+sqr((iy+0.5)*dx-iiy+start_phase_y)<sqr(circle_rout)) and ((sqr((ix+0.5)*dx-iix+start_phase_x)+sqr((iy+0.5)*dx-iiy+start_phase_y)>sqr(circle_rin))) and (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then mapg^[iix,iiy]:=map_generation_free;
   end;
 end;
 
@@ -1116,65 +1133,66 @@ procedure generate_map_slant;
 var ix,iy:integer;
     map_seed:float;
 begin
-  map_seed:=0.98+random*0.02;
   generate_map_makewalls(map_generation_wall);
+  if map_parameter1=-1 then map_parameter1:=0.98+random*0.02;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('SLANT * '+inttostr(round(map_seed*100)));
 {  for ix:=1 to 14 do
-   for iy:=1 to 14 do map^[ix,iy]:=map_generation_free;}
+   for iy:=1 to 14 do mapg^[ix,iy]:=map_generation_free;}
 
   for ix:=0 to maxx div 5-1 do
    for iy:=0 to maxy div 5-1 do begin
      if random>0.5 then begin
-       map^[ix*5+1,iy*5+1]:=map_generation_free;
-       map^[ix*5+2,iy*5+2]:=map_generation_free;
-       map^[ix*5+3,iy*5+3]:=map_generation_free;
-       map^[ix*5+4,iy*5+4]:=map_generation_free;
-       map^[ix*5+5,iy*5+5]:=map_generation_free;
-       map^[ix*5+2,iy*5+1]:=map_generation_free;
-       map^[ix*5+3,iy*5+2]:=map_generation_free;
-       map^[ix*5+4,iy*5+3]:=map_generation_free;
-       map^[ix*5+5,iy*5+4]:=map_generation_free;
-       map^[ix*5+1,iy*5+2]:=map_generation_free;
-       map^[ix*5+2,iy*5+3]:=map_generation_free;
-       map^[ix*5+3,iy*5+4]:=map_generation_free;
-       map^[ix*5+4,iy*5+5]:=map_generation_free;
+       mapg^[ix*5+1,iy*5+1]:=map_generation_free;
+       mapg^[ix*5+2,iy*5+2]:=map_generation_free;
+       mapg^[ix*5+3,iy*5+3]:=map_generation_free;
+       mapg^[ix*5+4,iy*5+4]:=map_generation_free;
+       mapg^[ix*5+5,iy*5+5]:=map_generation_free;
+       mapg^[ix*5+2,iy*5+1]:=map_generation_free;
+       mapg^[ix*5+3,iy*5+2]:=map_generation_free;
+       mapg^[ix*5+4,iy*5+3]:=map_generation_free;
+       mapg^[ix*5+5,iy*5+4]:=map_generation_free;
+       mapg^[ix*5+1,iy*5+2]:=map_generation_free;
+       mapg^[ix*5+2,iy*5+3]:=map_generation_free;
+       mapg^[ix*5+3,iy*5+4]:=map_generation_free;
+       mapg^[ix*5+4,iy*5+5]:=map_generation_free;
        if random>map_seed then begin
-         map^[ix*5+5,iy*5+1]:=map_generation_free;
-         map^[ix*5+4,iy*5+2]:=map_generation_free;
-         map^[ix*5+5,iy*5+2]:=map_generation_free;
-         map^[ix*5+4,iy*5+1]:=map_generation_free;
+         mapg^[ix*5+5,iy*5+1]:=map_generation_free;
+         mapg^[ix*5+4,iy*5+2]:=map_generation_free;
+         mapg^[ix*5+5,iy*5+2]:=map_generation_free;
+         mapg^[ix*5+4,iy*5+1]:=map_generation_free;
        end;
        if random>map_seed then begin
-         map^[ix*5+1,iy*5+5]:=map_generation_free;
-         map^[ix*5+2,iy*5+4]:=map_generation_free;
-         map^[ix*5+2,iy*5+5]:=map_generation_free;
-         map^[ix*5+1,iy*5+4]:=map_generation_free;
+         mapg^[ix*5+1,iy*5+5]:=map_generation_free;
+         mapg^[ix*5+2,iy*5+4]:=map_generation_free;
+         mapg^[ix*5+2,iy*5+5]:=map_generation_free;
+         mapg^[ix*5+1,iy*5+4]:=map_generation_free;
        end;
      end else begin
-       map^[ix*5+5,iy*5+1]:=map_generation_free;
-       map^[ix*5+4,iy*5+2]:=map_generation_free;
-       map^[ix*5+3,iy*5+3]:=map_generation_free;
-       map^[ix*5+2,iy*5+4]:=map_generation_free;
-       map^[ix*5+1,iy*5+5]:=map_generation_free;
-       map^[ix*5+4,iy*5+1]:=map_generation_free;
-       map^[ix*5+3,iy*5+2]:=map_generation_free;
-       map^[ix*5+2,iy*5+3]:=map_generation_free;
-       map^[ix*5+1,iy*5+4]:=map_generation_free;
-       map^[ix*5+5,iy*5+2]:=map_generation_free;
-       map^[ix*5+4,iy*5+3]:=map_generation_free;
-       map^[ix*5+3,iy*5+4]:=map_generation_free;
-       map^[ix*5+2,iy*5+5]:=map_generation_free;
+       mapg^[ix*5+5,iy*5+1]:=map_generation_free;
+       mapg^[ix*5+4,iy*5+2]:=map_generation_free;
+       mapg^[ix*5+3,iy*5+3]:=map_generation_free;
+       mapg^[ix*5+2,iy*5+4]:=map_generation_free;
+       mapg^[ix*5+1,iy*5+5]:=map_generation_free;
+       mapg^[ix*5+4,iy*5+1]:=map_generation_free;
+       mapg^[ix*5+3,iy*5+2]:=map_generation_free;
+       mapg^[ix*5+2,iy*5+3]:=map_generation_free;
+       mapg^[ix*5+1,iy*5+4]:=map_generation_free;
+       mapg^[ix*5+5,iy*5+2]:=map_generation_free;
+       mapg^[ix*5+4,iy*5+3]:=map_generation_free;
+       mapg^[ix*5+3,iy*5+4]:=map_generation_free;
+       mapg^[ix*5+2,iy*5+5]:=map_generation_free;
        if random>map_seed then begin
-         map^[ix*5+5,iy*5+5]:=map_generation_free;
-         map^[ix*5+4,iy*5+4]:=map_generation_free;
-         map^[ix*5+5,iy*5+4]:=map_generation_free;
-         map^[ix*5+4,iy*5+5]:=map_generation_free;
+         mapg^[ix*5+5,iy*5+5]:=map_generation_free;
+         mapg^[ix*5+4,iy*5+4]:=map_generation_free;
+         mapg^[ix*5+5,iy*5+4]:=map_generation_free;
+         mapg^[ix*5+4,iy*5+5]:=map_generation_free;
        end;
        if random>map_seed then begin
-         map^[ix*5+1,iy*5+1]:=map_generation_free;
-         map^[ix*5+2,iy*5+2]:=map_generation_free;
-         map^[ix*5+2,iy*5+1]:=map_generation_free;
-         map^[ix*5+1,iy*5+2]:=map_generation_free;
+         mapg^[ix*5+1,iy*5+1]:=map_generation_free;
+         mapg^[ix*5+2,iy*5+2]:=map_generation_free;
+         mapg^[ix*5+2,iy*5+1]:=map_generation_free;
+         mapg^[ix*5+1,iy*5+2]:=map_generation_free;
        end;
      end;
   end;
@@ -1190,7 +1208,8 @@ var ix,iy:integer;
     freespace,walls:integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_seed:=0.2+random/4;
+  if map_parameter1=-1 then map_parameter1:=0.2+random/4;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('BOXES MAP * '+inttostr(round(map_seed*100)));
   repeat
     ax:=round(maxx/5*random)+4;
@@ -1200,21 +1219,21 @@ begin
     sx:=round(random*(maxx-ax-2))+1;
     sy:=round(random*(maxy-ay-2))+1;
     for ix:=sx to sx+ax do
-     for iy:=sy to sy+ay do if map^[ix,iy]=map_generation_wall then begin
-       if (ix<sx+bx) or (ix>sx+ax-bx) or (iy<sy+by) or (iy>sy+ay-by) then map^[ix,iy]:=map_generation_free else map^[ix,iy]:=map_generation1;
+     for iy:=sy to sy+ay do if mapg^[ix,iy]=map_generation_wall then begin
+       if (ix<sx+bx) or (ix>sx+ax-bx) or (iy<sy+by) or (iy>sy+ay-by) then mapg^[ix,iy]:=map_generation_free else mapg^[ix,iy]:=map_generation1;
      end;
 
     freespace:=0;
     walls:=0;
     for ix:=1 to maxx do
      for iy:=1 to maxy do begin
-       if map^[ix,iy]=map_generation_free then inc(freespace);
-       if map^[ix,iy]=map_generation_wall then inc(walls);
+       if mapg^[ix,iy]=map_generation_free then inc(freespace);
+       if mapg^[ix,iy]=map_generation_wall then inc(walls);
      end;
 
   until (freespace/maxx/maxy>map_seed) or (walls/maxx/maxy<0.01) or (random<0.0001);
   for ix:=1 to maxx do
-   for iy:=1 to maxy do if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_wall;
+   for iy:=1 to maxy do if mapg^[ix,iy]=map_generation1 then mapg^[ix,iy]:=map_generation_wall;
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -1227,10 +1246,14 @@ var ix,iy,j:integer;
     freespace,walls:integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_seed:=0.2+random/4;
+  if map_parameter1=-1 then map_parameter1:=0.2+random/4;
+  map_seed:=map_parameter1;
   form1.memo1.lines.add('CONCENTRIC FULL MAP * '+inttostr(round(map_seed*100)));
-  maxr:=random*min_max_value+10;
-  if min_max_value<=max_max_value div 2 then  maxr:=random*min_max_value+5;
+  if map_parameter2=-1 then begin
+    map_parameter2:=random*min_max_value+10;
+    if min_max_value<=max_max_value div 2 then map_parameter2:=random*min_max_value+5;
+  end;
+  maxr:=map_parameter2;
   repeat
     rx_out:=random*(maxr)+1;
     ry_out:=rx_out+random*4-2;if ry_out<1 then ry_out:=1;
@@ -1239,19 +1262,19 @@ begin
     rx_in:=rx_out-1-sqr(random)*3; if rx_in<=1 then rx_in:=1;
     ry_in:=ry_out-1-sqr(random)*3; if ry_in<=1 then ry_in:=1;
     for ix:=1 to maxx do
-     for iy:=1 to maxy do if (map^[ix,iy]=map_generation_wall) and (sqr((ix-cx)/rx_out)+sqr((iy-cy)/ry_out)<1) then begin
-       if sqr((ix-cx)/rx_in)+sqr((iy-cy)/ry_in)>=1 then map^[ix,iy]:=map_generation_free else map^[ix,iy]:=map_generation1;
+     for iy:=1 to maxy do if (mapg^[ix,iy]=map_generation_wall) and (sqr((ix-cx)/rx_out)+sqr((iy-cy)/ry_out)<1) then begin
+       if sqr((ix-cx)/rx_in)+sqr((iy-cy)/ry_in)>=1 then mapg^[ix,iy]:=map_generation_free else mapg^[ix,iy]:=map_generation1;
        if (rx_in>15) or (ry_in>15) then begin
          if sqr((ix-cx)/(rx_in-5-random*2))+sqr((iy-cy)/(rx_in-5-random*2))<1 then begin
            if random>map_seed then
-            map^[ix,iy]:=map_generation_wall
+            mapg^[ix,iy]:=map_generation_wall
            else
-            map^[ix,iy]:=map_generation_free
+            mapg^[ix,iy]:=map_generation_free
          end
          else begin
            if random<1/rx_in then
              for j:=0 to 10 do if (ix+round((cx-ix)*j/10)>1) and (ix+round((cx-ix)*j/10)<maxx) and (iy+round((cy-iy)*j/10)>1) and (iy+round((cy-iy)*j/10)<maxy) then
-               map^[ix+round((cx-ix)*j/10),iy+round((cy-iy)*j/10)]:=map_generation_free;
+               mapg^[ix+round((cx-ix)*j/10),iy+round((cy-iy)*j/10)]:=map_generation_free;
          end;
        end;
      end;
@@ -1259,13 +1282,13 @@ begin
     walls:=0;
     for ix:=1 to maxx do
      for iy:=1 to maxy do begin
-       if map^[ix,iy]=map_generation_free then inc(freespace);
-       if map^[ix,iy]=map_generation_wall then inc(walls);
+       if mapg^[ix,iy]=map_generation_free then inc(freespace);
+       if mapg^[ix,iy]=map_generation_wall then inc(walls);
      end;
 
   until (freespace/maxx/maxy>map_seed) or (walls/maxx/maxy<0.01) or (random<0.0001);
   for ix:=1 to maxx do
-   for iy:=1 to maxy do if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_wall;
+   for iy:=1 to maxy do if mapg^[ix,iy]=map_generation1 then mapg^[ix,iy]:=map_generation_wall;
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -1279,8 +1302,10 @@ var ix,iy,j:integer;
 begin
   random_tiles:=false;
   generate_map_makewalls(map_generation_wall);
-  cx0:=(random-0.5)*(maxx/2)+maxx/2;
-  cy0:=(random-0.5)*(maxy/2)+maxy/2;
+  if map_parameter1=-1 then map_parameter1:=(random-0.5)*(maxx/2)+maxx/2;
+  cx0:=map_parameter1;
+  if map_parameter2=-1 then map_parameter2:=(random-0.5)*(maxy/2)+maxy/2;
+  cy0:=map_parameter2;
   rout:=sqrt(sqr(maxx-cx0)+sqr(maxy-cy0));
   if rout<sqrt(sqr(cx0)+sqr(cy0)) then rout:=sqrt(sqr(cx0)+sqr(cy0));
   if rout<sqrt(sqr(maxx-cx0)+sqr(cy0)) then rout:=sqrt(sqr(maxx-cx0)+sqr(cy0));
@@ -1298,7 +1323,7 @@ begin
 
     for ix:=1 to maxx do
      for iy:=1 to maxy do if sqr(ix-cx)+sqr(iy-cy)<=sqr(rout) then begin
-       if sqr(ix-cx)+sqr(iy-cy)<=sqr(rin) then map^[ix,iy]:=map_generation_wall+tile else map^[ix,iy]:=map_generation_free+tile;
+       if sqr(ix-cx)+sqr(iy-cy)<=sqr(rin) then mapg^[ix,iy]:=map_generation_wall+tile else mapg^[ix,iy]:=map_generation_free+tile;
      end;
     pass_count:=0;
     repeat
@@ -1306,7 +1331,7 @@ begin
       iy:=round(random*(maxy-2))+2;
       if (sqr(ix-cx)+sqr(iy-cy)<=sqr(rout)) and (sqr(ix-cx)+sqr(iy-cy)>=sqr(rin)) then begin
         for j:=0 to round(rout*10) do begin
-          map^[round(ix+(cx-ix)*j/round(rout*10)    ),round(iy+(cy-iy)*j/round(rout*10)    )]:=map_generation_free+tile;
+          mapg^[round(ix+(cx-ix)*j/round(rout*10)    ),round(iy+(cy-iy)*j/round(rout*10)    )]:=map_generation_free+tile;
         end;
         inc(pass_count);
       end;
@@ -1330,7 +1355,8 @@ var map_seed,map_stepx,map_stepy,phasex,phasey,map_irregularity,map_maxrange:flo
 begin
   generate_map_makewalls(map_generation_wall);
 
-  map_seed:=random/3;
+  if map_parameter1=-1 then map_parameter1:=random/3;
+  map_seed:=map_parameter1;
   tmp:=max_max_value/10;
   if tmp>6 then tmp:=6;
   map_stepx:=random*10 + tmp;
@@ -1376,9 +1402,9 @@ begin
          if random<map_seed then begin
            flg2:=true;
            if tmp>6 then
-             for k:=3*10 to round((tmp-3)*10) do if map^[round(nodex[i]+(nodex[j]-nodex[i])*k/round(tmp*10)),round(nodey[i]+(nodey[j]-nodey[i])*k/round(tmp*10))]=map_generation_free then flg2:=false;
+             for k:=3*10 to round((tmp-3)*10) do if mapg^[round(nodex[i]+(nodex[j]-nodex[i])*k/round(tmp*10)),round(nodey[i]+(nodey[j]-nodey[i])*k/round(tmp*10))]=map_generation_free then flg2:=false;
            if flg2 then begin
-             for k:=0 to round(tmp*10) do map^[round(nodex[i]+(nodex[j]-nodex[i])*k/round(tmp*10)),round(nodey[i]+(nodey[j]-nodey[i])*k/round(tmp*10))]:=map_generation_free;
+             for k:=0 to round(tmp*10) do mapg^[round(nodex[i]+(nodex[j]-nodex[i])*k/round(tmp*10)),round(nodey[i]+(nodey[j]-nodey[i])*k/round(tmp*10))]:=map_generation_free;
              nodestate[j]:=1;
              if random<0.7 then nodestate[i]:=2;
            end;
@@ -1397,6 +1423,10 @@ end;
 {--------------------------------------------------------------------------------------}
 
 procedure safemapwrite(x,y:integer;data:byte);
+begin
+  if (x>0) and (x<maxx) and (y>0) and (y<maxy) then mapg^[x,y]:=data;
+end;
+procedure safemapwritefinal(x,y:integer;data:byte);
 begin
   if (x>0) and (x<maxx) and (y>0) and (y<maxy) then map^[x,y]:=data;
 end;
@@ -1871,7 +1901,7 @@ begin
   maxpasswidth:=1+round(sqr(sqr(random))*6);
   repeat
     for dx:=x1 to x2 do
-     for dy:=y1 to y2 do map^[dx,dy]:=map_generation_free;
+     for dy:=y1 to y2 do mapg^[dx,dy]:=map_generation_free;
     xx1:=x1+1+round(random*maxpasswidth);
     xx2:=x2-1-round(random*maxpasswidth);
     yy1:=y1+1+round(random*maxpasswidth);
@@ -1881,15 +1911,15 @@ begin
       if random>0.5 then begin
         dy:=yy1+round((yy2-yy1-2)*random)+1;
         if random>0.5 then
-          for dx:=x1 to xx1 do map^[dx,dy]:=map_generation_wall
+          for dx:=x1 to xx1 do mapg^[dx,dy]:=map_generation_wall
         else
-          for dx:=xx2 to x2 do map^[dx,dy]:=map_generation_wall
+          for dx:=xx2 to x2 do mapg^[dx,dy]:=map_generation_wall
       end else begin
          dx:=xx1+round((xx2-xx1-2)*random)+1;
          if random>0.5 then
-           for dy:=y1 to yy1 do map^[dx,dy]:=map_generation_wall
+           for dy:=y1 to yy1 do mapg^[dx,dy]:=map_generation_wall
          else
-           for dy:=yy2 to y2 do map^[dx,dy]:=map_generation_wall
+           for dy:=yy2 to y2 do mapg^[dx,dy]:=map_generation_wall
       end;
     end;
     x1:=xx1;
@@ -1898,7 +1928,7 @@ begin
     y2:=yy2;
     if (x1<x2) and (y1<y2) then begin
       for dx:=x1 to x2 do
-       for dy:=y1 to y2 do map^[dx,dy]:=map_generation_wall;
+       for dy:=y1 to y2 do mapg^[dx,dy]:=map_generation_wall;
 
       xx1:=x1+1+round(random*maxwallwidth);
       xx2:=x2-1-round(random*maxwallwidth);
@@ -1913,12 +1943,12 @@ begin
             if random>map_seed then begin
               dy0:=dy;
               while (random>0.2) and (dy<=yy2-1) do begin
-                for dx:=x1+1 to xx1-2 do map^[dx,dy]:=map_generation_free;
+                for dx:=x1+1 to xx1-2 do mapg^[dx,dy]:=map_generation_free;
                 inc(dy);
               end;
               if dy-dy0>=3 then begin
-                if random>0.5 then map^[   x1,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
-                              else map^[xx1-1,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
+                if random>0.5 then mapg^[   x1,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
+                              else mapg^[xx1-1,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
 
               end;
             end;
@@ -1932,12 +1962,12 @@ begin
             if random>map_seed then begin
               dy0:=dy;
               while (random>0.2) and (dy<=yy2-1) do begin
-                for dx:=xx2+2 to x2-1 do map^[dx,dy]:=map_generation_free;
+                for dx:=xx2+2 to x2-1 do mapg^[dx,dy]:=map_generation_free;
                 inc(dy);
               end;
               if dy-dy0>=3 then begin
-                if random>0.5 then map^[   x2,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
-                              else map^[xx2+1,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
+                if random>0.5 then mapg^[   x2,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
+                              else mapg^[xx2+1,dy0+1+round((dy-dy0-3)*random)]:=map_generation_free
 
               end;
             end;
@@ -1951,12 +1981,12 @@ begin
             if random>map_seed then begin
               dx0:=dx;
               while (random>0.2) and (dx<=xx2-1) do begin
-                for dy:=y1+1 to yy1-2 do map^[dx,dy]:=map_generation_free;
+                for dy:=y1+1 to yy1-2 do mapg^[dx,dy]:=map_generation_free;
                 inc(dx);
               end;
               if dx-dx0>=3 then begin
-                if random>0.5 then map^[dx0+1+round((dx-dx0-3)*random),y1]:=map_generation_free
-                              else map^[dx0+1+round((dx-dx0-3)*random),yy1-1]:=map_generation_free
+                if random>0.5 then mapg^[dx0+1+round((dx-dx0-3)*random),y1]:=map_generation_free
+                              else mapg^[dx0+1+round((dx-dx0-3)*random),yy1-1]:=map_generation_free
 
               end;
             end;
@@ -1970,12 +2000,12 @@ begin
             if random>map_seed then begin
               dx0:=dx;
               while (random>0.2) and (dx<=xx2-1) do begin
-                for dy:=yy2+2 to y2-1 do map^[dx,dy]:=map_generation_free;
+                for dy:=yy2+2 to y2-1 do mapg^[dx,dy]:=map_generation_free;
                 inc(dx);
               end;
               if dx-dx0>=3 then begin
-                if random>0.5 then map^[dx0+1+round((dx-dx0-3)*random),y2]:=map_generation_free
-                              else map^[dx0+1+round((dx-dx0-3)*random),yy2+1]:=map_generation_free
+                if random>0.5 then mapg^[dx0+1+round((dx-dx0-3)*random),y2]:=map_generation_free
+                              else mapg^[dx0+1+round((dx-dx0-3)*random),yy2+1]:=map_generation_free
 
               end;
             end;
@@ -1988,15 +2018,15 @@ begin
           if random>0.5 then begin
             dy:=yy1+round((yy2-yy1-2)*random)+1;
             if random>0.5 then
-              for dx:=x1 to xx1 do map^[dx,dy]:=map_generation_free
+              for dx:=x1 to xx1 do mapg^[dx,dy]:=map_generation_free
             else
-              for dx:=xx2 to x2 do map^[dx,dy]:=map_generation_free
+              for dx:=xx2 to x2 do mapg^[dx,dy]:=map_generation_free
           end else begin
              dx:=xx1+round((xx2-xx1-2)*random)+1;
              if random>0.5 then
-               for dy:=y1 to yy1 do map^[dx,dy]:=map_generation_free
+               for dy:=y1 to yy1 do mapg^[dx,dy]:=map_generation_free
              else
-               for dy:=yy2 to y2 do map^[dx,dy]:=map_generation_free
+               for dy:=yy2 to y2 do mapg^[dx,dy]:=map_generation_free
           end;
         end;
       end;
@@ -2064,49 +2094,49 @@ begin
   entrance_x:=2; entrance_y:=2;
   form1.memo1.lines.add('AREAS MAP * '+inttostr(areasize));
   for ix:=2 to maxx-1 do
-   for iy:=2 to maxy-1 do map^[ix,iy]:=map_generation1; //diggable
+   for iy:=2 to maxy-1 do mapg^[ix,iy]:=map_generation1; //diggable
   x1:=entrance_x;  y1:=entrance_y; //entrance
   thissize:=areasize div 2 + round(random*areasize/2) +7;
   repeat
-    map^[x1,y1]:=map_generation2; //grow
-    map_tmp^:=map^;
+    mapg^[x1,y1]:=map_generation2; //grow
+    map_tmp^:=mapg^;
     repeat
       count:=0;
       for ix:=2 to maxx-1 do
-        for iy:=2 to maxy-1 do if (map^[ix,iy]=map_generation1) and (random>0.5) then
-          if (map^[ix-1,iy]=map_generation2) or (map^[ix+1,iy]=map_generation2) or (map^[ix,iy-1]=map_generation2) or (map^[ix,iy+1]=map_generation2) then begin
+        for iy:=2 to maxy-1 do if (mapg^[ix,iy]=map_generation1) and (random>0.5) then
+          if (mapg^[ix-1,iy]=map_generation2) or (mapg^[ix+1,iy]=map_generation2) or (mapg^[ix,iy-1]=map_generation2) or (mapg^[ix,iy+1]=map_generation2) then begin
             map_tmp^[ix,iy]:=map_generation2;
             dec(thissize);
             inc(count)
           end;
-      map^:=map_tmp^;
+      mapg^:=map_tmp^;
     until (thissize<=0) or (count=0);
     //change to idle
     for ix:=2 to maxx-1 do
-      for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation2 then map^[ix,iy]:=map_generation3;
+      for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation2 then mapg^[ix,iy]:=map_generation3;
     //surround by walls
      for ix:=2 to maxx-1 do
-      for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation1 then begin
-          if (map^[ix-1,iy]=map_generation3) or (map^[ix+1,iy]=map_generation3) or
-             (map^[ix,iy-1]=map_generation3) or (map^[ix,iy+1]=map_generation3) or
-             (map^[ix-1,iy-1]=map_generation3) or (map^[ix+1,iy+1]=map_generation3) or
-             (map^[ix+1,iy-1]=map_generation3) or (map^[ix-1,iy+1]=map_generation3) then
-                           map^[ix,iy]:=map_generation4;
+      for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation1 then begin
+          if (mapg^[ix-1,iy]=map_generation3) or (mapg^[ix+1,iy]=map_generation3) or
+             (mapg^[ix,iy-1]=map_generation3) or (mapg^[ix,iy+1]=map_generation3) or
+             (mapg^[ix-1,iy-1]=map_generation3) or (mapg^[ix+1,iy+1]=map_generation3) or
+             (mapg^[ix+1,iy-1]=map_generation3) or (mapg^[ix-1,iy+1]=map_generation3) then
+                           mapg^[ix,iy]:=map_generation4;
       end;
 
      count:=0;
      for ix:=2 to maxx-1 do
-      for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation1 then inc(count);
+      for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation1 then inc(count);
     //reset start point
     if count>0 then
     repeat
       x1:=round(random*(maxx-1))+1;
       y1:=round(random*(maxy-1))+1;
       thissize:=round(sqrt(random)*areasize)+10;
-    until map^[x1,y1]=map_generation1;
+    until mapg^[x1,y1]=map_generation1;
   until count=0;
   //make doors
-  map^[entrance_x,entrance_y]:=map_generation_free;
+  mapg^[entrance_x,entrance_y]:=map_generation_free;
   repeat
     //grow the room
     firstcount:=-1;
@@ -2114,40 +2144,40 @@ begin
       count:=0;
       for ix:=2 to maxx-1 do
         for iy:=2 to maxy-1 do begin
-          if (map^[ix,iy]=map_generation3) or (map^[ix,iy]=map_generation4) then begin
-            if (map^[ix-1,iy]=map_generation_free) or (map^[ix+1,iy]=map_generation_free) or
-               (map^[ix,iy-1]=map_generation_free) or (map^[ix,iy+1]=map_generation_free) or
-               (map^[ix-1,iy-1]=map_generation_free) or (map^[ix+1,iy+1]=map_generation_free) or
-               (map^[ix+1,iy-1]=map_generation_free) or (map^[ix-1,iy+1]=map_generation_free) then begin
+          if (mapg^[ix,iy]=map_generation3) or (mapg^[ix,iy]=map_generation4) then begin
+            if (mapg^[ix-1,iy]=map_generation_free) or (mapg^[ix+1,iy]=map_generation_free) or
+               (mapg^[ix,iy-1]=map_generation_free) or (mapg^[ix,iy+1]=map_generation_free) or
+               (mapg^[ix-1,iy-1]=map_generation_free) or (mapg^[ix+1,iy+1]=map_generation_free) or
+               (mapg^[ix+1,iy-1]=map_generation_free) or (mapg^[ix-1,iy+1]=map_generation_free) then begin
                   inc(count);
-                  if (map^[ix,iy]=map_generation3) then map^[ix,iy]:=map_generation_free
-                                       else map^[ix,iy]:=map_generation_wall;
+                  if (mapg^[ix,iy]=map_generation3) then mapg^[ix,iy]:=map_generation_free
+                                       else mapg^[ix,iy]:=map_generation_wall;
             end;
           end
         end;
       if firstcount=-1 then firstcount:=count
     until count=0;
-    if (firstcount=0) and (random>0.001) then map^[x1,y1]:=map_generation_wall;
+    if (firstcount=0) and (random>0.001) then mapg^[x1,y1]:=map_generation_wall;
     // make door
     count:=0;
     repeat
       x1:=round(random*(maxx-3))+2;
       y1:=round(random*(maxy-3))+2;
-      if map^[x1,y1]=map_generation_wall then begin
-        map^[x1,y1]:=map_generation_free;
+      if mapg^[x1,y1]=map_generation_wall then begin
+        mapg^[x1,y1]:=map_generation_free;
         inc(count);
       end;
     until count>=1;
     //calculate remaining rooms
     count:=0;
     for ix:=2 to maxx-1 do
-      for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation3 then inc(count);
+      for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation3 then inc(count);
   until count=0;
   //debug
   for ix:=2 to maxx-1 do
-    for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation4 then map^[ix,iy]:=map_generation_wall;
+    for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation4 then mapg^[ix,iy]:=map_generation_wall;
   for ix:=2 to maxx-1 do
-    for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation3 then map^[ix,iy]:=map_generation_free;
+    for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation3 then mapg^[ix,iy]:=map_generation_free;
   dispose(map_tmp);
 end;
 
@@ -2175,7 +2205,7 @@ begin
   sizespeed:=0;
 
   for ix:=2 to maxx-1 do
-   for iy:=2 to maxy-1 do map^[ix,iy]:=map_generation1; //diggable
+   for iy:=2 to maxy-1 do mapg^[ix,iy]:=map_generation1; //diggable
 
   stopworms:=false;
   repeat
@@ -2185,14 +2215,14 @@ begin
     for dx:=-round(thissize+wallthickness) to round(thissize+wallthickness) do
      for dy:=-round(thissize+wallthickness) to round(thissize+wallthickness) do if not stophole then
        if (x1+dx>=1) and (y1+dy>=1) and (x1+dx<=maxx) and (y1+dy<=maxy) then begin
-        if (sqr(dx)+sqr(dy)<thissize) and (map^[x1+dx,y1+dy]<=map_generation2) then begin
-          map^[x1+dx,y1+dy]:=map_generation_free;
+        if (sqr(dx)+sqr(dy)<thissize) and (mapg^[x1+dx,y1+dy]<=map_generation2) then begin
+          mapg^[x1+dx,y1+dy]:=map_generation_free;
         end else
         if sqr(dx)+sqr(dy)<=thissize+wallthickness then begin
-          if map^[x1+dx,y1+dy]=map_generation1 then begin
-            map^[x1+dx,y1+dy]:=map_generation2; //diggable wall
+          if mapg^[x1+dx,y1+dy]=map_generation1 then begin
+            mapg^[x1+dx,y1+dy]:=map_generation2; //diggable wall
           end else
-          if map^[x1+dx,y1+dy]=map_generation_wall then begin
+          if mapg^[x1+dx,y1+dy]=map_generation_wall then begin
             stophole:=true;
           end;
         end;
@@ -2207,19 +2237,19 @@ begin
       repeat
         inc(count);
         for ix:=2 to maxx-1 do
-         for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation2 then map^[ix,iy]:=map_generation_wall;
+         for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation2 then mapg^[ix,iy]:=map_generation_wall;
         flg:=false;
         x1:=round(random*(maxx-2))+1;
         y1:=round(random*(maxy-2))+1;
-        {if map^[x1,y1]=map_generation_wall then} begin
+        {if mapg^[x1,y1]=map_generation_wall then} begin
           count_free:=0;
           count_all:=0;
           count_diggable:=0;
           for dx:=-round(thissize+wallthickness) to round(thissize+wallthickness) do
            for dy:=-round(thissize+wallthickness) to round(thissize+wallthickness) do
              if (x1+dx>=1) and (y1+dy>=1) and (x1+dx<=maxx) and (y1+dy<=maxy) and ((sqr(dx)+sqr(dy)<thissize+3)) then begin
-               if map^[x1+dx,y1+dy]=map_generation1 then inc(count_diggable) else
-               if map^[x1+dx,y1+dy]=map_generation_free then inc(count_free);
+               if mapg^[x1+dx,y1+dy]=map_generation1 then inc(count_diggable) else
+               if mapg^[x1+dx,y1+dy]=map_generation_free then inc(count_free);
                inc(count_all);
              end;
           if (count_diggable/count_all>0.8) and (count_free>0) and ((count_all-count_free-count_diggable)/count_all<0.1) then flg:=true;
@@ -2229,8 +2259,8 @@ begin
         for dx:=-round(thissize) to round(thissize) do
          for dy:=-round(thissize) to round(thissize) do
            if (x1+dx>=1) and (y1+dy>=1) and (x1+dx<=maxx) and (y1+dy<=maxy) and ((sqr(dx)+sqr(dy)<thissize+1)) then begin
-             if map^[x1+dx,y1+dy]=map_generation_wall then map^[x1+dx,y1+dy]:=map_generation2 else
-             if map^[x1+dx,y1+dy]=map_generation1 then map^[x1+dx,y1+dy]:=map_generation_free;
+             if mapg^[x1+dx,y1+dy]=map_generation_wall then mapg^[x1+dx,y1+dy]:=map_generation2 else
+             if mapg^[x1+dx,y1+dy]=map_generation1 then mapg^[x1+dx,y1+dy]:=map_generation_free;
            end;
       end;
       xx:=x1;
@@ -2248,11 +2278,11 @@ begin
 
     count:=0;
     for ix:=2 to maxx-1 do
-     for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation1 then inc(count);
+     for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation1 then inc(count);
   until (count<0.3*maxx*maxy) or (stopworms);
 
   for ix:=2 to maxx-1 do
-   for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_wall;
+   for iy:=2 to maxy-1 do if mapg^[ix,iy]=map_generation1 then mapg^[ix,iy]:=map_generation_wall;
 end;
 
 {----------------------------------------------------------------------------------}
@@ -2296,7 +2326,7 @@ begin
     for dx:=roomx[i]-round(thisroomsize)-1 to roomx[i]+round(thisroomsize)+1 do if (dx>1) and (dx<maxx) then
      for dy:=roomy[i]-round(thisroomsize)-1 to roomy[i]+round(thisroomsize)+1 do if (dy>1) and (dy<maxy) then
       if sqr(roomx[i]-dx)+sqr(roomy[i]-dy)<=sqr(thisroomsize) then
-        map^[dx,dy]:=map_generation_free;
+        mapg^[dx,dy]:=map_generation_free;
   end;
 
   //create passages
@@ -2333,9 +2363,9 @@ begin
      if ((    odd(round((ix+shiftx) / checkersize))) and (    odd(round((iy+shifty) / checkersize)))) or
         ((not odd(round((ix+shiftx) / checkersize))) and (not odd(round((iy+shifty) / checkersize)))) then tmp:=true else tmp:=false;
      if (tmp) then begin
-       if random<map_seed1 then map^[ix,iy]:=map_generation_free else map^[ix,iy]:=map_generation_wall;
+       if random<map_seed1 then mapg^[ix,iy]:=map_generation_free else mapg^[ix,iy]:=map_generation_wall;
      end else begin
-       if random<map_seed2 then map^[ix,iy]:=map_generation_free else map^[ix,iy]:=map_generation_wall;
+       if random<map_seed2 then mapg^[ix,iy]:=map_generation_free else mapg^[ix,iy]:=map_generation_wall;
      end;
 
    end;
@@ -2355,26 +2385,26 @@ begin
         map^[ix,iy]:=map_generation_free
     end;
 
-  safemapwrite(bx+bsizex div 2-1,by-1,map_generation_free);
-  safemapwrite(bx+bsizex div 2,by+bsizey,map_generation_free);
-  safemapwrite(bx-1,by+bsizey div 2-1,map_generation_free);
-  safemapwrite(bx+bsizex,by+bsizey div 2,map_generation_free);
+  safemapwritefinal(bx+bsizex div 2-1,by-1,map_generation_free);
+  safemapwritefinal(bx+bsizex div 2,by+bsizey,map_generation_free);
+  safemapwritefinal(bx-1,by+bsizey div 2-1,map_generation_free);
+  safemapwritefinal(bx+bsizex,by+bsizey div 2,map_generation_free);
 
-  safemapwrite(bx+bsizex div 2-1,by-3,map_generation_wall);
-  safemapwrite(bx+bsizex div 2-2,by-3,map_generation_wall);
-  safemapwrite(bx+bsizex div 2  ,by-3,map_generation_wall);
+  safemapwritefinal(bx+bsizex div 2-1,by-3,map_generation_wall);
+  safemapwritefinal(bx+bsizex div 2-2,by-3,map_generation_wall);
+  safemapwritefinal(bx+bsizex div 2  ,by-3,map_generation_wall);
 
-  safemapwrite(bx+bsizex div 2+1,by+bsizey+2,map_generation_wall);
-  safemapwrite(bx+bsizex div 2-1,by+bsizey+2,map_generation_wall);
-  safemapwrite(bx+bsizex div 2  ,by+bsizey+2,map_generation_wall);
+  safemapwritefinal(bx+bsizex div 2+1,by+bsizey+2,map_generation_wall);
+  safemapwritefinal(bx+bsizex div 2-1,by+bsizey+2,map_generation_wall);
+  safemapwritefinal(bx+bsizex div 2  ,by+bsizey+2,map_generation_wall);
 
-  safemapwrite(bx-3,by+bsizey div 2-1,map_generation_wall);
-  safemapwrite(bx-3,by+bsizey div 2-2,map_generation_wall);
-  safemapwrite(bx-3,by+bsizey div 2  ,map_generation_wall);
+  safemapwritefinal(bx-3,by+bsizey div 2-1,map_generation_wall);
+  safemapwritefinal(bx-3,by+bsizey div 2-2,map_generation_wall);
+  safemapwritefinal(bx-3,by+bsizey div 2  ,map_generation_wall);
 
-  safemapwrite(bx+bsizex+2,by+bsizey div 2+1,map_generation_wall);
-  safemapwrite(bx+bsizex+2,by+bsizey div 2-1,map_generation_wall);
-  safemapwrite(bx+bsizex+2,by+bsizey div 2  ,map_generation_wall);
+  safemapwritefinal(bx+bsizex+2,by+bsizey div 2+1,map_generation_wall);
+  safemapwritefinal(bx+bsizex+2,by+bsizey div 2-1,map_generation_wall);
+  safemapwritefinal(bx+bsizex+2,by+bsizey div 2  ,map_generation_wall);
 
   form1.memo1.lines.add('Bunker building created.');
 end;
@@ -2394,17 +2424,17 @@ begin
   if y2>=maxy then y2:=maxy-1;
   if y2-y1>limitsize then y2:=y1+limitsize;
   for ix:=x1 to x2 do
-   for iy:=y1 to y2 do safemapwrite(ix,iy,map_generation_free);
+   for iy:=y1 to y2 do safemapwritefinal(ix,iy,map_generation_free);
   for ix:=x1+1 to x2-1 do
-   for iy:=y1+1 to y2-1 do safemapwrite(ix,iy,map_generation_wall);
+   for iy:=y1+1 to y2-1 do safemapwritefinal(ix,iy,map_generation_wall);
   for ix:=x1+2 to x2-2 do
-   for iy:=y1+2 to y2-2 do safemapwrite(ix,iy,map_generation_free);
+   for iy:=y1+2 to y2-2 do safemapwritefinal(ix,iy,map_generation_free);
   if random>0.5 then begin
     if random>0.5 then x1:=x1+1 else x1:=x2-1;
-    safemapwrite(x1,y1+round(random*(y2-y1-4))+2,map_generation_free);
+    safemapwritefinal(x1,y1+round(random*(y2-y1-4))+2,map_generation_free);
   end else begin
     if random>0.5 then y1:=y1+1 else y1:=y2-1;
-    safemapwrite(x1+round(random*(x2-x1-4))+2,y1,map_generation_free);
+    safemapwritefinal(x1+round(random*(x2-x1-4))+2,y1,map_generation_free);
   end;
 
   form1.memo1.lines.add('Box building created.');
@@ -2506,8 +2536,9 @@ var ix,iy,dx,dy:integer;
     deviation:float;
     thismapfloor,thismapwall:byte;
 begin
- generate_map_buildings;
+ map^:=mapg^;
 
+ generate_map_buildings;
  create_bunker(enter_x,enter_y,4,4);
 
  //entrance
@@ -2517,16 +2548,16 @@ begin
 if random_tiles then
 repeat
  case trunc(random*4) of
-   0:thismapfloor:=map_tile1;
-   1:thismapfloor:=map_tile2;
-   2:thismapfloor:=map_tile3;
-   3:thismapfloor:=map_tile4;
+   0:thismapfloor:=0;
+   1:thismapfloor:=1;
+   2:thismapfloor:=2;
+   3:thismapfloor:=3;
  end;
  case trunc(random*4) of
-   0:thismapwall:=map_tile1;
-   1:thismapwall:=map_tile2;
-   2:thismapwall:=map_tile3;
-   3:thismapwall:=map_tile4;
+   0:thismapwall:=0;
+   1:thismapwall:=1;
+   2:thismapwall:=2;
+   3:thismapwall:=3;
  end;
 until thismapfloor<>thismapwall;
 
@@ -2534,12 +2565,13 @@ until thismapfloor<>thismapwall;
   nfree:=0;
   for ix:=2 to maxx-1 do
    for iy:= 2 to maxy-1 do begin
+     map_status^[ix,iy]:=0;
      if map^[ix,iy]>=map_generation_free then
      for dx:=-1 to 1 do
        for dy:=-1 to 1 do
          if map^[ix+dx,iy+dy]<map_wall then begin
            if random_tiles then map^[ix,iy]:=map_free+thismapfloor else begin
-             if map^[ix,iy]>=map_generation_free then map^[ix,iy]:=map_free+(map^[ix,iy]-map_generation_free) shl 5;
+             if map^[ix,iy]>=map_generation_free then map^[ix,iy]:=map_free+(map^[ix,iy]-map_generation_free);
            end;
            nfree:=1;
          end;
@@ -2556,7 +2588,8 @@ until thismapfloor<>thismapwall;
    for iy:= 1 to maxy do begin
      if map^[ix,iy]<map_wall then inc(nfree);
      if map^[ix,iy]>=map_generation_wall then begin
-       if random_tiles then map^[ix,iy]:=map_wall+thismapwall+maxstatus-4+round(random*4) else map^[ix,iy]:=map_wall+(map^[ix,iy]-map_generation_wall) shl 5+maxstatus-4+round(random*4);
+       if random_tiles then map^[ix,iy]:=map_wall+thismapwall else map^[ix,iy]:=map_wall+(map^[ix,iy]-map_generation_wall);
+       map_status^[ix,iy]:=maxstatus-round(random*4);
      end;
    end;
 
@@ -2752,6 +2785,9 @@ var ix,iy,i_bot,j:integer;
     weapon_kind,ammo_type,weapon_type:integer;
     ammo_usable:boolean;
 begin
+
+  new(mapg);
+
   randomize;
 
   val(edit2.text,maxx,ix);
@@ -2836,6 +2872,7 @@ begin
   end;
  until mapinhomogenity<0.15;
 
+ dispose(mapg);
 
  for ix:=1 to maxx do
    for iy:= 1 to maxy do begin
@@ -2846,9 +2883,11 @@ begin
   if (form1.radiobutton3.checked) or ((form1.radiobutton2.checked) and (random>0.8)) then begin
     memo1.lines.add('Generating smoke...');
     for ix:=maxx div 5+2 to maxx do
-     for iy:=maxy div 5+2 to maxy do if map^[ix,iy]<map_wall then map^[ix,iy]:=map^[ix,iy] and tilepattern + round(map_smoke*sqrt(random)); //tile
+     for iy:=maxy div 5+2 to maxy do if map^[ix,iy]<map_wall then map_status^[ix,iy]:=round(map_smoke*sqrt(random)); //tile
     for ix:=1 to 10 do grow_smoke;
   end;
+
+
   memo1.lines.add('Calculating map strategy...');
 
   for ix:=1 to maxx do
@@ -3148,6 +3187,7 @@ begin
   edit5.text:=inttostr(4);
 
   new(map);
+  new(map_status);
   new(vis);
   new(mapchanged);
   new(movement);
@@ -3187,9 +3227,9 @@ begin
   if bot[thisbot].hp>dam then dec(bot[thisbot].hp,dam) else begin
    bot[thisbot].hp:=0;
 
-   smk:=map^[bot[thisbot].x,bot[thisbot].y] and statuspattern + die_smoke;
+   smk:=map_status^[bot[thisbot].x,bot[thisbot].y] + die_smoke;
    if smk>map_smoke then smk:=map_smoke;
-   map^[bot[thisbot].x,bot[thisbot].y]:=map^[bot[thisbot].x,bot[thisbot].y] and tilepattern+smk;
+   map_status^[bot[thisbot].x,bot[thisbot].y]:=smk;
 
    form1.memo1.lines.add(bot[thisbot].name + ' is destroyed');
    if thisbot=selected then begin
@@ -3312,9 +3352,9 @@ begin
            ix:=round((asmoke/generationsum)/sqrt(area^[dx,dy]));
            if ix<1 then ix:=1;
 
-           smk:=map^[ax+dx,ay+dy] and statuspattern + ix;
+           smk:=map_status^[ax+dx,ay+dy] + ix;
            if smk>map_smoke then smk:=map_smoke;
-           map^[ax+dx,ay+dy]:=map^[ax+dx,ay+dy] and tilepattern + smk;
+           map_status^[ax+dx,ay+dy]:=smk;
 
            mapchanged^[ax+dx,ay+dy]:=255;
 
@@ -3343,10 +3383,11 @@ begin
              draw_map;
            end;
          end else begin
-           ix:=map^[ax+dx,ay+dy] and statuspattern - round((ablast/generationsum)/sqrt(area^[dx,dy]-60)/wallhardness);
+           ix:=map_status^[ax+dx,ay+dy] - round((ablast/generationsum)/sqrt(area^[dx,dy]-60)/wallhardness);
            mapchanged^[ax+dx,ay+dy]:=255;
            if (ix<0) then begin
-             map^[ax+dx,ay+dy]:=map_wall_smoke; //tile
+            map^[ax+dx,ay+dy]:=map^[ax+dx,ay+dy]-map_wall;
+            map_status^[ax+dx,ay+dy]:=map_wall_smoke; //tile
 
              for ddx:=-visiblerange to visiblerange do if (ax+dx+ddx>0) and (ax+dx+ddx<=maxx) then
               for ddy:=-visiblerange to visiblerange do if (ay+dy+ddy>0) and (ay+dy+ddy<=maxy) then
@@ -3354,7 +3395,7 @@ begin
              regenerate_los:=true;
 
            end else begin
-             map^[ax+dx,ay+dy]:=128+map^[ax+dx,ay+dy] and tilepattern+ix;
+             map_status^[ax+dx,ay+dy]:=ix;
            end;
          end;
        end;
@@ -3554,28 +3595,28 @@ begin
  new(smoke_new);
 
 for j:=1 to 3 do begin
-  smoke_new^:=map^;
+  smoke_new^:=map_status^;
 
  for ix:=1 to maxx do
-   for iy:=1 to maxy do if (smoke_new^[ix,iy] and statuspattern=1) and (random>0.7) then smoke_new^[ix,iy]:=smoke_new^[ix,iy] and tilepattern + 0;
+   for iy:=1 to maxy do if (smoke_new^[ix,iy]=1) and (random>0.7) then smoke_new^[ix,iy]:=0;
 
  for ix:=1 to maxx do
-   for iy:=1 to maxy do if (map^[ix,iy] and statuspattern>1) and (map^[ix,iy]<map_wall) then begin
+   for iy:=1 to maxy do if (map_status^[ix,iy]>1) and (map^[ix,iy]<map_wall) then begin
      i:=0;
      repeat
        inc(i);
        dx:=round(random*2)-1;
        dy:=round(random*2)-1;
        if (ix+dx>0) and (ix+dx<=maxx) and (iy+dy>0) and (iy+dy<=maxy) and ((dx<>0) or (dy<>0)) then begin
-         if (smoke_new^[ix+dx,iy+dy] and statuspattern<map^[ix,iy] and statuspattern) and (smoke_new^[ix+dx,iy+dy] and statuspattern<map_smoke) then begin
-           dec(map^[ix,iy]); //tile
+         if (smoke_new^[ix+dx,iy+dy]<map_status^[ix,iy]) and (smoke_new^[ix+dx,iy+dy]<map_smoke) then begin
+           dec(map_status^[ix,iy]); //tile
            dec(smoke_new^[ix,iy]); //tile
            {if random>0.5 then }inc(smoke_new^[ix+dx,iy+dy]); //tile
          end;
        end;
-     until (i>=30) or (map^[ix,iy] and statuspattern=1);
+     until (i>=30) or (map_status^[ix,iy]=1);
    end;
-  map^:=smoke_new^;
+  map_status^:=smoke_new^;
 end;
  dispose(smoke_new);
 end;
@@ -4063,6 +4104,7 @@ end;}
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   dispose(map);
+  dispose(map_status);
   dispose(vis);
   dispose(movement);
   dispose(distance);
@@ -5126,15 +5168,15 @@ begin
           brush.style:=bssolid;
           fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
           if (vis^[mx,my]>=oldvisible) then begin
-            if (map^[mx,my] and tilepattern=map_tile4) then begin
+            if (map^[mx,my]=3) or (map^[mx,my]=3+map_wall) then begin
               brush.style:= bsCross;
               brush.color:= pen.color;
               fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
             end else
-            if (map^[mx,my] and tilepattern=map_tile3) then begin
+            if (map^[mx,my]=2) or (map^[mx,my]=2+map_wall) then begin
               rectangle(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
             end else
-            if (map^[mx,my] and tilepattern=map_tile2) then begin
+            if (map^[mx,my]=1) or (map^[mx,my]=1+map_wall) then begin
               brush.color:= pen.color;
               rectangle(round((mx-1-viewx)*scalex+scalex/4), round((my-1-viewy)*scaley+scaley/4), round((mx-viewx)*scalex-scalex/4), round((my-viewy)*scaley-scaley/4));
             end else
@@ -5147,8 +5189,8 @@ begin
               fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
             end;
 
-            if (map^[mx,my] and statuspattern>0) and (vis^[mx,my]>oldvisible) then begin
-              for i:=1 to 1+round((0.01+0.3*(map^[mx,my] and statuspattern-1)/(map_smoke-1))*scalex*scaley) do begin
+            if (map_status^[mx,my]>0) and (vis^[mx,my]>oldvisible) then begin
+              for i:=1 to 1+round((0.01+0.3*(map_status^[mx,my]-1)/(map_smoke-1))*scalex*scaley) do begin
                 brush.style:=bssolid;
                 brush.color:=RGB(round(150*(random*vis^[mx,my]-oldvisible)/(maxvisible-oldvisible))+100,255,255,255);
                 x1:=round((mx-1-viewx+random*(scalex-1)/scalex)*(scalex));
@@ -5157,8 +5199,8 @@ begin
               end;
             end;
           end else begin
-            if (map^[mx,my] and statuspattern<(2*maxstatusdivision-1)*maxstatus div maxstatusdivision div 2) and (vis^[mx,my]>0) then begin
-              for i:=1 to 1+maxstatusdivision*(maxstatus-map^[mx,my] and statuspattern) div maxstatus do begin
+            if (map_status^[mx,my]<(2*maxstatusdivision-1)*maxstatus div maxstatusdivision div 2) and (vis^[mx,my]>0) then begin
+              for i:=1 to 1+maxstatusdivision*(maxstatus-map_status^[mx,my]) div maxstatus do begin
                 x1:=round((mx-1-viewx+sqr(sin(mx*1.4+my*1.1+i*1.3))*(scalex-1)/scalex)*(scalex));
                 y1:=round((my-1-viewy+sqr(cos(mx*1.2+my*1.3+i*1.1))*(scaley-1)/scaley)*(scaley));
                 x2:=round((mx-1-viewx+sqr(sin(mx*1.1+my*1.5+i*1.2))*(scalex-1)/scalex)*(scalex));
