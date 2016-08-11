@@ -1,5 +1,5 @@
 object Form1: TForm1
-  Left = 25
+  Left = 57
   Height = 715
   Top = 0
   Width = 941
@@ -38,8 +38,8 @@ object Form1: TForm1
     Left = 877
     Height = 10
     Top = 491
-    Width = 27
-    Caption = 'Label1'
+    Width = 44
+    Caption = 'display ms'
     Font.Height = -8
     Font.Name = 'Sans'
     ParentColor = False
@@ -48,7 +48,7 @@ object Form1: TForm1
   object Image4: TImage
     Left = 712
     Height = 58
-    Top = 494
+    Top = 493
     Width = 145
     OnMouseDown = Image4MouseDown
     OnMouseWheel = Image4MouseWheel
@@ -410,8 +410,8 @@ object Form1: TForm1
     Left = 344
     Height = 16
     Top = 456
-    Width = 51
-    Caption = 'Label10'
+    Width = 149
+    Caption = 'Difficulty estimate here'
     ParentColor = False
   end
   object Label11: TLabel
@@ -420,8 +420,8 @@ object Form1: TForm1
     Top = 360
     Width = 64
     AutoSize = False
-    Caption = '(1..100)'
-    Font.Height = 14
+    Caption = '(1..500)'
+    Font.Height = 12
     ParentColor = False
     ParentFont = False
     OptimalFill = True
@@ -478,5 +478,24 @@ object Form1: TForm1
     OnClick = Button7Click
     ParentFont = False
     TabOrder = 25
+  end
+  object CheckBox3: TCheckBox
+    Left = 501
+    Height = 21
+    Top = 408
+    Width = 115
+    Caption = 'Bazooka party'
+    TabOrder = 26
+  end
+  object Memo2: TMemo
+    Left = 16
+    Height = 90
+    Top = 128
+    Width = 264
+    Lines.Strings = (
+      'Map information'
+    )
+    ScrollBars = ssAutoVertical
+    TabOrder = 27
   end
 end

@@ -23,12 +23,18 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       pickupitemtime=40;
 
       blastpush=10;
+      wallhardness=30;
 
       maxitems=maxbots*backpacksize+100;
       maxonfloor=50; // max displayed onfloor items
       maxunitslist=maxbots;
 
       minimumtuusable=29;
+
+      distance_accuracy=5; //5: max 51 horizontal steps (6 turns)
+      distance_step=7;
+      //accuracy 7/5 provides 1% error (-3TU/turn), 3/2 provides 6% error (+15Tu/turn)
+      distance_error=1.4142135-distance_step/distance_accuracy;  // 1% error = 3TU per turn   { = distance_accuracy * sqrt(2)}
 
       playerbotmovedelay=100;     {ms}
       enemybotmovedelay=300;      {ms}
@@ -63,7 +69,8 @@ const player=1;
 
 const map_free=0;
       map_smoke=15;
-      map_wall=16;
+      map_wall=128;
+      map_wall_smoke=map_smoke;
 
 const gamemode_game=255;
       gamemode_help=1;
@@ -87,6 +94,7 @@ type
     Button7: TButton;
     CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
+    CheckBox3: TCheckBox;
     ComboBox1: TComboBox;
     Edit1: TEdit;
     Edit2: TEdit;
@@ -114,6 +122,7 @@ type
     Label8: TLabel;
     Label9: TLabel;
     Memo1: TMemo;
+    Memo2: TMemo;
     ProgressBar1: TProgressBar;
     RadioButton1: TRadioButton;
     RadioButton2: TRadioButton;
@@ -172,7 +181,7 @@ type
     procedure draw_stats;
     procedure look_around(thisbot:integer);
     procedure clear_visible;
-    function generate_enemy_list:boolean;
+    function generate_enemy_list(messageflag:boolean):boolean;
     procedure generatemovement(thisbot,target_x,target_y:integer);
     procedure move_bot(thisbot,to_x,to_y,use_waypoints:integer);
     procedure end_turn;
@@ -183,6 +192,7 @@ type
     procedure grow_smoke;
     procedure bot_shots(attacker,defender:integer);
     function spend_tu(thisbot:integer;tus:byte):boolean;
+    procedure calculate_area(ax,ay,a,asmoke,ablast:integer);
     function load_weapon(thisbot,thisitem:integer):boolean;
     procedure pick_up(thisbot,thisitem:integer);
     procedure drop_item(thisbot,thisitem:integer);
@@ -253,7 +263,7 @@ var
   Form1: TForm1;
 {  MapDrawing: TDrawMap;     }
 
-  map,vis,movement,mapchanged:^map_array;
+  map,vis,movement,distance,mapchanged:^map_array;
   LOS_base:^map_array;
   mapfreespace:integer;
   averageLOS:float;
@@ -318,12 +328,16 @@ var ix,iy:integer;
     x1,x2,y1,y2:integer;
     nomoves:boolean;
     movement_new:^map_array;
+    distance_new:integer;
 begin
 if (target_x>0) and (target_x<=maxx) and (target_y>0) and (target_y<=maxy) then begin
   new(movement_new);
  if movement_map_for<>thisbot then begin
   for ix:=1 to maxx do
-    for iy:=1 to maxy do if map^[ix,iy]<=map_smoke then movement^[ix,iy]:=100 else movement^[ix,iy]:=255;
+    for iy:=1 to maxy do begin
+       if map^[ix,iy]<map_wall then movement^[ix,iy]:=100 else movement^[ix,iy]:=255;
+       distance^[ix,iy]:=0;
+    end;
 
    if bot[thisbot].owner=player then begin
     for ix:=1 to maxx do
@@ -337,6 +351,7 @@ if (target_x>0) and (target_x<=maxx) and (target_y>0) and (target_y<=maxy) then 
     for ix:=1 to nbot do if bot[ix].hp>0 then movement^[bot[ix].x,bot[ix].y]:=254;
 
   movement^[bot[thisbot].x,bot[thisbot].y]:=9;
+  distance^[bot[thisbot].x,bot[thisbot].y]:=0;
   nx1:=bot[thisbot].x-1;
   ny1:=bot[thisbot].y-1;
   nx2:=bot[thisbot].x+1;
@@ -358,29 +373,31 @@ if (target_x>0) and (target_x<=maxx) and (target_y>0) and (target_y<=maxy) then 
       for iy:=y1 to y2 do if movement^[ix,iy]=100 then begin
         if ix-1>0 then begin
           if iy-1>0 then
-            if movement^[ix-1,iy-1]<10 then movement_new^[ix,iy]:=7;
+            if movement^[ix-1,iy-1]<10 then begin movement_new^[ix,iy]:=7; distance_new:=distance^[ix-1,iy-1]+distance_step; end;
           if iy+1<=maxy then
-            if movement^[ix-1,iy+1]<10 then movement_new^[ix,iy]:=1;
-          if movement^[ix-1,iy]<10 then movement_new^[ix,iy]:=8;
+            if movement^[ix-1,iy+1]<10 then begin movement_new^[ix,iy]:=1; distance_new:=distance^[ix-1,iy+1]+distance_step; end;
+            if movement^[ix-1,iy  ]<10 then begin movement_new^[ix,iy]:=8; distance_new:=distance^[ix-1,iy  ]+distance_accuracy; end;
         end;
         if ix+1<=maxx then begin
           if iy-1>0 then
-            if movement^[ix+1,iy-1]<10 then movement_new^[ix,iy]:=5;
+            if movement^[ix+1,iy-1]<10 then begin movement_new^[ix,iy]:=5; distance_new:=distance^[ix+1,iy-1]+distance_step; end;
           if iy+1<=maxy then
-            if movement^[ix+1,iy+1]<10 then movement_new^[ix,iy]:=3;
-          if movement^[ix+1,iy]<10 then movement_new^[ix,iy]:=4;
+            if movement^[ix+1,iy+1]<10 then begin movement_new^[ix,iy]:=3; distance_new:=distance^[ix+1,iy+1]+distance_step; end;
+            if movement^[ix+1,iy  ]<10 then begin movement_new^[ix,iy]:=4; distance_new:=distance^[ix+1,iy  ]+distance_accuracy; end;
         end;
-        if iy-1>0 then
-          if movement^[ix,iy-1]<10 then movement_new^[ix,iy]:=6;
-        if iy+1<=maxy then
-          if movement^[ix,iy+1]<10 then movement_new^[ix,iy]:=2;
+          if iy-1>0 then
+            if movement^[ix  ,iy-1]<10 then begin movement_new^[ix,iy]:=6; distance_new:=distance^[ix  ,iy-1]+distance_accuracy; end;
+          if iy+1<=maxy then
+            if movement^[ix  ,iy+1]<10 then begin movement_new^[ix,iy]:=2; distance_new:=distance^[ix  ,iy+1]+distance_accuracy; end;
+
         if movement_new^[ix,iy]<>100 then begin
           nomoves:=false;
+          if distance_new<255 then distance^[ix,iy]:=distance_new else distance^[ix,iy]:=255;
           if (ix=nx1) and ((nx1-1)>0) then nx1:=nx1-1;
           if (iy=ny1) and ((ny1-1)>0) then ny1:=ny1-1;
           if (ix=nx2) and ((nx2+1)<=maxx) then nx2:=nx2+1;
           if (iy=ny2) and ((ny2+1)<=maxy) then ny2:=ny2+1;
-        end;
+        end else distance^[ix,iy]:=0;
       end;
      movement^:=movement_new^;
   until (nomoves) or (movement^[target_x,target_y]<10);
@@ -393,7 +410,7 @@ end;
 {================================================================================}
 {================================================================================}
 
-function check_LOS(x1,y1,x2,y2:integer):integer;
+function check_LOS(x1,y1,x2,y2:integer;smoker:boolean):integer;
 var dx,dy:integer;
     xx1,yy1:integer;
     range,maxrange:integer;
@@ -410,8 +427,11 @@ begin
     inc(range);
     xx1:=x1+round(dx*range / maxrange);
     yy1:=y1+round(dy*range / maxrange);
-    if map^[xx1,yy1]<=map_smoke then dec(L,map^[xx1,yy1]+2);
-    if (map^[xx1,yy1]>map_smoke) and ((xx1<>x2) or (yy1<>y2)) then L:=-1;
+    if smoker=true then begin
+      if map^[xx1,yy1]<=map_smoke then dec(L,map^[xx1,yy1]+2)
+    end else
+      if map^[xx1,yy1]<=map_smoke then dec(L,2);
+    if (map^[xx1,yy1]>=map_wall) and ((xx1<>x2) or (yy1<>y2)) then L:=-1;
   until (range>=maxrange) or (L<1);
  end;
  check_LOS:=L;
@@ -422,7 +442,7 @@ begin
 {================================================================================}
 {================================================================================}
 
-function Tform1.generate_enemy_list:boolean;
+function Tform1.generate_enemy_list(messageflag:boolean):boolean;
 var i,j:integer;
     enemyunits_new:integer;
 begin
@@ -436,7 +456,13 @@ begin
       for j:=1 to nbot do if (bot[j].owner=player) and (bot[j].hp>0) then bot[i].target:=j;
     end;
   end;
-  if enemyunits_new<>enemyunitsn then generate_enemy_list:=true else generate_enemy_list:=false;
+  if enemyunits_new<>enemyunitsn then begin
+    generate_enemy_list:=true;
+    if (enemyunits_new>enemyunitsn) and (messageflag) and (this_turn=player) then begin
+     draw_map;
+     showmessage('Enemy nearby!');
+    end;
+  end else generate_enemy_list:=false;
   enemyunitsn:=enemyunits_new;
 end;
 
@@ -453,7 +479,7 @@ begin
  if (bot[thisbot].owner=player) and (bot[thisbot].hp>0) then begin
    for ix:=bot[thisbot].x-visiblerange to bot[thisbot].x+visiblerange do
     for iy:=bot[thisbot].y-visiblerange to bot[thisbot].y+visiblerange do begin
-      LOS:=check_LOS(bot[thisbot].x,bot[thisbot].y,ix,iy);
+      LOS:=check_LOS(bot[thisbot].x,bot[thisbot].y,ix,iy,true);
       if LOS>0 then begin
         LOS:=round((maxvisible-oldvisible)*LOS/(visiblerange*visibleaccuracy))+oldvisible;
         if vis^[ix,iy]<LOS then begin vis^[ix,iy]:=LOS; mapchanged^[ix,iy]:=255 end;
@@ -501,14 +527,14 @@ const maxwaypoints=1000;
 var waypointx,waypointy:array[1..maxwaypoints]of integer;
     waypointn:integer;
     waypoint_count:integer;
-    waypoint_distance:integer;
+//    waypoint_distance:integer;
 procedure Generatewaypoints(thisbot,to_x,to_y:integer);
 var xx1,yy1:integer;
 begin
   waypointn:=0;
   xx1:=to_x;
   yy1:=to_y;
-  waypoint_distance:=0;
+//  waypoint_distance:=0;
   repeat
     inc(waypointn);
     waypointx[waypointn]:=xx1;
@@ -525,7 +551,7 @@ begin
       4: begin inc(xx1);          end;
     end;
 
-    inc(waypoint_distance,round(bot[thisbot].speed*sqrt(sqr(xx1-waypointx[waypointn])+sqr(yy1-waypointy[waypointn]))));
+//    inc(waypoint_distance,round(bot[thisbot].speed*sqrt(sqr(xx1-waypointx[waypointn])+sqr(yy1-waypointy[waypointn]))));
   until (xx1=bot[thisbot].x) and (yy1=bot[thisbot].y);
 end;
 
@@ -578,11 +604,7 @@ begin
 
      if bot[thisbot].owner=player then begin
        look_around(thisbot);
-       if generate_enemy_list then begin
-         draw_map;
-         showmessage('Enemy nearby!');
-         waypointn:=0;
-       end;
+       if generate_enemy_list(true) then waypointn:=0
      end;
      if (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) or (bot[thisbot].owner=player) then begin
        mytimer:=now;
@@ -820,57 +842,6 @@ begin
      end;
   end;
 end;
-
-{--------------------------------------------------------------------------------------}
-
-{const maxsqrsinus=maxx div 4;
-      checkblocks=2;
-procedure generate_map_sqrsinus;
-var ix,iy,i:integer;
-    mapfree:array[1..checkblocks,1..checkblocks]of integer;
-    map_seed,sinus_threshold,max_frq:float;
-    frqx,frqy,phase,amp:array[1..maxsqrsinus] of float;
-    sum,allamp:float;
-    flag1:boolean;
-begin
- map_seed:=0.4+random/8;
- form1.memo1.lines.add('ABSOLUTE SINUS MAP * '+inttostr(round(map_seed*100)));
- repeat
-  form1.memo1.lines.add('regenerating...');
-  allamp:=0;
-  max_frq:=random*(maxx-4)+3;
-  for i:=1 to maxsqrsinus do begin
-    frqx[i]:=Pi*max_frq*(sqr(random));
-    frqy[i]:=Pi*max_frq*(sqr(random));
-    phase[i]:=random*2*pi;
-    amp[i]:=random/sqrt(sqrt(frqx[i]+frqy[i]));
-    allamp:=allamp+sqr(amp[i]);
-  end;
-  allamp:=sqrt(allamp);
-
-  for ix:=1 to checkblocks do
-    for iy:=1 to checkblocks do mapfree[ix,iy]:=0;
-  sinus_threshold:=0.7;
-  for ix:=1 to maxx do
-   for iy:=1 to maxy do begin
-     sum:=0;
-     for i:=1 to maxsqrsinus do sum:=sum+abs(amp[i]*sin(frqx[i]*ix/maxx+frqy[i]*iy/maxy+phase[i]));
-     if sum/allamp>sinus_threshold then map^[ix,iy]:=map_wall else
-       begin
-         map^[ix,iy]:=255;
-         if (ix<maxx div 2) then begin
-           if (iy<maxy div 2) then inc(mapfree[1,1]) else inc(mapfree[1,2]);
-         end else begin
-           if (iy<maxy div 2) then inc(mapfree[2,1]) else inc(mapfree[2,2]);
-         end;
-
-       end;
-   end;
-  flag1:=true;
-  for ix:=1 to checkblocks do
-    for iy:=1 to checkblocks do if (4*mapfree[ix,iy]/maxx/maxy<map_seed-0.3) or (4*mapfree[ix,iy]/maxx/maxy>map_seed+0.3) then flag1:=false;
- until flag1;
-end; }
 
 {--------------------------------------------------------------------------------------}
 
@@ -2243,12 +2214,15 @@ begin
   weaponhp:=0;
   repeat
     inc(i);
-    bot[nbot].items[i].w_id:=1; //**** =1
+    bot[nbot].items[i].w_id:=1;
     if bot[nbot].owner<>player then begin
       if (random<0.05) and (i=1) then bot[nbot].items[i].w_id:=4;
       if random<0.05 then bot[nbot].items[i].w_id:=2;
       if random<0.05 then bot[nbot].items[i].w_id:=3;
     end;
+
+    if form1.checkbox3.checked then  bot[nbot].items[i].w_id:=4; //****
+
     bot[nbot].items[i].maxstate:=weapon_specifications[bot[nbot].items[i].w_id].maxstate-round(0.1*weapon_specifications[bot[nbot].items[i].w_id].maxstate*random);
     bot[nbot].items[i].state:=round((bot[nbot].items[i].maxstate-0.2*bot[nbot].items[i].maxstate*random)*(11/(i+10)));
     //if i>1 then  bot[nbot].items[i].state:=0; //*
@@ -2265,7 +2239,7 @@ begin
     bot[nbot].items[i].n:=ammo_specifications[bot[nbot].items[i].ammo_id].quantity;
   until (bot[nbot].HP*itemdamagerate<weaponhp) or (i=backpacksize) or (bot[nbot].owner=player);
 
-  if map^[bot[nbot].x,bot[nbot].y]<=map_smoke then flg:=true else flg:=false;
+  if map^[bot[nbot].x,bot[nbot].y]<map_wall then flg:=true else flg:=false;
   if (flg) and (nbot>1) then
     for i:=1 to nbot-1 do if (bot[i].hp>0) and (bot[nbot].x=bot[i].x) and (bot[nbot].y=bot[i].y) then flg:=false;
   if not flg then dec(nbot);
@@ -2274,22 +2248,28 @@ end;
 
 {-----------------------------------------------------------------------------------------------}
 
-procedure generate_LOS_base_map;
+procedure generate_LOS_base_map{(all:boolean;los_x,los_y:integer)};
 var ix,iy,dx,dy,count:integer;
+    tmp_bar:integer;
 begin
+  form1.memo1.lines.add('Generating LOS base map...');
   form1.set_progressbar(true);
+  tmp_bar:= form1.progressbar1.max;
   form1.progressbar1.max:=maxx;
+
+
   for ix:=1 to maxx do begin
-    for iy:=1 to maxy do if map^[ix,iy]<map_wall then begin
+    for iy:=1 to maxy do if (map^[ix,iy]<map_wall) then begin
       count:=0;
       for dx:=ix-visiblerange to ix+visiblerange do
         for dy:=iy-visiblerange to iy+visiblerange do
           if (dx>0) and (dy>0) and (dx<=maxx) and (dy<=maxy) then
            if map^[dx,dy]<map_wall then
-            if (check_LOS(ix,iy,dx,dy)>0) then inc(count);
+            if (check_LOS(ix,iy,dx,dy,false)>0) then inc(count);
       if count>1 then dec(count);
       if count<255 then LOS_base^[ix,iy]:=count else LOS_base^[ix,iy]:=255;
-    end else LOS_base^[ix,iy]:=0;
+
+    end else LOS_base^[ix,iy]:=255;
     form1.progressbar1.position:=ix;
     form1.progressbar1.update;
   end;
@@ -2302,6 +2282,10 @@ begin
        inc(mapfreespace);
     end;
   averageLOS:=dx/mapfreespace;
+
+  form1.progressbar1.max:=tmp_bar;
+  if this_turn=player then form1.set_progressbar(false);
+  //dispose(tmp_map);
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -2325,6 +2309,7 @@ var ix,iy:integer;
     generatedbots:integer;
     bot_hp_const,player_hp_const:integer;
     total_bot_hp,total_player_hp,total_bot_firepower,total_player_firepower:integer;
+    estimated_firepower:float;
 begin
   randomize;
 
@@ -2395,9 +2380,17 @@ begin
        19:   repeat generate_map_areas          until test_map(20,90);
        20:   repeat generate_map_wormhole       until test_map(20,90);
   end;
-  itemsn:=0;
+
+  if (form1.radiobutton3.checked) or ((form1.radiobutton2.checked) and (random>0.8)) then begin
+    memo1.lines.add('Generating smoke...');
+    for ix:=maxx div 5+2 to maxx do
+     for iy:=maxy div 5+2 to maxy do if map^[ix,iy]=map_free then map^[ix,iy]:=round(map_smoke*sqrt(random));
+    for ix:=1 to 10 do grow_smoke;
+  end;
+
   memo1.lines.add('Map ready. Setting bots.');
 
+  itemsn:=0;
   nbot:=0;
 
   val(edit5.text,playersn,ix);
@@ -2455,7 +2448,7 @@ begin
       repeat
         x1:=round(random*(maxx-2)+1);
         y1:=round(random*(maxy-2)+1);
-      until (map^[x1,y1]<map_smoke);
+      until (map^[x1,y1]<map_wall);
       item[itemsn].x:=x1;
       item[itemsn].y:=y1;
       item[itemsn].item.w_id:=0;
@@ -2480,7 +2473,7 @@ begin
 
   memo1.lines.add('...');
   memo1.lines.add('Calculating map strategy...');
-  generate_LOS_base_map;
+  generate_LOS_base_map{(true,1,1)};
   total_bot_hp:=0;
   total_player_hp:=0;
   total_bot_firepower:=0;
@@ -2497,17 +2490,15 @@ begin
   memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
   if checkbox1.checked then ix:=defensedifficulty else ix:=1;
   memo1.lines.add('HP ratio = '+inttostr(round(100*total_bot_hp/total_player_hp))+'%');
-  memo1.lines.add('Firepower ratio = '+inttostr(round(ix*100*total_bot_firepower/total_player_firepower*averageLOS/mapfreespace))+'%');
-  iy:=round(100*total_bot_hp/total_player_hp * ix*total_bot_firepower/total_player_firepower * averageLOS/mapfreespace);
+  estimated_firepower:=total_bot_firepower/total_player_firepower*averageLOS/mapfreespace;
+  if estimated_firepower<1/playersn then estimated_firepower:=1/playersn;
+  memo1.lines.add('Firepower ratio = '+inttostr(round(ix*100*estimated_firepower))+'%');
+  iy:=round(100*total_bot_hp/total_player_hp * ix*estimated_firepower);
   memo1.lines.add('True difficulty = '+saydifficulty(iy));
+
+  memo2.lines:=memo1.lines;
+
   memo1.lines.add('...');
-
-  if (form1.radiobutton3.checked) or ((form1.radiobutton2.checked) and (random>0.8)) then begin
-    for ix:=maxx div 5+2 to maxx do
-     for iy:=maxy div 5+2 to maxy do if map^[ix,iy]=map_free then map^[ix,iy]:=round(map_smoke*sqrt(random));
-    for ix:=1 to 10 do grow_smoke;
-  end;
-
 
   mapgenerated:=true;
 
@@ -2523,6 +2514,20 @@ begin
   viewx:=0;
   viewy:=0;
   memo1.lines.add('=========================');
+
+
+  map_type:=1 shl 7 + 1 shl 5 + 0 shl 2 + 7; {wall-pass shl 7 + tile-type shl 5 + status shl 2 + fire (or +status for walls)}
+  memo1.lines.add('[dbg] encoded map = '+inttostr(map_type));
+  if map_type<128 then
+    memo1.lines.add('[dbg] wall = false')
+  else begin
+    memo1.lines.add('[dbg] wall = true');
+    dec(map_type,128);
+  end;
+  memo1.lines.add('[dbg] tile_type = '+inttostr(map_type and 32 shr 5));
+  dec(map_type,map_type and 32);
+  memo1.lines.add('[dbg] status = '+inttostr(map_type));
+
 
   current_turn:=0;
   start_turn;
@@ -2647,7 +2652,7 @@ with AMMO_specifications[4] do begin
    QUANTITY    :=  7;
    EXPLOSION   :=999;
    AREA        := 26;
-   SMOKE       := 50;
+   SMOKE       := 20;
    TRACE_SMOKE :=  0;
  end;
 
@@ -2680,6 +2685,7 @@ begin
   new(vis);
   new(mapchanged);
   new(movement);
+  new(distance);
   new(LOS_base);
   gamemode:=gamemode_none;
   form1.DoubleBuffered:=true;
@@ -2720,7 +2726,7 @@ begin
    end;
    if thisbot=selectedenemy then begin
      selectedenemy:=-1;
-     form1.generate_enemy_list;
+     form1.generate_enemy_list(true);
    end;
    if (bot[thisbot].owner=player) and (this_turn<>player) then form1.clear_visible;       //and enemy turn!!!!
    //drop items//drop corpse
@@ -2739,17 +2745,18 @@ begin
   end;
 end;
 
-const maxblast=25;
-      maxgeneration=maxblast;
+const maxblast=50;
+      maxgeneration=50;           //no greater than 60!!!
 type blastarea=array[-maxblast..maxblast,-maxblast..maxblast] of shortint;
-var area:^blastarea;
-    generationsum:float;
-procedure calculate_area(ax,ay,a,asmoke,ablast:integer);
+procedure Tform1.calculate_area(ax,ay,a,asmoke,ablast:integer);
 var ix,iy,dx,dy,count,generation,i,j:integer;
     flg,flg_x:boolean;
     direction_x,direction_y:^blastarea;
     mytimer:tdate;
     x2,y2:integer;
+var area:^blastarea;
+    generationsum:float;
+    regeneratelos:boolean;
     //tmp_area:^blastarea;
 begin
   new(area);
@@ -2759,9 +2766,9 @@ begin
   for dx:=-maxblast to maxblast do
    for dy:=-maxblast to maxblast do begin
      if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) then begin
-       if map^[ax+dx,ay+dy]<map_wall then area^[dx,dy]:=125 else area^[dx,dy]:=99;
+       if map^[ax+dx,ay+dy]<map_wall then area^[dx,dy]:=127 else area^[dx,dy]:=126;
      end else
-       area^[dx,dy]:=98;
+       area^[dx,dy]:=125;
      direction_x^[dx,dy]:=0;
      direction_y^[dx,dy]:=0;
    end;
@@ -2775,50 +2782,59 @@ begin
    inc(generation);
    //tmp_area^:=area^;
    for ix:=-generation to generation do if abs(ix)<maxblast then
-    for iy:=-generation to generation do if abs(iy)<maxblast then if area^[ix,iy]=125 then begin
-      for dx:=-1 to 1 do
-       for dy:=-1 to 1 do if {tmp_}area^[ix+dx,iy+dy]<generation then begin
-         area^[ix,iy]:=generation;
-         inc(direction_x^[ix,iy],dx);
-         inc(direction_y^[ix,iy],dy);
-       end;
-      if area^[ix,iy]=generation then inc(count);
+    for iy:=-generation to generation do if abs(iy)<maxblast then begin
+     if area^[ix,iy]=127 then begin
+        for dx:=-1 to 1 do
+         for dy:=-1 to 1 do if {tmp_}area^[ix+dx,iy+dy]<generation then begin
+           area^[ix,iy]:=generation;
+           inc(direction_x^[ix,iy],dx);
+           inc(direction_y^[ix,iy],dy);
+         end;
+        if area^[ix,iy]=generation then inc(count);
+      end else if area^[ix,iy]=126 then begin
+        for dx:=-1 to 1 do
+         for dy:=-1 to 1 do if area^[ix+dx,iy+dy]<generation then
+           area^[ix,iy]:=generation+60;
+      end;
     end;
+   //walls
+
   until (count>=a) or (generation>=maxgeneration);
   //dispose(tmp_area);
 
   generationsum:=0;
   if generation>maxblast then generation:=maxblast;
-  for ix:=-generation to generation do
-   for iy:=-generation to generation do if area^[ix,iy]>maxgeneration then area^[ix,iy]:=0 else begin
-     //if area^[ix,iy]>1 then dec(area^[ix,iy]);
-     generationsum:=generationsum+1/sqrt(area^[ix,iy]);
-   end;
 
+  for ix:=-generation to generation do
+   for iy:=-generation to generation do if area^[ix,iy]<=maxgeneration then
+     generationsum:=generationsum+1/sqrt(area^[ix,iy]);
+
+  //draw explosion
   for dx:=-generation to generation do
-   for dy:=-generation to generation do if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]>0) then
+   for dy:=-generation to generation do if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]<=maxgeneration) then
     if vis^[ax+dx,ay+dy]>=oldvisible then
-     with form1.image1.canvas do begin
+     with image1.canvas do begin
        //mapchanged^[ax+dx,ay+dy]:=0;
        //brush.style:=bsclear;
-       x2:=round((dx+ax-viewx-0.5)*form1.image1.width / viewsizex);
-       y2:=round((dy+ay-viewy-0.5)*form1.image1.height / viewsizey);
+       x2:=round((dx+ax-viewx-0.5)*image1.width / viewsizex);
+       y2:=round((dy+ay-viewy-0.5)*image1.height / viewsizey);
        pen.color:=RGB(255,255,180,0);
        ix:=round(sqr((ablast/10/generationsum)/sqrt(area^[dx,dy])))+5;
-       if ix>(form1.image1.width / viewsizex-2) then  pen.width:=round((form1.image1.width / viewsizex-1))
+       if ix>(image1.width / viewsizex-2) then  pen.width:=round((image1.width / viewsizex-1))
          else pen.width:=ix;
        moveto(x2,y2);
        lineto(x2,y2);
      end;
-//  form1.image1.update;
+//  image1.update;
   mytimer:=now;
-  repeat  form1.image1.update; until (now-mytimer)*24*60*60*1000>blastdelay;
-{  form1.draw_map;                                     }
+  repeat  image1.update; until (now-mytimer)*24*60*60*1000>blastdelay;
+{  draw_map;                                     }
 
-   //damage tagets
+   //damage tagets //make smoke // destroy walls
+   regeneratelos:=false;
    for dx:=-generation to generation do
      for dy:=-generation to generation do
-       if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]>0) then begin
+       if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]<125) then begin
          if map^[ax+dx,ay+dy]<map_wall then begin
            ix:=round((asmoke/generationsum)/sqrt(area^[dx,dy]));
            if ix<1 then ix:=1;
@@ -2829,36 +2845,44 @@ begin
            for i:=1 to nbot do if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (bot[i].hp>0) then begin
              ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
              if ix<1 then ix:=1;
-             form1.memo1.lines.add(bot[i].name+' is hit for '+inttostr(ix)+' by explosion');
+             memo1.lines.add(bot[i].name+' is hit for '+inttostr(ix)+' by explosion');
              hit_bot(i,ix);
              if vis^[bot[i].x,bot[i].y]>oldvisible then
-             with form1.image1.canvas do begin
+             with image1.canvas do begin
                brush.style:=bsclear;
                iy:=255;
                mytimer:=now;
                repeat
-                 x2:=round((bot[i].x-viewx-0.5)*form1.image1.width / viewsizex);
-                 y2:=round((bot[i].y-viewy-0.5)*form1.image1.height / viewsizey);
+                 x2:=round((bot[i].x-viewx-0.5)*image1.width / viewsizex);
+                 y2:=round((bot[i].y-viewy-0.5)*image1.height / viewsizey);
                  font.color:=RGB(iy,255,10,10);
                  font.size:=17;
                  textout(x2-10,y2-15,inttostr(ix));
-                 form1.image1.update;
+                 image1.update;
                  iy:=255-round(100*(now-mytimer)*24*60*60*1000/blastdelay);
                until iy<=155;
              end;
              for ix:=-1 to 1 do
                for iy:=-1 to 1 do mapchanged^[bot[i].x+ix,bot[i].y+iy]:=255;
-             form1.draw_map;
+             draw_map;
+           end;
+         end else begin
+           ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]-60));
+           if (ix>wallhardness) then begin
+             map^[ax+dx,ay+dy]:=map_wall_smoke;
+             mapchanged^[ax+dx,ay+dy]:=255;
+             regeneratelos:=true;
            end;
          end;
        end;
+   if regeneratelos then generate_LOS_base_map{(false,ax+dx,ay+dy)};
 
    //push surviving tagets
    for i:=1 to nbot do if (bot[i].hp>0) then begin
    flg_x:=true;
    for dx:=-generation to generation do if flg_x then
      for dy:=-generation to generation do if flg_x then
-       if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (area^[dx,dy]>0) then begin
+       if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (area^[dx,dy]<=maxgeneration) then begin
            flg_x:=false;
            ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
            if ix>blastpush then begin
@@ -2868,18 +2892,22 @@ begin
              for j:=1 to nbot do
                if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
              if flg then begin
-               form1.memo1.lines.add('[dbg] push '+bot[i].name);
+               memo1.lines.add('[dbg] push '+bot[i].name);
                dec(bot[i].x,sgn(direction_x^[dx,dy]));
                dec(bot[i].y,sgn(direction_y^[dx,dy]));
                mapchanged^[bot[i].x,bot[i].y]:=255;
-               if (bot[i].owner=player) then form1.look_around(i);
              end;
            end;
            end;
          end;
     end;
 
-    if this_turn=computer then form1.clear_visible;
+
+    if this_turn=computer then clear_visible else
+      for i:=1 to nbot do if bot[i].owner=player then begin
+        look_around(i);
+        generate_enemy_list(true);
+      end;
 
   dispose(area);
   dispose(direction_x);
@@ -2917,7 +2945,7 @@ begin
  end;
 
  if (flg) and (bot[attacker].tu>=timetoattack) and (bot[defender].hp>0) then begin
-   LOS:=check_LOS(bot[defender].x,bot[defender].y,bot[attacker].x,bot[attacker].y);
+   LOS:=check_LOS(bot[defender].x,bot[defender].y,bot[attacker].x,bot[attacker].y,true);
    if LOS>0 then begin
      ACC:=weapon_specifications[bot[attacker].items[1].w_id].ACC+ammo_specifications[bot[attacker].items[1].ammo_id].ACC+4;
      DAM:=weapon_specifications[bot[attacker].items[1].w_id].DAM+ammo_specifications[bot[attacker].items[1].ammo_id].DAM;
@@ -3012,18 +3040,20 @@ end;
 
 procedure TForm1.grow_smoke;
 var ix,iy:integer;
-    i:integer;
+    i,j:integer;
     dx,dy:shortint;
     smoke_new:^map_array;
 begin
  new(smoke_new);
- smoke_new^:=map^;
+
+for j:=1 to 3 do begin
+  smoke_new^:=map^;
 
  for ix:=1 to maxx do
-   for iy:=1 to maxy do if (smoke_new^[ix,iy]=1) and (random>0.5) then smoke_new^[ix,iy]:=0;
+   for iy:=1 to maxy do if (smoke_new^[ix,iy]=1) and (random>0.7) then smoke_new^[ix,iy]:=0;
 
  for ix:=1 to maxx do
-   for iy:=1 to maxy do if (map^[ix,iy]>1) and (map^[ix,iy]<=map_smoke) then begin
+   for iy:=1 to maxy do if (map^[ix,iy]>1) and (map^[ix,iy]<map_wall) then begin
      i:=0;
      repeat
        inc(i);
@@ -3033,13 +3063,13 @@ begin
          if (smoke_new^[ix+dx,iy+dy]<map^[ix,iy]) and (smoke_new^[ix+dx,iy+dy]<map_smoke) then begin
            dec(map^[ix,iy]);
            dec(smoke_new^[ix,iy]);
-           inc(smoke_new^[ix+dx,iy+dy]);
+           {if random>0.5 then }inc(smoke_new^[ix+dx,iy+dy]);
          end;
        end;
      until (i>=30) or (map^[ix,iy]=1);
    end;
-
- map^:=smoke_new^;
+  map^:=smoke_new^;
+end;
  dispose(smoke_new);
 end;
 
@@ -3066,6 +3096,7 @@ var LOS_targets:array[1..max_los_targets] of integer;
     x1,y1,dx,dy:integer;
     timetoshot:integer;
     passcount:byte;
+    I_am_visible:boolean;
 begin
   passcount:=0;
   repeat
@@ -3105,22 +3136,25 @@ begin
     // seek weapon
     if (weaponneeded) and (itemsn>0) then begin
       // go find closest weapon state>0
-      lastrange:=sqr(maxx)+sqr(maxy);
+      lastrange:=256;
       aim:=0;
-      for j:=1 to itemsn do if (sqr(bot[thisbot].x-item[j].x)+sqr(bot[thisbot].y-item[j].y)<lastrange) and (item[j].item.w_id>0) and (item[j].item.state>0) and (item[j].item.n>0) then begin
-        flg:=true;
-        for k:=1 to nbot do if (bot[k].hp>0) and (k<>thisbot) and (bot[k].x=item[j].x) and (bot[k].y=item[j].y) then flg:=false;
-        if (aim>0) and (item[j].item.state<item[j].item.maxstate div 3) and (item[j].item.n<4) then flg:=false;
-        if flg then generatemovement(thisbot,item[j].x,item[j].y);
-        if (flg) and (movement^[item[j].x,item[j].y]<10) then begin
-          aim:=j;
-          lastrange:=sqr(bot[thisbot].x-item[j].x)+sqr(bot[thisbot].y-item[j].y)
+      for j:=1 to itemsn do if (item[j].item.w_id>0) and (item[j].item.state>0) and (item[j].item.n>0) then begin
+        generatemovement(thisbot,item[j].x,item[j].y);
+        if (distance^[item[j].x,item[j].y]<lastrange) and (movement^[item[j].x,item[j].y]<10) then begin
+          flg:=true;
+          for k:=1 to nbot do if (bot[k].hp>0) and (k<>thisbot) and (bot[k].x=item[j].x) and (bot[k].y=item[j].y) then flg:=false;
+          if (aim>0) and (item[j].item.state<item[j].item.maxstate div 3) and (item[j].item.n<4) then flg:=false;
+          if (flg)  then begin
+            aim:=j;
+            lastrange:=distance^[item[j].x,item[j].y]
+          end;
         end;
       end;
-      if (aim=0) or (bot[thisbot].items[backpacksize].ammo_id>0) or (bot[thisbot].items[backpacksize].w_id>0) then begin
-        if aim>0 then for j:=2 to backpacksize do drop_item(thisbot,j);
+      if (aim>0) and ((bot[thisbot].items[backpacksize].ammo_id>0) or (bot[thisbot].items[backpacksize].w_id>0)) then
+        for j:=2 to backpacksize do drop_item(thisbot,j);
+      if (aim=0) then
         stopactions:=true {!}
-      end else
+      else
         move_bot(thisbot,item[aim].x,item[aim].y,100);
     end;
     //see items on the ground and take if vis<0 or needed
@@ -3143,7 +3177,7 @@ begin
 
 
     k:=0;
-    for j:=1 to playersn do if (check_LOS(bot[thisbot].x,bot[thisbot].y,bot[j].x,bot[j].y)>0) and (bot[j].hp>0) then begin
+    for j:=1 to playersn do if (check_LOS(bot[thisbot].x,bot[thisbot].y,bot[j].x,bot[j].y,true)>0) and (bot[j].hp>0) then begin
       inc(k);
       LOS_targets[k]:=j;
     end;
@@ -3160,48 +3194,59 @@ begin
       bot_shots(thisbot,bot[thisbot].target);
     end;
 
+    //Escape visible range or at least minimize LOS
     timetoshot:=bot[thisbot].items[1].rechargestate+weapon_specifications[bot[thisbot].items[1].w_id].aim;
-    if (bot[thisbot].tu<timetoshot) {or ((bot[thisbot].tu<timetoshot+bot[thisbot].speed*sqrt(2)) and (vis^[bot[thisbot].x,bot[thisbot].y]<=oldvisible))} then begin
-      if bot[thisbot].tu>=bot[thisbot].speed then begin
-        //escape visible range;
-        dx:=-1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:= 0;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=-1;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=+1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:= 0;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=+1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+    if (bot[thisbot].tu<timetoshot) and (bot[thisbot].tu>=bot[thisbot].speed) and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) then begin
+      x1:=bot[thisbot].x;
+      y1:=bot[thisbot].y;
+      generatemovement(thisbot,bot[bot[thisbot].target].x,bot[bot[thisbot].target].y); //buggy
+      for dx:=bot[thisbot].x- trunc(bot[thisbot].tu/bot[thisbot].speed) to bot[thisbot].x+trunc(bot[thisbot].tu/bot[thisbot].speed) do if (dx>1) and (dx<maxx) then
+        for dy:=bot[thisbot].y- trunc(bot[thisbot].tu/bot[thisbot].speed) to bot[thisbot].y+trunc(bot[thisbot].tu/bot[thisbot].speed) do if (dy>1) and (dy<maxy) then
+          if (map^[dx,dy]<map_wall) and (distance^[dx,dy]>0) and (distance^[dx,dy]/distance_accuracy*bot[thisbot].speed<=bot[thisbot].tu) and ((LOS_base^[x1,y1]>LOS_base^[dx,dy]) or ((vis^[x1,y1]>oldvisible) and (vis^[dx,dy]<=oldvisible))) then
+            if (vis^[dx,dy]<=oldvisible) or (vis^[x1,y1]>oldvisible) then begin
+              flg:=true;
+              for j:=1 to nbot do if (bot[j].x=dx) and (bot[j].y=dy) then flg:=false;
+              if flg then begin
+                x1:=dx;
+                y1:=dy;
+              end;
+            end;
+      if (x1<>bot[thisbot].x) or (y1<>bot[thisbot].y) then begin
+        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides from vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
+        move_bot(thisbot,x1,y1,100);
+        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides to vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
 
-        //try to minimize LOS
-        dx:=-1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=+1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:= 0;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:= 0;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=+1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=-1;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
       end;
-//      stopactions:=true;
-    end;
+      stopactions:=true;
+    end else //buggy
+
     //action/attack - go to the nearest LOS
     if (bot[thisbot].action=action_attack) and (bot[bot[thisbot].target].hp>0) then begin
       if (k=0) or (bot[thisbot].items[1].rechargestate>=bot[thisbot].speed) then begin
-        lastrange:=sqr(bot[thisbot].x-bot[bot[thisbot].target].x)+sqr(bot[thisbot].y-bot[bot[thisbot].target].y);
+        if vis^[bot[thisbot].x,bot[thisbot].y]<=oldvisible then begin
+          lastrange:=256;
+          I_am_visible:=false;
+        end
+        else begin
+          lastrange:=sqr(bot[thisbot].x-bot[bot[thisbot].target].x)+sqr(bot[thisbot].y-bot[bot[thisbot].target].y);
+          I_am_visible:=true;
+        end;
         j:=1;
         flg:=false;
+        generatemovement(thisbot,bot[bot[thisbot].target].x,bot[bot[thisbot].target].y);  //buggy
         repeat
           for dx:=bot[thisbot].x-j to bot[thisbot].x+j do
            for dy:=bot[thisbot].y-j to bot[thisbot].y+j do if (dx>0) and (dy>0) and (dx<=maxx) and (dy<=maxy) then
-            if (map^[dx,dy]<map_wall) and (vis^[dx,dy]>oldvisible) and (lastrange>sqr(dx-bot[bot[thisbot].target].x)+sqr(dy-bot[bot[thisbot].target].y)) then begin
+            if (map^[dx,dy]<map_wall) and (vis^[dx,dy]>oldvisible) and (((lastrange>distance^[dx,dy]) and (distance^[dx,dy]>0) and (not I_am_visible)) or ((lastrange>sqr(dx-bot[bot[thisbot].target].x)+sqr(dy-bot[bot[thisbot].target].y)) and (distance^[dx,dy]/distance_accuracy*bot[thisbot].speed<=bot[thisbot].items[1].rechargestate) and (I_am_visible))) then begin
               aim:=1;
               for l:=1 to nbot do if (bot[l].x=dx) and (bot[l].y=dy) and (bot[l].hp>0) then aim:=0;
-              if aim=1 then generatemovement(thisbot,dx,dy);
               if (aim=1) and (movement^[dx,dy]<10) then begin
                 x1:=dx;
                 y1:=dy;
-                lastrange:=sqr(x1-bot[bot[thisbot].target].x)+sqr(y1-bot[bot[thisbot].target].y);
+                if I_am_visible then
+                  lastrange:=sqr(x1-bot[bot[thisbot].target].x)+sqr(y1-bot[bot[thisbot].target].y)
+                else
+                  lastrange:=distance^[dx,dy];
                 flg:=true;
               end;
             end;
@@ -3241,6 +3286,7 @@ begin
   selectedenemy:=-1;
   memo1.clear;
   clear_visible;
+  draw_map;
   //LOS - is "current" map_visible;
   for i:=1 to nbot do if bot[i].owner<>player then begin
     spend_tu(i,bot[i].tu);
@@ -3254,88 +3300,6 @@ begin
     progressbar1.position:=i;
     progressbar1.update;
   end;
-
-{  begin
-  if ((bot[i].items[1].w_id<=0) or (bot[i].items[1].n<=0) or (bot[i].items[1].state<bot[i].items[1].maxstate/4)) then begin
-     {reload from the backpack if none - go to find}
-     flg:=true;
-     for j:=2 to backpacksize do if (flg) and (((bot[i].items[j].w_id>0) and (bot[i].items[j].state>bot[i].items[j].maxstate/3)) or ((bot[i].items[j].w_id=0) and (bot[i].items[j].ammo_id>0))) and (bot[i].items[j].n>0) then begin
-        flg:=not load_weapon(i,j);
-        memo1.lines.add('[dbg] reloading...');
-     end;
-
-     if (flg) and (itemsn>0) then begin
-      memo1.lines.add('[dbg] searching...');
-      find_onfloor(bot[i].x,bot[i].y);
-      if onfloorn>0 then begin
-        memo1.lines.add('[dbg] taking...');
-        pick_up(i,1);
-        flg:=true;
-        for j:=2 to backpacksize do if (flg) and (((bot[i].items[j].w_id>0) and (bot[i].items[j].state>bot[i].items[j].maxstate/3)) or ((bot[i].items[j].w_id=0) and (bot[i].items[j].ammo_id>0))) and (bot[i].items[j].n>0) then begin
-           flg:=not load_weapon(i,j);
-           memo1.lines.add('reloading...');
-        end;
-      end else begin
-        lastrange:=sqr(maxx)+sqr(maxy); k:=1;
-        for j:=1 to itemsn do if lastrange>sqr(item[j].x-bot[i].x)+sqr(item[j].y-bot[i].y) then begin
-          flg:=true;
-          for j2:=1 to nbot do if (item[j].x=bot[j2].x) and (item[j].y=bot[j2].y) then flg:=false;
-          if flg then begin
-            k:=j;
-            lastrange:=sqr(item[j].x-bot[i].x)+sqr(item[j].y-bot[i].y);
-          end;
-        end;
-        move_bot(i,item[k].x,item[k].y,100)
-      end;
-     end;
-    end;
-    if (bot[i].action=action_passive_random) or (bot[i].action=action_agressive_random) or (bot[i].target<=0) then begin
-      repeat
-        if (bot[i].action=action_passive_random) then begin
-          for j:=1 to playersn do bot_shots(i,round(random*(playersn-1)+1));
-          move_bot(i,bot[i].x+round(random*2-1),bot[i].y+round(random*2-1),1)
-        end else begin
-          k:=0;
-          for j:=1 to playersn do if (check_LOS(bot[i].x,bot[i].y,bot[j].x,bot[j].y)>0) and (bot[j].hp>0) then begin
-            inc(k);
-            LOS_targets[k]:=j;
-          end;
-          if k>0 then begin
-            lastrange:=sqr(maxx)+sqr(maxy);
-            for j:=1 to k do if sqr(bot[i].x-bot[LOS_targets[j]].x)+ sqr(bot[i].y-bot[LOS_targets[j]].y)<lastrange then begin
-              aim:=LOS_targets[j];
-              lastrange:=sqr(bot[i].x-bot[aim].x)+ sqr(bot[i].y-bot[aim].y)
-            end;
-            bot[i].action:=action_attack;
-            bot[i].target:=aim;
-            bot_shots(i,bot[i].target);
-          end else
-            move_bot(i,bot[i].x+round(random*2-1),bot[i].y+round(random*2-1),1)
-        end;
-      until (bot[i].tu<50) or (random>0.99);
-    end else begin
-      repeat
-        if (bot[bot[i].target].hp=0) then bot[i].target:=round(random*3)+1;
-
-          k:=0;
-          for j:=1 to playersn do if (check_LOS(bot[i].x,bot[i].y,bot[j].x,bot[j].y)>0) and (bot[j].hp>0) then begin
-            inc(k);
-            LOS_targets[k]:=j;
-          end;
-          if k>0 then begin
-            lastrange:=sqr(maxx)+sqr(maxy);
-            for j:=1 to k do if sqr(bot[i].x-bot[LOS_targets[j]].x)+ sqr(bot[i].y-bot[LOS_targets[j]].y)<lastrange then begin
-              aim:=LOS_targets[j];
-              lastrange:=sqr(bot[i].x-bot[aim].x)+ sqr(bot[i].y-bot[aim].y)
-            end;
-            bot[i].action:=action_attack;
-            bot[i].target:=aim;
-            bot_shots(i,bot[i].target);
-          end else
-            move_bot(i,bot[bot[i].target].x+round(random*8)-4,bot[bot[i].target].y+round(random*8)-4,2)
-      until (bot[i].tu<50) or (random>0.99);
-    end;
-  end;}
 
   start_turn;
 end;
@@ -3364,21 +3328,26 @@ begin
   memo1.lines.add('bots remaining: '+inttostr(n1));
   if n1=0 then gamemode:=gamemode_victory;
   if n2=0 then gamemode:=gamemode_defeat;
-  if (n1=0) or (n2=0) then
+  if (n1=0) or (n2=0) then begin
    for n1:=1 to maxx do
     for n2:=1 to maxy do begin
       vis^[n1,n2]:=maxvisible;
       mapchanged^[n1,n2]:=255;
     end;
+    ix:=0;iy:=0;
+    for i:=1 to nbot do if bot[i].owner=player then inc(ix,bot[i].hp) else inc(iy,bot[i].hp);
+    memo1.lines.add('Player HP sum = '+inttostr(ix));
+    memo1.lines.add('Bot HP sum = '+inttostr(iy));
+  end;
   n1:=0; n2:=0;
   for ix:=1 to maxx do
-    for iy:=1 to maxy do if map^[ix,iy]<=map_smoke then begin
+    for iy:=1 to maxy do if map^[ix,iy]<map_wall then begin
       inc(n1);
       if vis^[ix,iy]>0 then inc(n2);
     end;
   memo1.lines.add('MapExplored: '+inttostr(round(n2*100/n1))+'%');
   memo1.lines.add('------------------------------');
-  generate_enemy_list;
+  generate_enemy_list(false);
 //  draw_map_all:=true;
 
 //  bot[5].owner:=player;
@@ -3439,7 +3408,7 @@ if MessageDlg('Are you sure? Your progress will be lost.',mtCustom, [mbYes,mbCan
        vis^[ix,iy]:=maxvisible;
        mapchanged^[ix,iy]:=255;
     end;
-  generate_enemy_list;
+  generate_enemy_list(false);
   draw_map_all:=true;
   draw_map;
   togglebox1.checked:=false;
@@ -3564,6 +3533,7 @@ begin
   dispose(map);
   dispose(vis);
   dispose(movement);
+  dispose(distance);
   dispose(mapchanged);
   dispose(LOS_base);
 end;
@@ -3587,7 +3557,7 @@ if gamemode>200 then begin
    center_map(mousex,mousey)
  end else begin
   if (mousex>0) and (mousey>0) and (mousex<=maxx) and (mousey<=maxy) then
-  if (map^[mousex,mousey]<=map_smoke) and (vis^[mousex,mousey]>0) then begin
+  if (map^[mousex,mousey]<map_wall) and (vis^[mousex,mousey]>0) then begin
     mapchanged^[mousex,mousey]:=255;
     found:=-1;
     for i:=1 to nbot do if (bot[i].x=mousex) and (bot[i].y=mousey) and (vis^[mousex,mousey]>oldvisible) and (bot[i].hp>0) then found:=i;
@@ -3670,7 +3640,7 @@ begin
   if (mousex>0) and (mousey>0) and (mousex<=maxx) and (mousey<=maxy) then
   if vis^[mousex,mousey]=0 then image1.Cursor:=crHelp else begin
     if map^[mousex,mousey]=map_wall then image1.cursor:=CrNo else begin
-      if map^[mousex,mousey]<=map_smoke then begin
+      if map^[mousex,mousey]<map_wall then begin
         found:=true;
         for i:=1 to nbot do if (bot[i].x=mousex) and (bot[i].y=mousey) and (bot[i].hp>0) then begin
           found:=false;
@@ -3729,7 +3699,7 @@ const fontsize=13;
       font7size=10;
 procedure TForm1.Image3MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var //tmpitem:item_type;
+var tmpitem:item_type;
     selectednew,freespace,i:integer;
     //i:integer;
     //flg:boolean;
@@ -3738,7 +3708,7 @@ begin
     selectednew:=round((y-fontsize-3+scrollbar1.position)/(2*fontsize))+2;
     if selectednew<2 then selectednew:=2;
     if selectednew>backpacksize then selectednew:=backpacksize;
-    if ssShift in shift then begin
+    if (ssShift in shift) or ((ssCtrl in shift) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0)) then begin
       if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then
         drop_item(selected,selectednew)
       else
@@ -3753,12 +3723,14 @@ begin
        //check place
        freespace:=0;
        for i:=backpacksize downto 2 do if (bot[selected].items[i].ammo_id=0) and (bot[selected].items[i].w_id=0) then freespace:=i;
-       if freespace>=2 then
-       if spend_tu(selected,weapon_specifications[bot[selected].items[selectednew].w_id].reload) then begin
-        bot[selected].items[freespace].ammo_id:=bot[selected].items[selectednew].ammo_id;
-        bot[selected].items[freespace].n:=bot[selected].items[selectednew].n;
-        bot[selected].items[selectednew].ammo_id:=0;
-       end;
+       if freespace>=2 then begin
+         if spend_tu(selected,weapon_specifications[bot[selected].items[selectednew].w_id].reload) then begin
+          bot[selected].items[freespace].ammo_id:=bot[selected].items[selectednew].ammo_id;
+          bot[selected].items[freespace].n:=bot[selected].items[selectednew].n;
+          bot[selected].items[selectednew].ammo_id:=0;
+         end
+       end else showmessage('Backpack is full!');
+
       end
      end else if selecteditem=selectednew then begin
        if load_weapon(selected,selecteditem) then begin
@@ -3766,8 +3738,15 @@ begin
          selecteditem:=-1;
        end;
     end else begin
-       selecteditem:=selectednew;
-       selectedonfloor:=-1;
+      selectedonfloor:=-1;
+       if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then
+         selecteditem:=selectednew
+       else if selecteditem>0 then begin
+         tmpitem:=bot[selected].items[selectednew];
+         bot[selected].items[selectednew]:=bot[selected].items[selecteditem];
+         bot[selected].items[selecteditem]:=tmpitem;
+         selecteditem:=-1;
+       end;
     end;
     draw_map;
   end;
@@ -3821,7 +3800,8 @@ begin
     bot[thisbot].items[i]:=item[onfloor[thisitem]].item;
     for i:=onfloor[thisitem] to itemsn-1 do item[i]:=item[i+1];
       dec(itemsn);
-    end;
+  end;
+  if (not flg) and (bot[thisbot].owner=player) then showmessage('Backpack is full!');
  end;
 
 end;
@@ -3837,6 +3817,17 @@ begin
     selectednew:=round((y-font7size-3+scrollbar2.position)/(2*font7size))+1;
     if selectednew<1 then selectednew:=1;
     if selectednew>onfloorn then selectednew:=onfloorn;
+    if (ssCtrl in Shift) and (item[onfloor[selectednew]].item.w_id>0) and (item[onfloor[selectednew]].item.ammo_id>0) then begin
+      if spend_tu(selected,weapon_specifications[item[onfloor[selectednew]].item.w_id].reload+pickupitemtime+dropitemtime) then begin
+        inc(itemsn);
+        item[itemsn]:=item[onfloor[selectednew]];
+        item[onfloor[selectednew]].item.n:=0;
+        item[onfloor[selectednew]].item.ammo_id:=0;
+        item[itemsn].item.w_id:=0;
+        selectedonfloor:=selectednew;
+        selecteditem:=-1;
+      end;
+    end else
     if selectednew=selectedonfloor then begin
       pick_up(selected,selectedonfloor);
       selectedonfloor:=-1;
@@ -4033,8 +4024,10 @@ begin
  label11.visible:=flg;
  label12.visible:=flg;
  checkbox1.visible:=flg;
+ checkbox3.visible:=flg;
  label13.visible:=flg;
  button7.visible:=flg;
+ memo2.visible:=flg;
  {$IFDEF UNIX}
  label13.visible:=false;
  {$ENDIF}
@@ -4384,7 +4377,7 @@ begin
     pen.width:=1;
     {draw_map}
     for mx:=1 to maxx do
-      for my:=1 to maxy do if (mapchanged^[mx,my]>0) or (draw_map_all) {or ((map^[mx,my]>0) and (map^[mx,my]<=map_smoke) and (vis^[mx,my]>oldvisible){ and (random>0.5)})} then begin
+      for my:=1 to maxy do if (mapchanged^[mx,my]>0) or (draw_map_all) {or ((map^[mx,my]>0) and (map^[mx,my]<map_wall) and (vis^[mx,my]>oldvisible){ and (random>0.5)})} then begin
         //mapchanged^[mx,my]:=1;
         if vis^[mx,my]=0 then begin
 //          brush.style:= bsDiagCross;
@@ -4408,8 +4401,8 @@ begin
         if (mx>viewx) and (my>viewy) and (mx<=viewx+viewsizex) and (my<=viewy+viewsizey) then begin
           brush.style:=bssolid;
           fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-          if (map^[mx,my]>0) and (map^[mx,my]<=map_smoke) and (vis^[mx,my]>oldvisible) then begin
-            for i:=1 to round(sqr(scalex*scaley)/(sqr(sqr(map_smoke-map^[mx,my]+3))))+1 do begin
+          if (map^[mx,my]>0) and (map^[mx,my]<map_wall) and (vis^[mx,my]>oldvisible) then begin
+            for i:=1 to 1+round((0.01+0.3*(map^[mx,my]-1)/(map_smoke-1))*scalex*scaley) do begin
               brush.color:=RGB(round(150*(random*vis^[mx,my]-oldvisible)/(maxvisible-oldvisible))+100,255,255,255);
               x1:=round((mx-1-viewx+random*(scalex-1)/scalex)*(scalex));
               y1:=round((my-1-viewy+random*(scaley-1)/scaley)*(scaley));
@@ -4422,7 +4415,8 @@ begin
             fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
           end;
           //*******
-          //font.size:=5;textout(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), inttostr(LOS_base^[mx,my]));
+//          font.color:=$FFFFFF;font.size:=5;textout(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), inttostr(LOS_base^[mx,my]));
+//          font.color:=$FFFFFF;font.size:=5;textout(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), inttostr(distance^[mx,my]));
         end;
 
      //     if (selectedx>0) and (movement^[mx,my]<10) then textout((mx-1)*scalex,(my-1)*scaley, inttostr(movement^[mx,my]));
@@ -4492,7 +4486,7 @@ begin
              y1:=round(fy1);
              y2:=round(fy2);
              if selected=mx then pen.color:=$FF0000 else begin
-               if check_LOS(bot[selected].x,bot[selected].y,bot[selectedenemy].x,bot[selectedenemy].y)>0 then pen.color:=$0000FF else pen.color:=$00EEFF;
+               if check_LOS(bot[selected].x,bot[selected].y,bot[selectedenemy].x,bot[selectedenemy].y,true)>0 then pen.color:=$0000FF else pen.color:=$00EEFF;
                moveto(x1,y1);lineto(x2,y2);
                moveto(x2,y1);lineto(x1,y2);
              end;
