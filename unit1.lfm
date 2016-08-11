@@ -336,7 +336,7 @@ object Form1: TForm1
     TabOrder = 17
   end
   object Edit2: TEdit
-    Left = 552
+    Left = 555
     Height = 21
     Top = 256
     Width = 48
@@ -403,7 +403,7 @@ object Form1: TForm1
   object Label8: TLabel
     Left = 584
     Height = 16
-    Top = 472
+    Top = 496
     Width = 93
     Caption = 'Formal test ok'
     Color = clLime

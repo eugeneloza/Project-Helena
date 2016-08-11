@@ -2748,11 +2748,12 @@ begin
   if estimated_botstogether<1 then estimated_botstogether:=1;
   estimated_firepower:=estimated_botstogether/players;
   estimated_firepower:=estimated_firepower*(1+enemies*0.25*5*standard_damage/playershp); {random damage}
-  estimated_firepower:=estimated_firepower*(1+enemies*standard_damage*(enemieshp/enemies/(players*standard_damage*5))/playershp); {persistent damage}
+  estimated_firepower:=estimated_firepower*(1+5*standard_damage*(estimated_botstogether*enemieshp/enemies/(players*standard_damage*5))/playershp); {persistent damage}
   calculate_difficulty:=round(100 * enemieshp/playershp * difficultybonus * estimated_firepower);
 end;
 
 function saydifficulty(difficulty:integer):string;
+var winchance:integer;
 begin
   case difficulty of
       0.. 75:saydifficulty:='EASY'+' ('+inttostr(difficulty)+'%)';
@@ -2760,7 +2761,10 @@ begin
     151..225:saydifficulty:='HARD'+' ('+inttostr(difficulty)+'%)';
     226..320:saydifficulty:='VERY HARD'+' ('+inttostr(difficulty)+'%)';
     ELSE   saydifficulty:='INSANE?'+' ('+inttostr(difficulty)+'%)'
-  end
+  end;
+  winchance:=round(100*exp(-0.0135446*(difficulty-100)));
+  if winchance>100 then winchance:=100;
+  saydifficulty:=saydifficulty + ' chance to win is '+inttostr(winchance)+'%';
 end;
 
 {-------------------------------------------------------------------}
