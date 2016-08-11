@@ -22,6 +22,8 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       dropitemtime=20;
       pickupitemtime=40;
 
+      blastpush=10;
+
       maxitems=maxbots*backpacksize+100;
       maxonfloor=50; // max displayed onfloor items
       maxunitslist=maxbots;
@@ -213,8 +215,8 @@ end;
 type ammo_type=record
   name:string[30];
   quantity:byte;
-  ACC,DAM:byte;
-  EXPLOSION,AREA,SMOKE,TRACE_SMOKE:byte;
+  ACC,DAM:integer;
+  EXPLOSION,AREA,SMOKE,TRACE_SMOKE:integer;
 end;
 
 type laying_item_type = record
@@ -275,7 +277,7 @@ var
 
   nbot: integer;
   selected,selectedenemy,selectedx,selectedy,selecteditem,selectedonfloor: integer;
-  current_turn:integer;
+  current_turn,this_turn:integer;
 
   movement_map_for: integer;
   nx1,nx2,ny1,ny2:integer;
@@ -289,6 +291,17 @@ implementation
 {$R *.lfm}
 
 { TForm1 }
+
+{-----------------------------}
+
+function sgn(value:integer):shortint;
+begin
+  if value>0 then sgn:= 1 else
+  if value<0 then sgn:=-1 else
+                  sgn:=0;
+end;
+
+{-----------------------------}
 
 function RGB(intensity,r,g,b:byte):integer;
 begin
@@ -2091,9 +2104,9 @@ begin
   weaponhp:=0;
   repeat
     inc(i);
-    bot[nbot].items[i].w_id:=1;
+    bot[nbot].items[i].w_id:=1; //****
     if bot[nbot].owner<>player then begin
-      if (random<0.03) and (i=1) then bot[nbot].items[i].w_id:=4;
+      if (random<0.05) and (i=1) then bot[nbot].items[i].w_id:=4;
       if random<0.05 then bot[nbot].items[i].w_id:=2;
       if random<0.05 then bot[nbot].items[i].w_id:=3;
     end;
@@ -2107,7 +2120,9 @@ begin
       bot[nbot].items[i].ammo_id:=1;
       if random<0.05 then bot[nbot].items[i].ammo_id:=2;
       if random<0.05 then bot[nbot].items[i].ammo_id:=3;
-    end else bot[nbot].items[i].ammo_id:=5;
+    end else begin
+      if random<0.6 then bot[nbot].items[i].ammo_id:=5 else bot[nbot].items[i].ammo_id:=6;
+    end;
     bot[nbot].items[i].n:=ammo_specifications[bot[nbot].items[i].ammo_id].quantity;
   until (bot[nbot].HP*itemdamagerate<weaponhp) or (i=backpacksize) or (bot[nbot].owner=player);
 
@@ -2265,6 +2280,8 @@ begin
       x1:=5;
     end;
   end;
+{  bot[1].items[1].w_id:=4;    //*******************
+  bot[1].items[1].ammo_id:=6; }
 
   val(edit1.text,generatedbots,ix);
   inc(generatedbots,playersn);
@@ -2283,13 +2300,13 @@ begin
   end;
 
   iy:=0;
-  for ix:=1 to nbot do if bot[ix].owner=computer then begin
+  for ix:=1 to nbot do {if bot[ix].owner=computer then} begin
     inc(iy,bot[ix].hp);
   end;
 
   //generate ground items
   count:=0;
-  While ((iy>playersn*20*10+(nbot-playersn)*10*10+itemsn*10*10) or (random<0.9) or (count<maxx/4)) and (itemsn<maxitems) do begin
+  While ((iy>(itemsn*10+nbot*20)*10) or (random<0.9) or (count<maxx/4)) and (itemsn<maxitems) do begin
       inc(count);
       inc(itemsn);
       repeat
@@ -2299,8 +2316,10 @@ begin
       item[itemsn].x:=x1;
       item[itemsn].y:=y1;
       item[itemsn].item.w_id:=0;
-      if (random<nbot*75/(iy/(nbot-playersn)*itemdamagerate)) or (random<0.1) then begin
-        if random<0.95 then item[itemsn].item.w_id:=1 else item[itemsn].item.w_id:=4;
+      if (random<iy*itemdamagerate*2/((itemsn*10+nbot*20)*10)) or (random<0.1) then begin
+        if random<0.93 then item[itemsn].item.w_id:=1 else item[itemsn].item.w_id:=4;
+        if random<0.09 then item[itemsn].item.w_id:=2;
+        if random<0.09 then item[itemsn].item.w_id:=3;
         item[itemsn].item.maxstate:=round((weapon_specifications[item[itemsn].item.w_id].maxstate*3/4)*random+weapon_specifications[item[itemsn].item.w_id].maxstate/4);
         item[itemsn].item.state:=round(item[itemsn].item.maxstate*random);
         item[itemsn].item.rechargestate:=0;
@@ -2309,7 +2328,10 @@ begin
         if random<0.7 then item[itemsn].item.ammo_id:=1 else item[itemsn].item.ammo_id:=2;
         if random>0.8 then item[itemsn].item.ammo_id:=3;
         if random>0.7 then item[itemsn].item.ammo_id:=4;
-      end else item[itemsn].item.ammo_id:=5;
+      end else begin
+        item[itemsn].item.ammo_id:=5;
+        if random<0.3 then item[itemsn].item.ammo_id:=6;
+      end;
       item[itemsn].item.n:=round((ammo_specifications[item[itemsn].item.ammo_id].quantity-1)*random)+1;
   end;
 
@@ -2413,7 +2435,7 @@ begin
    AMMO[4]  := 4;
  end;
  with AMMO_specifications[1] do begin
-   NAME        := 'Lt. wasp clip';
+   NAME        := 'Lt. Wasp clip';
    ACC         :=  0;
    DAM         := 15;
    QUANTITY    := 20;
@@ -2423,7 +2445,7 @@ begin
    TRACE_SMOKE :=  0;
  end;
  with AMMO_specifications[2] do begin
-   NAME        := 'Ext. wasp clip';
+   NAME        := 'Ext. Wasp clip';
    ACC         :=  0;
    DAM         := 15;
    QUANTITY    := 30;
@@ -2433,7 +2455,7 @@ begin
    TRACE_SMOKE :=  0;
  end;
  with AMMO_specifications[3] do begin
-   NAME        := 'Hv. wasp clip';
+   NAME        := 'Hv. Wasp clip';
    ACC         :=  0;
    DAM         := 20;
    QUANTITY    := 10;
@@ -2443,7 +2465,7 @@ begin
    TRACE_SMOKE :=  0;
  end;
 with AMMO_specifications[4] do begin
-   NAME        := 'Acc. wasp clip';
+   NAME        := 'Acc. Wasp clip';
    ACC         := 80;
    DAM         := 16;
    QUANTITY    := 12;
@@ -2463,15 +2485,26 @@ with AMMO_specifications[4] do begin
    MAXSTATE := 120;
    for i:=1 to maxusableammo do AMMO[i]:=0;
    AMMO[1]  := 5;
+   AMMO[2]  := 6;
  end;
  with AMMO_specifications[5] do begin
-   NAME        := 'St. Falcon rounds';
+   NAME        := 'St. Falcon clip';
    ACC         :=  0;
    DAM         :=130;
    QUANTITY    :=  7;
-   EXPLOSION   :=  0;
-   AREA        :=  0;
-   SMOKE       :=  0;
+   EXPLOSION   := 30;
+   AREA        :=  3;
+   SMOKE       := 10;
+   TRACE_SMOKE :=  0;
+ end;
+ with AMMO_specifications[6] do begin
+   NAME        := 'Expl. Falcon clip';
+   ACC         :=  0;
+   DAM         := 10;
+   QUANTITY    :=  7;
+   EXPLOSION   :=999;
+   AREA        := 26;
+   SMOKE       := 50;
    TRACE_SMOKE :=  0;
  end;
 
@@ -2528,6 +2561,146 @@ end;
 {================================================================================}
 {================================================================================}
 
+procedure hit_bot(thisbot,dam:integer);
+var j,ammo_d:integer;
+begin
+  if bot[thisbot].items[1].state>round(dam*itemdamagerate) then dec(bot[thisbot].items[1].state,round(dam*itemdamagerate)) else bot[thisbot].items[1].state:=0;
+  bot[thisbot].action:=action_attack;
+  if bot[thisbot].hp>dam then dec(bot[thisbot].hp,dam) else begin
+   bot[thisbot].hp:=0;
+   map^[bot[thisbot].x,bot[thisbot].y]:=map^[bot[thisbot].x,bot[thisbot].y]+map_smoke div 3;
+   if map^[bot[thisbot].x,bot[thisbot].y]>map_smoke then map^[bot[thisbot].x,bot[thisbot].y]:=map_smoke;
+   form1.memo1.lines.add(bot[thisbot].name + ' is destroyed');
+   if thisbot=selected then begin
+     form1.scrollbar1.position:=0; form1.scrollbar2.position:=0;
+     selected:=-1;
+   end;
+   if thisbot=selectedenemy then begin
+     selectedenemy:=-1;
+     form1.generate_enemy_list;
+   end;
+   if (bot[thisbot].owner=player) and (this_turn<>player) then form1.clear_visible;       //and enemy turn!!!!
+   //drop items//drop corpse
+   for j:=1 to backpacksize do if ((bot[thisbot].items[j].w_id>0) or (bot[thisbot].items[j].ammo_id>0)) then begin
+     if itemsn=maxitems then showmessage('TOO MANY ITEMS!!!') else
+       inc(itemsn);
+     item[itemsn].x:=bot[thisbot].x;
+     item[itemsn].y:=bot[thisbot].y;
+     item[itemsn].item:=bot[thisbot].items[j];
+     if j=1 then begin
+       item[itemsn].item.state:=round(0.9*item[itemsn].item.state-0.2*item[itemsn].item.state*random);
+       ammo_d:=item[itemsn].item.n - item[itemsn].item.n div 3 - round(random);
+       if ammo_d>0 then item[itemsn].item.n:=ammo_d else item[itemsn].item.ammo_id:=0;
+     end;
+   end;
+  end;
+end;
+
+const maxblast=25;
+      maxgeneration=maxblast;
+type blastarea=array[-maxblast..maxblast,-maxblast..maxblast] of shortint;
+var area:^blastarea;
+    generationsum:float;
+procedure calculate_area(ax,ay,a,asmoke,ablast:integer);
+var ix,iy,dx,dy,count,generation,i,j:integer;
+    flg,flg_x:boolean;
+    direction_x,direction_y:^blastarea;
+    //tmp_area:^blastarea;
+begin
+  new(area);
+  new(direction_x);
+  new(direction_y);
+
+  for dx:=-maxblast to maxblast do
+   for dy:=-maxblast to maxblast do begin
+     if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) then begin
+       if map^[ax+dx,ay+dy]<map_wall then area^[dx,dy]:=125 else area^[dx,dy]:=99;
+     end else
+       area^[dx,dy]:=98;
+     direction_x^[dx,dy]:=0;
+     direction_y^[dx,dy]:=0;
+   end;
+
+ area^[0,0]:=1;
+
+ generation:=1;
+ count:=1;
+ //new(tmp_area);
+ repeat
+   inc(generation);
+   //tmp_area^:=area^;
+   for ix:=-generation to generation do if abs(ix)<maxblast then
+    for iy:=-generation to generation do if abs(iy)<maxblast then if area^[ix,iy]=125 then begin
+      for dx:=-1 to 1 do
+       for dy:=-1 to 1 do if {tmp_}area^[ix+dx,iy+dy]<generation then begin
+         area^[ix,iy]:=generation;
+         inc(direction_x^[ix,iy],dx);
+         inc(direction_y^[ix,iy],dy);
+       end;
+      if area^[ix,iy]=generation then inc(count);
+    end;
+  until (count>=a) or (generation>=maxgeneration);
+  //dispose(tmp_area);
+
+  generationsum:=0;
+  if generation>maxblast then generation:=maxblast;
+  for ix:=-generation to generation do
+   for iy:=-generation to generation do if area^[ix,iy]>maxgeneration then area^[ix,iy]:=0 else begin
+     //if area^[ix,iy]>1 then dec(area^[ix,iy]);
+     generationsum:=generationsum+1/sqrt(area^[ix,iy])
+   end;
+
+   //damage tagets
+   for dx:=-generation to generation do
+     for dy:=-generation to generation do
+       if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]>0) then begin
+         if map^[ax+dx,ay+dy]<map_wall then begin
+           ix:=round((asmoke/generationsum)/sqrt(area^[dx,dy]));
+           if ix<1 then ix:=1;
+           map^[ax+dx,ay+dy]:=map^[ax+dx,ay+dy]+ix;
+           if map^[ax+dx,ay+dy]>map_smoke then map^[ax+dx,ay+dy]:=map_smoke;
+           mapchanged^[ax+dx,ay+dy]:=255;
+           for i:=1 to nbot do if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (bot[i].hp>0) then begin
+             ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
+             if ix<1 then ix:=1;
+             form1.memo1.lines.add(bot[i].name+' is hit for '+inttostr(ix)+' by explosion');
+             hit_bot(i,ix);
+           end;
+         end;
+       end;
+
+   //push surviving tagets
+   for i:=1 to nbot do if (bot[i].hp>0) then begin
+   flg_x:=true;
+   for dx:=-generation to generation do if flg_x then
+     for dy:=-generation to generation do if flg_x then
+       if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (area^[dx,dy]>0) then begin
+           flg_x:=false;
+           ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
+           if ix>blastpush then
+           if map^[bot[i].x-sgn(direction_x^[dx,dy]),bot[i].y-sgn(direction_y^[dx,dy])]<map_wall then begin
+             flg:=true;
+             for j:=1 to nbot do
+               if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
+             if flg then begin
+               form1.memo1.lines.add('push '+bot[i].name);
+               dec(bot[i].x,sgn(direction_x^[dx,dy]));
+               dec(bot[i].y,sgn(direction_y^[dx,dy]));
+               mapchanged^[bot[i].x,bot[i].y]:=255;
+               if (bot[i].owner=player) then form1.look_around(i);
+             end;
+           end;
+         end;
+    end;
+
+    if this_turn=computer then form1.clear_visible;
+
+  dispose(area);
+  dispose(direction_x);
+  dispose(direction_y);
+end;
+
+{--------------------------------------------------------------------------------}
 
 procedure tform1.bot_shots(attacker,defender:integer);
 var dx,dy,i:integer;
@@ -2571,6 +2744,7 @@ begin
      {if damage>0 then} begin
        memo1.lines.add(bot[attacker].name+' shots '+bot[defender].name + ' for ' + inttostr(damage));
 
+
        if bot[defender].owner=computer then begin
          for dx:=1 to nbot do if (bot[dx].owner=computer) and (bot[dx].hp>0) then
            if sqr(bot[dx].x-bot[defender].x)+sqr(bot[dx].y-bot[defender].y)<group_attack_range then begin
@@ -2578,49 +2752,29 @@ begin
              bot[dx].action:=action_attack;
          end;
        end;
-       if bot[defender].items[1].state>round(damage*itemdamagerate) then dec(bot[defender].items[1].state,round(damage*itemdamagerate)) else bot[defender].items[1].state:=0;
-       if bot[defender].hp>damage then dec(bot[defender].hp,damage) else begin
-         bot[defender].hp:=0;
-         memo1.lines.add(bot[defender].name + ' is destroyed');
-         if defender=selected then begin
-           scrollbar1.position:=0; scrollbar2.position:=0;
-           selected:=-1;
-         end;
-         if defender=selectedenemy then begin
-           selectedenemy:=-1;
-           generate_enemy_list;
-         end;
-         if bot[defender].owner=player then clear_visible;
-         //drop items//drop corpse
-         for dx:=1 to backpacksize do if ((bot[defender].items[dx].w_id>0) or (bot[defender].items[dx].ammo_id>0)) then begin
-           if itemsn=maxitems then showmessage('TOO MANY ITEMS!!!') else
-             inc(itemsn);
-           item[itemsn].x:=bot[defender].x;
-           item[itemsn].y:=bot[defender].y;
-           item[itemsn].item:=bot[defender].items[dx];
-           if dx=1 then begin
-            item[itemsn].item.state:=round(0.9*item[itemsn].item.state-0.2*item[itemsn].item.state*random);
-            dy:=item[itemsn].item.n - item[itemsn].item.n div 3 - round(random);
-            if dy>0 then item[itemsn].item.n:=dy else item[itemsn].item.ammo_id:=0;
-           end;
-         end;
-       end;
+
+       hit_bot(defender,damage);
+       if ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE>0 then calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
+
        spend_tu(attacker,timetoattack);
-       dec(bot[attacker].items[1].n);
-       dec(bot[attacker].items[1].state);
-       if bot[attacker].items[1].n>0 then
-         bot[attacker].items[1].rechargestate:= weapon_specifications[bot[attacker].items[1].w_id].recharge
-       else
-         bot[attacker].items[1].ammo_id:=0;
+
+       if bot[attacker].hp>0 then begin
+         dec(bot[attacker].items[1].n);
+         dec(bot[attacker].items[1].state);
+         if bot[attacker].items[1].n>0 then
+           bot[attacker].items[1].rechargestate:= weapon_specifications[bot[attacker].items[1].w_id].recharge
+         else
+           bot[attacker].items[1].ammo_id:=0;
        //modifiers;
 
-       if bot[attacker].y-bot[defender].y<>0 then begin
-         dx:=round(maxangle*arctan((bot[attacker].x-bot[defender].x)/(bot[attacker].y-bot[defender].y))/2/Pi);
-         if bot[attacker].y-bot[defender].y>0 then dx:=150-dx else dx:=50-dx;
-         bot[attacker].angle:=dx;
-      end
-       else begin
-         if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=100 else bot[attacker].angle:=0
+         if bot[attacker].y-bot[defender].y<>0 then begin
+           dx:=round(maxangle*arctan((bot[attacker].x-bot[defender].x)/(bot[attacker].y-bot[defender].y))/2/Pi);
+           if bot[attacker].y-bot[defender].y>0 then dx:=150-dx else dx:=50-dx;
+           bot[attacker].angle:=dx;
+        end
+         else begin
+           if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=100 else bot[attacker].angle:=0
+         end;
        end;
 
        draw_map;
@@ -2816,17 +2970,17 @@ begin
     end;
 
     timetoshot:=bot[thisbot].items[1].rechargestate+weapon_specifications[bot[thisbot].items[1].w_id].aim;
-    if (bot[thisbot].tu<timetoshot) then begin
+    if (bot[thisbot].tu<timetoshot) {or ((bot[thisbot].tu<timetoshot+bot[thisbot].speed*sqrt(2)) and (vis^[bot[thisbot].x,bot[thisbot].y]<=oldvisible))} then begin
       if bot[thisbot].tu>=bot[thisbot].speed then begin
         //escape visible range;
         dx:=-1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=+1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
         dx:= 0;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:= 0;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
         dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
-        dx:=+1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
         dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
         dx:=-1;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=+1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:= 0;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=+1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
 
         //try to minimize LOS
         dx:=-1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
@@ -2890,6 +3044,8 @@ var i{,j,k,j2}:integer;
     flg:boolean;}
     //LOS_targets:array[1..max_los_targets] of integer;
 begin
+  this_turn:=computer;
+
   grow_smoke;
   selectedenemy:=-1;
   memo1.clear;
@@ -3000,6 +3156,7 @@ var i:integer;
     ix,iy:integer;
     n1,n2:integer;
 begin
+  this_turn:=player;
   inc(current_turn);
   set_progressbar(false);
   memo1.lines.add('TURN: '+inttostr(current_turn));
@@ -3382,7 +3539,7 @@ const fontsize=13;
 procedure TForm1.Image3MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var //tmpitem:item_type;
-    selectednew:integer;
+    selectednew,freespace,i:integer;
     //i:integer;
     //flg:boolean;
 begin
@@ -3394,14 +3551,25 @@ begin
       if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then
         drop_item(selected,selectednew)
       else
-      if (bot[selected].items[1].ammo_id>0) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0) then begin
+      if (bot[selected].items[1].ammo_id>0) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0) then
        if spend_tu(selected,weapon_specifications[bot[selected].items[1].w_id].reload) then begin
         bot[selected].items[selectednew].ammo_id:=bot[selected].items[1].ammo_id;
         bot[selected].items[selectednew].n:=bot[selected].items[1].n;
         bot[selected].items[1].ammo_id:=0;
        end;
-      end;
-    end else if selecteditem=selectednew then begin
+    end else if ssCtrl in shift then begin
+      if (bot[selected].items[selectednew].ammo_id>0) and (bot[selected].items[selectednew].w_id>0) then begin
+       //check place
+       freespace:=0;
+       for i:=backpacksize downto 2 do if (bot[selected].items[i].ammo_id=0) and (bot[selected].items[i].w_id=0) then freespace:=i;
+       if freespace>=2 then
+       if spend_tu(selected,weapon_specifications[bot[selected].items[selectednew].w_id].reload) then begin
+        bot[selected].items[freespace].ammo_id:=bot[selected].items[selectednew].ammo_id;
+        bot[selected].items[freespace].n:=bot[selected].items[selectednew].n;
+        bot[selected].items[selectednew].ammo_id:=0;
+       end;
+      end
+     end else if selecteditem=selectednew then begin
        if load_weapon(selected,selecteditem) then begin
          selectedonfloor:=-1;
          selecteditem:=-1;
