@@ -1,0 +1,443 @@
+object Form1: TForm1
+  Left = 77
+  Height = 715
+  Top = 0
+  Width = 945
+  BorderStyle = bsSingle
+  Caption = 'Project Helena'
+  ClientHeight = 715
+  ClientWidth = 945
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.0.8.0'
+  object Image3: TImage
+    Left = 712
+    Height = 146
+    Top = 342
+    Width = 145
+    OnMouseDown = Image3MouseDown
+    OnMouseWheel = Image3MouseWheel
+  end
+  object Image1: TImage
+    Cursor = crUpArrow
+    Left = 8
+    Height = 700
+    Top = 8
+    Width = 700
+    OnMouseDown = Image1MouseDown
+    OnMouseMove = Image1MouseMove
+  end
+  object Image2: TImage
+    Left = 712
+    Height = 102
+    Top = 238
+    Width = 160
+  end
+  object Label1: TLabel
+    Left = 877
+    Height = 10
+    Top = 491
+    Width = 27
+    Caption = 'Label1'
+    Font.Height = -8
+    Font.Name = 'Sans'
+    ParentColor = False
+    ParentFont = False
+  end
+  object Image4: TImage
+    Left = 712
+    Height = 58
+    Top = 494
+    Width = 145
+    OnMouseDown = Image4MouseDown
+    OnMouseWheel = Image4MouseWheel
+  end
+  object Image5: TImage
+    Left = 877
+    Height = 102
+    Top = 238
+    Width = 46
+    OnMouseDown = Image5MouseDown
+    OnMouseWheel = Image5MouseWheel
+  end
+  object Image6: TImage
+    Left = 877
+    Height = 128
+    Top = 342
+    Width = 46
+    OnMouseDown = Image6MouseDown
+    OnMouseWheel = Image6MouseWheel
+  end
+  object ScrollBar2: TScrollBar
+    Left = 858
+    Height = 57
+    Top = 494
+    Width = 16
+    Enabled = False
+    Kind = sbVertical
+    LargeChange = 75
+    PageSize = 0
+    TabOrder = 7
+    OnChange = ScrollBar2Change
+  end
+  object ScrollBar1: TScrollBar
+    Left = 858
+    Height = 146
+    Top = 342
+    Width = 16
+    Enabled = False
+    Kind = sbVertical
+    LargeChange = 100
+    PageSize = 0
+    TabOrder = 6
+    OnChange = ScrollBar1Change
+  end
+  object Button1: TButton
+    Left = 712
+    Height = 72
+    Top = 636
+    Width = 228
+    Caption = 'NEXT TURN'
+    OnClick = Button1Click
+    TabOrder = 0
+  end
+  object Memo1: TMemo
+    Left = 712
+    Height = 78
+    Top = 555
+    Width = 228
+    Font.Height = -9
+    Font.Name = 'Sans'
+    ParentFont = False
+    ReadOnly = True
+    ScrollBars = ssAutoVertical
+    TabOrder = 1
+  end
+  object Button2: TButton
+    Left = 296
+    Height = 56
+    Top = 80
+    Width = 401
+    Caption = 'GENERATE NEW MAP'
+    Font.Height = -27
+    Font.Name = 'Sans'
+    OnClick = Button2Click
+    ParentFont = False
+    TabOrder = 2
+  end
+  object Button3: TButton
+    Left = 296
+    Height = 56
+    Top = 496
+    Width = 401
+    Caption = 'STOP THE GAME'
+    Font.Height = -27
+    Font.Name = 'Sans'
+    OnClick = Button3Click
+    ParentFont = False
+    TabOrder = 3
+  end
+  object CheckBox2: TCheckBox
+    Left = 874
+    Height = 21
+    Top = 472
+    Width = 80
+    Caption = 'Confirm?'
+    Font.Height = -9
+    Font.Name = 'Sans'
+    ParentFont = False
+    TabOrder = 4
+  end
+  object ComboBox1: TComboBox
+    Left = 344
+    Height = 23
+    Top = 192
+    Width = 261
+    Font.Height = -13
+    Font.Name = 'Sans'
+    ItemHeight = 0
+    ItemIndex = 0
+    Items.Strings = (
+      '* Any *'
+      'Rnd / Block / RC'
+      'Circles'
+      'Anticircles'
+      'Diamonds'
+      'Tmap'
+      'Linearsinus'
+      'Rooms/Rectagonal'
+      'Concentric'
+      'Slant'
+      'Boxes'
+      'Concentric-full'
+      'Egg'
+      'Net'
+      'Plus'
+      'SR / I / Four'
+      'Rotor'
+      'EggRe'
+      'Snowflake'
+      'Areas'
+    )
+    ParentFont = False
+    Style = csDropDownList
+    TabOrder = 5
+    Text = '* Any *'
+  end
+  object ScrollBar3: TScrollBar
+    Left = 924
+    Height = 102
+    Top = 238
+    Width = 16
+    Kind = sbVertical
+    LargeChange = 100
+    PageSize = 0
+    TabOrder = 8
+    OnChange = ScrollBar3Change
+  end
+  object ScrollBar4: TScrollBar
+    Left = 924
+    Height = 128
+    Top = 342
+    Width = 16
+    Kind = sbVertical
+    LargeChange = 100
+    PageSize = 0
+    TabOrder = 9
+    OnChange = ScrollBar4Change
+  end
+  object RadioButton1: TRadioButton
+    Left = 344
+    Height = 21
+    Top = 256
+    Width = 88
+    Caption = 'No smoke'
+    TabOrder = 12
+  end
+  object RadioButton2: TRadioButton
+    Left = 344
+    Height = 21
+    Top = 280
+    Width = 164
+    Caption = '20% chance of smoke'
+    Checked = True
+    TabOrder = 10
+    TabStop = True
+  end
+  object RadioButton3: TRadioButton
+    Left = 344
+    Height = 21
+    Top = 304
+    Width = 176
+    Caption = '100% smoke generated'
+    Font.Height = -13
+    Font.Name = 'Sans'
+    ParentFont = False
+    TabOrder = 11
+  end
+  object Togglebox1: TToggleBox
+    Left = 877
+    Height = 49
+    Top = 504
+    Width = 63
+    Caption = 'MENU'
+    OnChange = Togglebox1Change
+    TabOrder = 13
+  end
+  object Button4: TButton
+    Left = 296
+    Height = 56
+    Top = 16
+    Width = 401
+    Caption = 'RESUME GAME'
+    Font.Height = -27
+    Font.Name = 'Sans'
+    OnClick = Button4Click
+    ParentFont = False
+    TabOrder = 14
+  end
+  object Label2: TLabel
+    Left = 389
+    Height = 23
+    Top = 144
+    Width = 224
+    Caption = 'Map generation options:'
+    Font.Height = -19
+    Font.Name = 'Sans'
+    ParentColor = False
+    ParentFont = False
+  end
+  object Label3: TLabel
+    Left = 344
+    Height = 16
+    Top = 176
+    Width = 64
+    Caption = 'Map type:'
+    ParentColor = False
+  end
+  object Edit1: TEdit
+    Left = 400
+    Height = 23
+    Top = 352
+    Width = 48
+    OnChange = Edit4Change
+    TabOrder = 15
+    Text = '45'
+  end
+  object Label4: TLabel
+    Left = 344
+    Height = 34
+    Top = 359
+    Width = 40
+    Caption = 'BOTS:'#10'HP:'
+    ParentColor = False
+  end
+  object Button5: TButton
+    Left = 296
+    Height = 56
+    Top = 560
+    Width = 401
+    Caption = 'HELP'
+    Font.Height = -27
+    Font.Name = 'Sans'
+    OnClick = Button5Click
+    ParentFont = False
+    TabOrder = 16
+  end
+  object Button6: TButton
+    Left = 296
+    Height = 56
+    Top = 624
+    Width = 401
+    Caption = 'QUIT'
+    Font.Height = -27
+    Font.Name = 'Sans'
+    OnClick = Button6Click
+    ParentFont = False
+    TabOrder = 17
+  end
+  object Edit2: TEdit
+    Left = 576
+    Height = 23
+    Top = 223
+    Width = 48
+    OnChange = Edit4Change
+    TabOrder = 18
+    Text = '50'
+  end
+  object Label5: TLabel
+    Left = 346
+    Height = 16
+    Top = 232
+    Width = 179
+    Caption = 'Map size (min 30...max 50):'
+    ParentColor = False
+  end
+  object Label6: TLabel
+    Left = 403
+    Height = 16
+    Top = 336
+    Width = 45
+    Caption = 'Enemy'
+    ParentColor = False
+  end
+  object Edit3: TEdit
+    Left = 400
+    Height = 23
+    Top = 376
+    Width = 48
+    OnChange = Edit4Change
+    TabOrder = 19
+    Text = '45'
+  end
+  object Label7: TLabel
+    Left = 536
+    Height = 16
+    Top = 336
+    Width = 27
+    Caption = 'YOU'
+    ParentColor = False
+  end
+  object Edit4: TEdit
+    Left = 528
+    Height = 23
+    Top = 376
+    Width = 48
+    OnChange = Edit4Change
+    TabOrder = 20
+    Text = '300'
+  end
+  object Label8: TLabel
+    Left = 600
+    Height = 16
+    Top = 456
+    Width = 93
+    Caption = 'Formal test ok'
+    Color = clLime
+    ParentColor = False
+    Transparent = False
+  end
+  object Image7: TImage
+    Left = 712
+    Height = 226
+    Top = 8
+    Width = 226
+    OnMouseDown = Image7MouseDown
+  end
+  object TrackBar1: TTrackBar
+    Left = 34
+    Height = 70
+    Top = 28
+    Width = 174
+    Max = 50
+    Min = 20
+    OnChange = TrackBar1Change
+    Position = 30
+    ShowSelRange = False
+    TabOrder = 21
+  end
+  object Label9: TLabel
+    Left = 79
+    Height = 16
+    Top = 26
+    Width = 77
+    Caption = 'Zoom level:'
+    ParentColor = False
+  end
+  object Label10: TLabel
+    Left = 344
+    Height = 16
+    Top = 456
+    Width = 51
+    Caption = 'Label10'
+    ParentColor = False
+  end
+  object Label11: TLabel
+    Left = 456
+    Height = 16
+    Top = 360
+    Width = 64
+    AutoSize = False
+    Caption = '(1..100)'
+    Font.Height = 14
+    ParentColor = False
+    ParentFont = False
+    OptimalFill = True
+  end
+  object Edit5: TEdit
+    Left = 528
+    Height = 23
+    Top = 353
+    Width = 48
+    TabOrder = 22
+    Text = '4'
+  end
+  object Label12: TLabel
+    Left = 586
+    Height = 16
+    Top = 359
+    Width = 43
+    Caption = '(1..16)'
+    ParentColor = False
+  end
+end
