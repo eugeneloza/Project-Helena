@@ -6125,6 +6125,12 @@ begin
   castlecontrol2.Paint;
 
   draw_stats;
+
+  image2.Update;
+  image3.Update;
+  image4.Update;
+  image5.Update;
+  image6.Update;
   //if debugmode then label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
 
   show_los:=false;
