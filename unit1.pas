@@ -49,7 +49,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
       defensedifficulty=5;
       standard_damage=10;
-      average_los_value=43.11;   ////////////////////////////// corrected LOS
+      average_los_value=42.92;   ////////////////////////////// corrected LOS
 
 const itemdamagerate=0.4;           //40% damage taken by armed weapon
 
@@ -2729,7 +2729,7 @@ begin
       repeat
         inc(nbuildings);
         mapbuildings[nbuildings]:=Rec.Name;
-        memo2.lines.add(mapbuildings[nbuildings]);
+//        memo2.lines.add(mapbuildings[nbuildings]);
       until FindNext(Rec) <> 0;
       finally
         FindClose(Rec) ;
