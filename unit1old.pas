@@ -116,7 +116,9 @@ const gamemode_game=255;
       gamemode_map=127; //separator between mode "click to continue" and "move"
 
       gamemode_none=0;
-      gamemode_iteminfo=1;
+      gamemode_help=1;
+      gamemode_message=2;
+      gamemode_iteminfo=3;
 
 const border_size=7;
       text_width=45;
@@ -418,6 +420,7 @@ var
   do_txt:boolean;
 
   Info_Text:String;
+  do_info:boolean;
   info_animation:TDateTime;
   do_animate_info:boolean;
 
@@ -3997,7 +4000,7 @@ begin
       damagefont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,1), txt_out, false, 0);
     finally end;
 
-  if gamemode=gamemode_iteminfo then begin
+  if do_info then begin
     if do_animate_info then begin
       i:=20+round(580*(Now-info_animation)*24*60*60*1000 / Info_delay);
       if i>600 then i:=600;
@@ -5128,7 +5131,6 @@ end;
 {--------------------------------------------------------------------------------------}
 
 procedure TForm1.FormDestroy(Sender: TObject);
-var i,ix,iy:integer;
 begin
   dispose(map);
   dispose(map_status);
@@ -5139,23 +5141,8 @@ begin
   dispose(LOS_base);
   dispose(botvis);
   dispose(explosion_area);
-
   freeandnil(txt_out);
   //todo: destroy images!!!
-  if img_selected<>nil then freeandnil(img_selected);
-  if img_enemyselected<>nil then freeandnil(img_enemyselected);
-  for i:=1 to 10 do if expl_img[i]<>nil then freeandnil(expl_img[i]);
-  for i:=1 to maxwall do if GLI1[i]<>nil then freeandnil(GLI1[i]);
-  for i:=1 to maxpass do if GLI2[i]<>nil then freeandnil(GLI2[i]);
-  if Item_Img<>nil then freeandnil(Item_img);
-  for ix:=0 to bottypes do
-   for iy:=0 to maxangle do if Bot_img[ix,iy]=nil then freeandnil(Bot_img[ix,iy]);
-  for ix:=1 to maxcracks do if cracks_img[ix]<>nil then freeandnil(cracks_img[ix]);
-  if TextFrame<>nil then freeandnil(TextFrame);
-  if MinimapRectangle=nil then freeandnil(MinimapRectangle);
-  freeandnil(damagefont);
-  freeandnil(infofont);
-  freeandnil(movefont);
 end;
 
 {================================================================================}
@@ -5237,10 +5224,15 @@ if gamemode>200 then begin
   draw_map;
  end
  end
- else if (gamemode=gamemode_iteminfo) then begin
+ else if (gamemode=gamemode_help) or (gamemode=gamemode_iteminfo) then begin
+   if gamemode=gamemode_help then begin
+     togglebox1.checked:=true;
+     togglebox1.state:=cbChecked;
+   end;
    gamemode:=previous_gamemode;
+   do_info:=false;
    draw_map_all:=true;
-   //if (previous_gamemode>100) and (mapgenerated) then draw_map;
+   if (previous_gamemode>100) and (mapgenerated) then draw_map;
  end;
 end;
 
@@ -5290,7 +5282,7 @@ begin
      if load_weapon(selected,selecteditem) then begin
        selectedonfloor:=-1;
        selecteditem:=-1;
-       if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+       if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; do_info:=false; draw_map end else draw_stats;
      end;
  end else {button=mbright} begin
    if selected>0 then display_item_info(bot[selected].items[1]);
@@ -5388,7 +5380,7 @@ begin
            selecteditem:=-1;
         end;
       end;
-         if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+         if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; draw_map end else draw_stats;
       //draw_map;
    end else {button=mbright} begin
      display_item_info(bot[selected].items[selectednew]);
@@ -5481,7 +5473,7 @@ begin
       selectedonfloor:=selectednew;
       selecteditem:=-1;
     end;
-     if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+     if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; draw_map end else draw_stats;
     //draw_map;
    end else {button=mbright} begin
      display_item_info(item[onfloor[selectednew]].item);
@@ -5506,7 +5498,7 @@ begin
     selected:=playerunits[selectednew];
     if (bot[selected].x<=viewx) or (bot[selected].y<=viewy) or (bot[selected].x>viewx+viewsizey) or (bot[selected].y>viewy+viewsizey) then center_map(bot[selected].x,bot[selected].y);
     mapchanged^[bot[selected].x,bot[selected].y]:=255;
-    if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; end;
+    if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; end;
     draw_map;
   end;
 end;
@@ -5535,7 +5527,7 @@ begin
           center_map(bot[selectedenemy].x,bot[selectedenemy].y);
     end;
     mapchanged^[bot[selectedenemy].x,bot[selectedenemy].y]:=255;
-    if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; end;
+    if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; end;
     draw_map;
   end;
 end;
@@ -5746,7 +5738,7 @@ end;
 
 procedure TForm1.Togglebox1Change(Sender: TObject);
 begin
-  if gamemode=gamemode_iteminfo then begin
+  if gamemode=gamemode_help then begin
     gamemode:=previous_gamemode;
     draw_map_all:=true;
     if (previous_gamemode>100) and (mapgenerated) then draw_map;
@@ -5781,6 +5773,9 @@ begin
 end;
 
 {--------------------------------------------------------------------------------------}
+const item_box_x=50;
+      item_box_y=50;
+      font_size10=15;
 procedure Tform1.display_item_info(thisitem:item_type);
 var {starty,startx:integer;
     descr:string;
@@ -5788,6 +5783,7 @@ var {starty,startx:integer;
     tmp:integer;
 begin
  if (thisitem.w_id>0) or (thisitem.ammo_id>0) then begin
+   do_info:=true;
    Info_Text:='';
    if gamemode<>gamemode_iteminfo then begin
      do_animate_info:=true;
@@ -6118,14 +6114,18 @@ procedure TForm1.Draw_map;
     tmp_color:byte;
     btc1,btc2,btc3:byte;}
     //dx,dy,range,maxrange:integer;
-//var thistime:TDatetime;
+var thistime:TDatetime;
 begin
- // thistime:=now;
+  thistime:=now;
   castlecontrol1.Paint;
   castlecontrol2.Paint;
 
+
+
+
+
   draw_stats;
-  //if debugmode then label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
+  if debugmode then label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
 
   show_los:=false;
 
