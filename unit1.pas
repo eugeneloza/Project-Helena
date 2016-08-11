@@ -233,6 +233,8 @@ type
     procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
+    procedure CastleControl1Render(Sender: TObject);
+    procedure CastleControl2Render(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox5Change(Sender: TObject);
     procedure ComboBox2Change(Sender: TObject);
@@ -439,7 +441,7 @@ var
   txt_x,txt_y:integer;
   do_txt:boolean;
 
-  shot_sound,reload_sound,clip_sound,item_sound,drop_sound: TSoundBuffer;
+  shot_sound,falcon_sound,unload_sound,reload_sound,clip_sound,unclip_sound,item_sound,drop_sound: TSoundBuffer;
 
   music:array[1..maxmusic] of TSoundBuffer;
   music_duration:array[1..maxmusic] of TFloatTime;
@@ -2833,7 +2835,7 @@ begin
       bot[nbot].caution:=round((random)*3*bot[nbot].speed*strategy_caution);
       bot[nbot].btype:=4;
     end else
-    if random<0.1 then begin
+    if random<0.15 then begin
       bot[nbot].maxhp:=bot[nbot].maxhp*3;
       bot[nbot].hp:=bot[nbot].maxhp;
       bot[nbot].speed:=40;
@@ -2841,7 +2843,7 @@ begin
       bot[nbot].name:=name+'(H)';
       bot[nbot].btype:=3;
     end else
-    if random<0.1 then begin
+    if random<0.25 then begin
       bot[nbot].maxhp:=bot[nbot].maxhp div 2;
       bot[nbot].hp:=bot[nbot].maxhp;
       bot[nbot].speed:=20;
@@ -3829,7 +3831,7 @@ begin
  gety:=(zoom-mapy+viewy)*zoomscale
 end;
 
-procedure Render(Container: TUIContainer);
+procedure TForm1.CastleControl1Render(Sender: TObject);
 var ix,iy:integer;
     ShadeColor: TVector4Single;
     Shadebright: single;
@@ -3942,7 +3944,7 @@ begin
  form1.label1.caption:=inttostr(round((now-t)*24*60*60*1000));
 end;
 
-procedure Render_minimap(Container: TUIContainer);
+procedure TForm1.CastleControl2Render(Sender: TObject);
 var ix,iy:integer;
     ShadeColor: TVector4Single;
     shadebright:single;
@@ -3986,20 +3988,21 @@ var ix,iy:integer;
     Duration: TFloatTime;
 begin
    txt_out:=TStringList.create;
-   CastleControl1.OnRender:=@Render;
-   CastleControl2.OnRender:=@Render_minimap;
    animationtimer:=0;
    shot_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Shotgun.wav', Duration);
+   falcon_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Shotgun_heavy.wav', Duration);
    reload_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Reload.wav', Duration);
+   unload_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Reload_reverse.wav', Duration);
    clip_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Clip.wav', Duration);
+   unclip_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Clip_reverse.wav', Duration);
    item_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item.wav', Duration);
    drop_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item_reverse.wav', Duration);
 
-   music[1]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.wav',music_duration[1]);
-   music[2]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.wav',music_duration[2]);
-   music[3]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.wav',music_duration[3]);
-   music[4]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.wav',music_duration[4]);
-   music[5]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.wav',music_duration[5]);
+   music[1]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.ogg',music_duration[1]);
+   music[2]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.ogg',music_duration[2]);
+   music[3]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.ogg',music_duration[3]);
+   music[4]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.ogg',music_duration[4]);
+   music[5]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.ogg',music_duration[5]);
    timer1.enabled:=true;
    timer1.Interval:=1000;
    oldmusic:=-1;
@@ -4446,7 +4449,10 @@ begin
             (bot[defender].x<=viewx-1+2) or (bot[defender].y<=viewy-1+2) or (bot[defender].x>=viewx+viewsizex-2) or (bot[defender].y>=viewy+viewsizey-2) then
                center_map((bot[attacker].x+bot[defender].x) div 2,(bot[attacker].y+bot[defender].y) div 2);
 
-         SoundEngine.PlaySound(shot_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+         if weapon_specifications[bot[attacker].items[1].w_id].kind<3 then
+           SoundEngine.PlaySound(shot_sound, false, false, 0, 1, 0, 1, ZeroVector3Single)
+         else
+           SoundEngine.PlaySound(falcon_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
 
 {zzzzzzzzzzzzzzzzzzzzzzzzzzzz}
  {        with CastleControl1.canvas do begin
@@ -5369,14 +5375,13 @@ begin
       if (ssShift in shift) or ((ssCtrl in shift) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0)) then begin
         if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then begin
           drop_item(selected,selectednew);
-          SoundEngine.PlaySound(drop_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
         end else
         if (bot[selected].items[1].ammo_id>0) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0) then
          if spend_tu(selected,weapon_specifications[bot[selected].items[1].w_id].reload) then begin
           bot[selected].items[selectednew].ammo_id:=bot[selected].items[1].ammo_id;
           bot[selected].items[selectednew].n:=bot[selected].items[1].n;
           bot[selected].items[1].ammo_id:=0;
-          SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+          SoundEngine.PlaySound(unclip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
          end;
       end else if ssCtrl in shift then begin
         if (bot[selected].items[selectednew].ammo_id>0) and (bot[selected].items[selectednew].w_id>0) then begin
@@ -5388,7 +5393,7 @@ begin
             bot[selected].items[freespace].ammo_id:=bot[selected].items[selectednew].ammo_id;
             bot[selected].items[freespace].n:=bot[selected].items[selectednew].n;
             bot[selected].items[selectednew].ammo_id:=0;
-            SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+            SoundEngine.PlaySound(unload_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
            end
          end else showmessage(txt[58]);
 
@@ -5435,6 +5440,8 @@ procedure TForm1.drop_item(thisbot,thisitem:integer);
 begin
 if (bot[thisbot].items[thisitem].w_id>0) or (bot[thisbot].items[thisitem].ammo_id>0) then
   if spend_tu(thisbot,dropitemtime) then begin
+   if bot[thisbot].owner=player then SoundEngine.PlaySound(drop_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+
    if itemsn=maxitems then showmessage('TOO MANY ITEMS!!!') else
     inc(itemsn);
    item[itemsn].item:=bot[thisbot].items[thisitem];
@@ -5462,6 +5469,7 @@ begin
    if (bot[thisbot].items[i].w_id=0) and (bot[thisbot].items[i].ammo_id=0) then flg:=true;
   until (i>=backpacksize) or (flg);
   if flg and spend_tu(thisbot,pickupitemtime) then begin
+    if bot[thisbot].owner=player then SoundEngine.PlaySound(item_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
     bot[thisbot].items[i]:=item[onfloor[thisitem]].item;
     for i:=onfloor[thisitem] to itemsn-1 do item[i]:=item[i+1];
       dec(itemsn);
@@ -5492,12 +5500,11 @@ begin
         item[itemsn].item.w_id:=0;
         selectedonfloor:=selectednew;
         selecteditem:=-1;
-        SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+        SoundEngine.PlaySound(unload_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
       end;
     end else
     if selectednew=selectedonfloor then begin
       pick_up(selected,selectedonfloor);
-      SoundEngine.PlaySound(item_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
       selectedonfloor:=-1;
     end else begin
       selectedonfloor:=selectednew;

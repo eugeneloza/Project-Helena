@@ -12,7 +12,7 @@ object Form1: TForm1
   DockSite = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '1.4.0.1'
+  LCLVersion = '1.4.0.2'
   object CastleControl1: TCastleControl
     Left = 0
     Height = 700
@@ -20,6 +20,7 @@ object Form1: TForm1
     Width = 700
     OnMouseDown = CastleControl1MouseDown
     OnMouseMove = CastleControl1MouseMove
+    OnRender = CastleControl1Render
     TabOrder = 37
   end
   object Image3: TImage
@@ -813,6 +814,7 @@ object Form1: TForm1
     Top = 0
     Width = 226
     OnMouseDown = Image7MouseDown
+    OnRender = CastleControl2Render
     TabOrder = 38
   end
   object Timer1: TTimer
