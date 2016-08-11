@@ -51,7 +51,7 @@
 	ACC=       100
 	DAM=         2
 	RECHARGE=   40
-	AIM=        15
+	AIM=        60
 	RELOAD=    100
 	MAXSTATE=   80
 	AMMO= 1

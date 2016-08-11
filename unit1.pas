@@ -2773,13 +2773,14 @@ begin
     if bot[nbot].owner<>player then begin
       if random<0.3 then weapon_kind:=2;
       if random<0.05 then weapon_kind:=3;
-      bot[nbot].caution:=round(sqr(random)*50*strategy_caution);
+      bot[nbot].caution:=round((random)*2*bot[nbot].speed*strategy_caution);
       bot[nbot].bottype:=2;
       if random<0.1 then begin
         bot[nbot].bottype:=3;
         bot[nbot].maxhp:=bot[nbot].maxhp*2;
         bot[nbot].hp:=bot[nbot].maxhp;
-        bot[nbot].caution:=0;
+        bot[nbot].speed:=40;
+        bot[nbot].caution:=round(sqr(random)*bot[nbot].speed*strategy_caution);
         bot[nbot].name:=name+'(H)';
       end else
       if random<0.1 then begin
@@ -2787,7 +2788,7 @@ begin
         bot[nbot].maxhp:=bot[nbot].maxhp div 2;
         bot[nbot].hp:=bot[nbot].maxhp;
         bot[nbot].speed:=20;
-        bot[nbot].caution:=round((50+(sqrt(random)*50))*strategy_caution);
+        bot[nbot].caution:=round((3*bot[nbot].speed+(sqrt(random)*3*bot[nbot].speed))*strategy_caution);
         bot[nbot].name:=name+'(Q)';
       end;
 
@@ -4016,7 +4017,7 @@ begin
     cautiontime:=timetoshot+bot[thisbot].caution;
     if 255-cautiontime<timetoshot then cautiontime:=timetoshot;
     if strategy_hide then
-    if (bot[thisbot].tu<cautiontime) and (bot[thisbot].tu>=bot[thisbot].speed) and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) then begin
+    if (bot[thisbot].tu<cautiontime) and (bot[thisbot].tu>=bot[thisbot].speed) {and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible)} then begin
      memo1.lines.add('[dbg] '+bot[thisbot].name+' caution time used '+inttostr(bot[thisbot].tu)+' of '+inttostr(cautiontime));
       x1:=bot[thisbot].x;
       y1:=bot[thisbot].y;
@@ -4092,8 +4093,10 @@ begin
 
     if bot[thisbot].action=action_guard then stopactions:=true;
 
+    if bot[thisbot].tu<bot[thisbot].speed*sqrt(2)*1.01 then stopactions:=true;
+    if (bot[thisbot].tu>timetoshot) and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) and (bot[thisbot].items[1].state>0) and (bot[thisbot].items[1].n>0) then stopactions:=false;
     if bot[thisbot].hp<=0 then stopactions:=true;
-  until (bot[thisbot].tu<30*sqrt(2)*1.01) or (stopactions);
+  until (stopactions);
 end;
 
 
