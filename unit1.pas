@@ -8,10 +8,9 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, ComCtrls, types,
 
-  CastleControl,CastleVectors, CastleGLUtils, castleRectangles,
-
-  {OpenGLContext,} CastleUIControls, CastleGLImages {CastleFilesUtils, CastleImages,
-  CastleControls, CastleWindowModes};
+  CastleControl,CastleVectors, CastleGLUtils, castleRectangles, CastleUIControls,
+  CastleGLImages,
+  castlecontrols;
 
 const debugmode=false;
 
@@ -431,6 +430,11 @@ var
   do_highlight:boolean;
   highlight_area:^map_array;
   animationtimer:TDatetime;
+
+  txt_out:TStringList;
+  txt_x,txt_y:integer;
+  do_txt:boolean;
+
 
 //  sintable,costable: array[0..maxangle] of float;
 
@@ -3911,6 +3915,13 @@ begin
      end;
     //animationtimer-=form1.castlecontrol1.fps.UpdateSecondsPassed;
   end;
+
+  if do_txt then
+    try
+      UIFont.PrintStrings(txt_x+1, txt_y-1, Vector4Single(0,0,0,1), txt_out, false, 0);
+      UIFont.PrintStrings(txt_x-1, txt_y+1, Vector4Single(0,0,0,1), txt_out, false, 0);
+      UIFont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/shotdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/shotdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/shotdelay,1), txt_out, false, 0);
+    finally end;
 {do_highlight:boolean;
   highlight_area:^map_array;}
 
@@ -3959,6 +3970,7 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 var ix,iy:integer;
 begin
+   txt_out:=TStringList.create;
    CastleControl1.OnRender:=@Render;
    CastleControl2.OnRender:=@Render_minimap;
    animationtimer:=0;
@@ -4383,16 +4395,26 @@ begin
            if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=maxangle div 2 else bot[attacker].angle:=0
          end;
 
-//       draw_map;
-//       if bot[defender].hp>0 then
-{zzzzzzzzzzzzzzzzzzzzzzzzzzzz}
- {        with CastleControl1.canvas do begin
          mapchanged^[bot[attacker].x,bot[attacker].y]:=255;
-         brush.style:=bsclear;
-         i:=255;
          if (bot[attacker].x<=viewx-1+2) or (bot[attacker].y<=viewy-1+2) or (bot[attacker].x>=viewx+viewsizex-2) or (bot[attacker].y>=viewy+viewsizey-2) or
             (bot[defender].x<=viewx-1+2) or (bot[defender].y<=viewy-1+2) or (bot[defender].x>=viewx+viewsizex-2) or (bot[defender].y>=viewy+viewsizey-2) then
                center_map((bot[attacker].x+bot[defender].x) div 2,(bot[attacker].y+bot[defender].y) div 2);
+
+         do_txt:=true;
+         txt_out.clear;
+         txt_out.append(inttostr(damage));
+         txt_x:=getx(bot[defender].x){-zoomscale div 2};
+         txt_y:=gety(bot[defender].y){+zoomscale div 2};
+         animationtimer:=now;
+         repeat castlecontrol1.paint; until (now-animationtimer)*24*60*60*1000>shotdelay;
+         do_txt:=false;
+         castlecontrol1.paint;
+
+{zzzzzzzzzzzzzzzzzzzzzzzzzzzz}
+ {        with CastleControl1.canvas do begin
+         brush.style:=bsclear;
+         i:=255;
+
 
          mytimer:=now;
          repeat
@@ -4406,7 +4428,6 @@ begin
            lineto(x2,y2);
            font.color:=RGB(i,255,10,10);
            font.size:=17;
-//           if damage>=10 then dx:=dx-7;
            textout(x2-10,y2-15,inttostr(damage));
            CastleControl1.update;
            i:=255-round(100*(now-mytimer)*24*60*60*1000/shotdelay);
@@ -4415,8 +4436,7 @@ begin
          for i:=0 to round(range) do mapchanged^[bot[attacker].x+round((bot[defender].x-bot[attacker].x)*i/range),bot[attacker].y+round((bot[defender].y-bot[attacker].y)*i/range)]:=255;
          for dx:=-1 to 1 do
            for dy:=-1 to 1 do mapchanged^[bot[defender].x+dx,bot[defender].y+dy]:=255;
-      end;
-       draw_map;  }
+      end;   }
 
        if ammo_specifications[bot[attacker].items[1].ammo_id].area>0 then begin
          calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
@@ -5111,6 +5131,8 @@ begin
   dispose(botvis);
   dispose(explosion_area);
   dispose(highlight_area);
+  freeandnil(txt_out);
+
 end;
 
 {================================================================================}
