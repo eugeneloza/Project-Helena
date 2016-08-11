@@ -15,7 +15,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       maxbots=500;
       maxzoom=50;
 
-      maxbuildings=100;
+      maxbuildings=1000;
       maxbldgx=20;
       maxbldgy=20;
       randomaccuracy=100;
