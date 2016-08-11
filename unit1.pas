@@ -2804,8 +2804,6 @@ begin
 
   bot[nbot].btype:=0;
   if bot[nbot].owner<>player then begin
-    if random<0.3 then weapon_kind:=2;
-    if random<0.05 then weapon_kind:=3;
     bot[nbot].caution:=round((random)*2*bot[nbot].speed*strategy_caution);
     bot[nbot].btype:=2;
     if random<0.2 then begin
@@ -2843,6 +2841,10 @@ begin
   repeat
     inc(i);
     weapon_kind:=1;
+    if bot[nbot].owner<>player then begin
+      if random<0.3 then weapon_kind:=2;
+      if random<0.05 then weapon_kind:=3;
+    end;
     if form1.checkbox3.checked then weapon_kind:=3;
     repeat
       weapon_type:=trunc(w_types*random)+1;
