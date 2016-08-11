@@ -78,6 +78,7 @@ type
     Button4: TButton;
     Button5: TButton;
     Button6: TButton;
+    CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
     ComboBox1: TComboBox;
     Edit1: TEdit;
@@ -255,8 +256,8 @@ var
   itemsn:integer;
   onfloor: array[1..maxonfloor] of integer;
   onfloorn:byte;
-  wearpon_specifications: array[1..100] of wearpon_type;
-  ammo_specifications: array[101..200] of ammo_type;
+  wearpon_specifications: array[1..255] of wearpon_type;
+  ammo_specifications: array[1..255] of ammo_type;
   //other items 200...255;
 
   nbot: integer;
@@ -533,6 +534,8 @@ begin
      bot[thisbot].x:=waypointx[waypointn];
      bot[thisbot].y:=waypointy[waypointn];
       if vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible then mapchanged^[bot[thisbot].x,bot[thisbot].y]:=255;
+     if (bot[thisbot].x<=viewx-1+2) or (bot[thisbot].y<=viewy-1+2) or (bot[thisbot].x>=viewx+viewsizex-2) or (bot[thisbot].y>=viewy+viewsizey-2) then
+       if vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible then center_map(bot[thisbot].x,bot[thisbot].y);
 
      if bot[thisbot].owner=player then begin
        look_around(thisbot);
@@ -1856,6 +1859,112 @@ begin
     for iy:=2 to maxy-1 do if map^[ix,iy]=252 then map^[ix,iy]:=255;
   dispose(map_tmp);
 end;
+
+{---------------------------------------------------------------------------------------------}
+{-------------------------------------------------------------------------------------------}
+
+const maxwormsize=3.0;
+      minwormsize=1.5;
+      wallthickness=1.5; {<minwormsize}
+      stopevent=0.01;
+procedure generate_map_wormhole;
+var ix,iy,dx,dy,x1,y1:integer;
+    xx,yy,angle,anglespeed,thissize,sizespeed:float;
+    entrance_x,entrance_y:integer;
+    count:integer;
+    count_free,count_254,count_all:integer;
+    stophole,flg,stopworms:boolean;
+begin
+  generate_map_makewalls(map_wall);
+  form1.memo1.lines.add('WORMHOLE MAP * no');
+  entrance_x:=6; entrance_y:=6;
+  xx:=entrance_x; yy:=entrance_y;
+  angle:=round(random*2*Pi);
+  anglespeed:=0;
+  thissize:=maxwormsize * random+minwormsize;
+  sizespeed:=0;
+
+  for ix:=2 to maxx-1 do
+   for iy:=2 to maxy-1 do map^[ix,iy]:=254; //diggable
+
+  stopworms:=false;
+  repeat
+    stophole:=false;
+    x1:=round(xx);
+    y1:=round(yy);
+    for dx:=-round(thissize+wallthickness) to round(thissize+wallthickness) do
+     for dy:=-round(thissize+wallthickness) to round(thissize+wallthickness) do if not stophole then
+       if (x1+dx>=1) and (y1+dy>=1) and (x1+dx<=maxx) and (y1+dy<=maxy) then begin
+        if (sqr(dx)+sqr(dy)<thissize) and (map^[x1+dx,y1+dy]<=253) then begin
+          map^[x1+dx,y1+dy]:=255;
+        end else
+        if sqr(dx)+sqr(dy)<=thissize+wallthickness then begin
+          if map^[x1+dx,y1+dy]=254 then begin
+            map^[x1+dx,y1+dy]:=253; //diggable wall
+          end else
+          if map^[x1+dx,y1+dy]=map_wall then begin
+            stophole:=true;
+          end;
+        end;
+       end;
+    if (stophole) or (random<stopevent) then begin
+      angle:=round(random*2*Pi);
+      anglespeed:=0;
+      thissize:=maxwormsize * sqr(random) + minwormsize;
+      sizespeed:=0;
+      //reset x1,y1,angle,anglespeed;
+      count:=0;
+      repeat
+        inc(count);
+        for ix:=2 to maxx-1 do
+         for iy:=2 to maxy-1 do if map^[ix,iy]=253 then map^[ix,iy]:=map_wall;
+        flg:=false;
+        x1:=round(random*(maxx-2))+1;
+        y1:=round(random*(maxy-2))+1;
+        {if map^[x1,y1]=map_wall then} begin
+          count_free:=0;
+          count_all:=0;
+          count_254:=0;
+          for dx:=-round(thissize+wallthickness) to round(thissize+wallthickness) do
+           for dy:=-round(thissize+wallthickness) to round(thissize+wallthickness) do
+             if (x1+dx>=1) and (y1+dy>=1) and (x1+dx<=maxx) and (y1+dy<=maxy) and ((sqr(dx)+sqr(dy)<thissize+3)) then begin
+               if map^[x1+dx,y1+dy]=254 then inc(count_254) else
+               if map^[x1+dx,y1+dy]=255 then inc(count_free);
+               inc(count_all);
+             end;
+          if (count_254/count_all>0.8) and (count_free>0) and ((count_all-count_free-count_254)/count_all<0.1) then flg:=true;
+        end;
+      until (flg) or (count>maxx*maxy*5);
+      if count>=maxx*maxy then stopworms:=true else begin
+        for dx:=-round(thissize) to round(thissize) do
+         for dy:=-round(thissize) to round(thissize) do
+           if (x1+dx>=1) and (y1+dy>=1) and (x1+dx<=maxx) and (y1+dy<=maxy) and ((sqr(dx)+sqr(dy)<thissize+1)) then begin
+             if map^[x1+dx,y1+dy]=map_wall then map^[x1+dx,y1+dy]:=253 else
+             if map^[x1+dx,y1+dy]=254 then map^[x1+dx,y1+dy]:=255;
+           end;
+      end;
+      xx:=x1;
+      yy:=y1;
+    end else begin
+      xx:=xx+0.5*sin(angle);
+      yy:=yy+0.5*cos(angle);
+      angle:=angle+anglespeed;
+      anglespeed:=anglespeed+(random-0.5)/16;
+      thissize:=thissize+sizespeed;
+      if (thissize>maxwormsize) or (thissize<minwormsize) then sizespeed:=-sizespeed;
+      sizespeed:=sizespeed+(random-0.5)/3;
+      if abs(sizespeed)>1.0 then sizespeed:=-sizespeed/2;
+    end;
+
+    count:=0;
+    for ix:=2 to maxx-1 do
+     for iy:=2 to maxy-1 do if map^[ix,iy]=254 then inc(count);
+  until (count<0.3*maxx*maxy) or (stopworms);
+
+  for ix:=2 to maxx-1 do
+   for iy:=2 to maxy-1 do if map^[ix,iy]=254 then map^[ix,iy]:=map_wall;
+end;
+
 {-------------------------------------------------------------------------------------------}
 
 const homogenity_x=7;
@@ -1947,6 +2056,7 @@ begin
   repeat
     inc(i);
     bot[nbot].items[i].w_id:=1;
+    if (random<0.03) and (i=1) then bot[nbot].items[i].w_id:=4;
     if random<0.05 then bot[nbot].items[i].w_id:=2;
     if random<0.05 then bot[nbot].items[i].w_id:=3;
     bot[nbot].items[i].maxstate:=wearpon_specifications[bot[nbot].items[i].w_id].maxstate-round(0.1*wearpon_specifications[bot[nbot].items[i].w_id].maxstate*random);
@@ -1954,9 +2064,11 @@ begin
     bot[nbot].items[i].rechargestate:=0;
     inc(wearponhp,bot[nbot].items[i].state);
 
-    bot[nbot].items[i].ammo_id:=101;
-    if random<0.05 then bot[nbot].items[i].ammo_id:=102;
-    if random<0.05 then bot[nbot].items[i].ammo_id:=103;
+    if bot[nbot].items[i].w_id<4 then begin
+      bot[nbot].items[i].ammo_id:=1;
+      if random<0.05 then bot[nbot].items[i].ammo_id:=2;
+      if random<0.05 then bot[nbot].items[i].ammo_id:=3;
+    end else bot[nbot].items[i].ammo_id:=5;
     bot[nbot].items[i].n:=ammo_specifications[bot[nbot].items[i].ammo_id].quantity;
   until (bot[nbot].HP*itemdamagerate<wearponhp) or (i=backpacksize);
 
@@ -2000,7 +2112,7 @@ begin
        mapchanged^[ix,iy]:=255;
     end;
 
-  if combobox1.itemIndex<1 then map_type:=trunc(random*19)+1 else map_type:=combobox1.ItemIndex;
+  if combobox1.itemIndex<1 then map_type:=trunc(random*20)+1 else map_type:=combobox1.ItemIndex;
   case map_type of
         1: if random>0.6 then
              repeat generate_map_random         until test_map(20,70)
@@ -2034,6 +2146,7 @@ begin
        17:   repeat generate_map_eggre          until test_map(20,70);
        18:   repeat generate_map_snowflake      until test_map(20,70);
        19:   repeat generate_map_areas          until test_map(20,90);
+       20:   repeat generate_map_wormhole       until test_map(20,90);
   end;
   itemsn:=0;
   grow_smoke;
@@ -2075,7 +2188,7 @@ begin
       x1:=round(random*(maxx-4)+2);
       y1:=round(random*(maxy-4)+2);
     until (((x1>12) or (y1>12)) or (random>0.999)) and createbot(computer,'d'+inttostr(round(random*99))+inttostr(ix),{round(random*30)+}bot_hp_const,x1,y1);
-    bot[nbot].action:=action_agressive_random;
+    if checkbox1.checked then bot[nbot].action:=action_attack else bot[nbot].action:=action_agressive_random;
     bot[nbot].target:=round(random*(playersn-1))+1;
   end;
 
@@ -2083,7 +2196,7 @@ begin
   for ix:=1 to nbot do if bot[ix].owner=computer then begin
     inc(iy,bot[ix].hp);
   end;
-  While (iy>playersn*20*10+(nbot-playersn)*10*10+itemsn*10*10) or (random<0.8) do begin
+  While (iy>playersn*20*10+(nbot-playersn)*10*10+itemsn*10*10) or (random<0.9) do begin
       inc(itemsn);
       repeat
         x1:=round(random*(maxx-2)+1);
@@ -2093,12 +2206,16 @@ begin
       item[itemsn].y:=y1;
       item[itemsn].item.w_id:=0;
       if random<nbot*75/(iy/(nbot-playersn)*itemdamagerate) then begin
-        item[itemsn].item.w_id:=1;
-        item[itemsn].item.maxstate:=round(wearpon_specifications[item[itemsn].item.w_id].maxstate*random);
+        if random<0.95 then item[itemsn].item.w_id:=1 else item[itemsn].item.w_id:=4;
+        item[itemsn].item.maxstate:=round((wearpon_specifications[item[itemsn].item.w_id].maxstate*3/4)*random+wearpon_specifications[item[itemsn].item.w_id].maxstate/4);
         item[itemsn].item.state:=round(item[itemsn].item.maxstate*random);
         item[itemsn].item.rechargestate:=0;
       end;
-      if random<0.9 then item[itemsn].item.ammo_id:=101 else item[itemsn].item.ammo_id:=102;
+      if item[itemsn].item.w_id<4 then begin
+        if random<0.7 then item[itemsn].item.ammo_id:=1 else item[itemsn].item.ammo_id:=2;
+        if random>0.8 then item[itemsn].item.ammo_id:=3;
+        if random>0.7 then item[itemsn].item.ammo_id:=4;
+      end else item[itemsn].item.ammo_id:=5;
       item[itemsn].item.n:=round((ammo_specifications[item[itemsn].item.ammo_id].quantity-1)*random)+1;
   end;
 
@@ -2115,7 +2232,7 @@ begin
   movement_map_for:=-1;
   viewx:=0;
   viewy:=0;
-  memo1.lines.add('***************************');
+  memo1.lines.add('=========================');
 
   current_turn:=0;
   start_turn;
@@ -2126,6 +2243,7 @@ end;
 {--------------------------------------------------------------------------------------}
 
 procedure TForm1.generate_items_types;
+var i:integer;
 begin
  with wearpon_specifications[1] do begin
    NAME     := 'Lt. Wasp';
@@ -2133,17 +2251,13 @@ begin
    DAM      :=   0;
    RECHARGE :=  40;
    AIM      :=  10;
-   RELOAD   := 100;
+   RELOAD   :=  50;
    MAXSTATE := 150;
-   AMMO[1]  := 101;
-   AMMO[2]  := 102;
-   AMMO[3]  := 103;
-   AMMO[4]  := 104;
-   AMMO[5]  := 105;
-   AMMO[6]  := 106;
-   AMMO[7]  := 107;
-   AMMO[8]  := 108;
-   AMMO[9]  := 109;
+   for i:=1 to maxusableammo do AMMO[i]:=0;
+   AMMO[1]  := 1;
+   AMMO[2]  := 2;
+   AMMO[3]  := 3;
+   AMMO[4]  := 4;
  end;
  with wearpon_specifications[2] do begin
    NAME     := 'Hv. Wasp';
@@ -2153,15 +2267,11 @@ begin
    AIM      :=  10;
    RELOAD   := 100;
    MAXSTATE :=  90;
-   AMMO[1]  := 101;
-   AMMO[2]  := 102;
-   AMMO[3]  := 103;
-   AMMO[4]  := 104;
-   AMMO[5]  := 105;
-   AMMO[6]  := 106;
-   AMMO[7]  := 107;
-   AMMO[8]  := 108;
-   AMMO[9]  := 109;
+   for i:=1 to maxusableammo do AMMO[i]:=0;
+   AMMO[1]  := 1;
+   AMMO[2]  := 2;
+   AMMO[3]  := 3;
+   AMMO[4]  := 4;
  end;
  with wearpon_specifications[3] do begin
    NAME     := 'Sniper Wasp';
@@ -2171,17 +2281,13 @@ begin
    AIM      :=  15;
    RELOAD   := 100;
    MAXSTATE :=  80;
-   AMMO[1]  := 101;
-   AMMO[2]  := 102;
-   AMMO[3]  := 103;
-   AMMO[4]  := 104;
-   AMMO[5]  := 105;
-   AMMO[6]  := 106;
-   AMMO[7]  := 107;
-   AMMO[8]  := 108;
-   AMMO[9]  := 109;
+   for i:=1 to maxusableammo do AMMO[i]:=0;
+   AMMO[1]  := 1;
+   AMMO[2]  := 2;
+   AMMO[3]  := 3;
+   AMMO[4]  := 4;
  end;
- with AMMO_specifications[101] do begin
+ with AMMO_specifications[1] do begin
    NAME        := 'Lt. wasp clip';
    ACC         :=  0;
    DAM         := 15;
@@ -2191,7 +2297,7 @@ begin
    SMOKE       :=  0;
    TRACE_SMOKE :=  0;
  end;
- with AMMO_specifications[102] do begin
+ with AMMO_specifications[2] do begin
    NAME        := 'Ext. wasp clip';
    ACC         :=  0;
    DAM         := 15;
@@ -2201,11 +2307,43 @@ begin
    SMOKE       :=  0;
    TRACE_SMOKE :=  0;
  end;
- with AMMO_specifications[103] do begin
+ with AMMO_specifications[3] do begin
    NAME        := 'Hv. wasp clip';
    ACC         :=  0;
    DAM         := 20;
    QUANTITY    := 10;
+   EXPLOSION   :=  0;
+   AREA        :=  0;
+   SMOKE       :=  0;
+   TRACE_SMOKE :=  0;
+ end;
+with AMMO_specifications[4] do begin
+   NAME        := 'Acc. wasp clip';
+   ACC         :=200;
+   DAM         := 16;
+   QUANTITY    := 14;
+   EXPLOSION   :=  0;
+   AREA        :=  0;
+   SMOKE       :=  0;
+   TRACE_SMOKE :=  0;
+ end;
+ {///}
+ with wearpon_specifications[4] do begin
+   NAME     := 'St. Falcon';
+   ACC      :=  10;
+   DAM      :=   0;
+   RECHARGE := 150;
+   AIM      :=  60;
+   RELOAD   := 200;
+   MAXSTATE := 120;
+   for i:=1 to maxusableammo do AMMO[i]:=0;
+   AMMO[1]  := 5;
+ end;
+ with AMMO_specifications[5] do begin
+   NAME        := 'St. Falcon rounds';
+   ACC         :=  0;
+   DAM         :=130;
+   QUANTITY    :=  7;
    EXPLOSION   :=  0;
    AREA        :=  0;
    SMOKE       :=  0;
@@ -2356,13 +2494,13 @@ begin
          if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=100 else bot[attacker].angle:=0
        end;
 
+       draw_map;
        with image1.canvas do begin
          mapchanged^[bot[attacker].x,bot[attacker].y]:=255;
-         draw_map;
          brush.style:=bsclear;
          i:=255;
-         if (bot[attacker].x<=viewx-1) or (bot[attacker].y<=viewy-1) or (bot[attacker].x>=viewx+maxx) or (bot[attacker].y>=viewy+maxy) or
-            (bot[defender].x<=viewx-1) or (bot[defender].y<=viewy-1) or (bot[defender].x>=viewx+maxx) or (bot[defender].y>=viewy+maxy) then
+         if (bot[attacker].x<=viewx-1+2) or (bot[attacker].y<=viewy-1+2) or (bot[attacker].x>=viewx+viewsizex-2) or (bot[attacker].y>=viewy+viewsizey-2) or
+            (bot[defender].x<=viewx-1+2) or (bot[defender].y<=viewy-1+2) or (bot[defender].x>=viewx+viewsizex-2) or (bot[defender].y>=viewy+viewsizey-2) then
                center_map((bot[attacker].x+bot[defender].x) div 2,(bot[attacker].y+bot[defender].y) div 2);
 
          mytimer:=now;
@@ -2386,8 +2524,8 @@ begin
          for i:=0 to round(range) do mapchanged^[bot[attacker].x+round((bot[defender].x-bot[attacker].x)*i/range),bot[attacker].y+round((bot[defender].y-bot[attacker].y)*i/range)]:=255;
          for dx:=-1 to 1 do
            for dy:=-1 to 1 do mapchanged^[bot[defender].x+dx,bot[defender].y+dy]:=255;
-         draw_map;
       end;
+      draw_map;
 
      end;
    end;
@@ -2469,14 +2607,14 @@ begin
      flg:=true;
      for j:=2 to backpacksize do if (flg) and (((bot[i].items[j].w_id>0) and (bot[i].items[j].state>bot[i].items[j].maxstate/3)) or ((bot[i].items[j].w_id=0) and (bot[i].items[j].ammo_id>0))) and (bot[i].items[j].n>0) then begin
         flg:=not load_wearpon(i,j);
-        memo1.lines.add('reloading...');
+        memo1.lines.add('[dbg] reloading...');
      end;
 
      if (flg) and (itemsn>0) then begin
-      memo1.lines.add('searching...');
+      memo1.lines.add('[dbg] searching...');
       find_onfloor(bot[i].x,bot[i].y);
       if onfloorn>0 then begin
-        memo1.lines.add('taking...');
+        memo1.lines.add('[dbg] taking...');
         pick_up(i,1);
         flg:=true;
         for j:=2 to backpacksize do if (flg) and (((bot[i].items[j].w_id>0) and (bot[i].items[j].state>bot[i].items[j].maxstate/3)) or ((bot[i].items[j].w_id=0) and (bot[i].items[j].ammo_id>0))) and (bot[i].items[j].n>0) then begin
@@ -2895,7 +3033,7 @@ begin
  if (bot[thisbot].items[1].ammo_id=0) and (bot[thisbot].items[thisitem].ammo_id>0) and (bot[thisbot].items[thisitem].w_id=0) and (bot[thisbot].items[1].w_id>0) then begin
    flg:=false;
    for i:=1 to maxusableammo do if wearpon_specifications[bot[thisbot].items[1].w_id].AMMO[i]=bot[thisbot].items[thisitem].ammo_id then flg:=true;
-   if flg then
+   if flg then begin
      if spend_tu(thisbot,wearpon_specifications[bot[thisbot].items[1].w_id].reload) then begin
        bot[thisbot].items[1].ammo_id:= bot[thisbot].items[thisitem].ammo_id;
        bot[thisbot].items[thisitem].ammo_id:=0;
@@ -2903,6 +3041,7 @@ begin
        bot[thisbot].items[1].rechargestate:=wearpon_specifications[bot[thisbot].items[1].w_id].recharge;
        loadw:=true;
      end
+   end else showmessage('Inappropriate ammo!');
   end;
  load_wearpon:=loadw;
 end;
@@ -3177,6 +3316,7 @@ begin
  edit5.visible:=flg;
  label11.visible:=flg;
  label12.visible:=flg;
+ checkbox1.visible:=flg;
 
  if mapgenerated then begin
    if gamemode>200 then button4.enabled:=true else button4.enabled:=false;

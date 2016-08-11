@@ -178,6 +178,7 @@ object Form1: TForm1
       'EggRe'
       'Snowflake'
       'Areas'
+      'Wormholes'
     )
     ParentFont = False
     Style = csDropDownList
@@ -439,5 +440,13 @@ object Form1: TForm1
     Width = 43
     Caption = '(1..16)'
     ParentColor = False
+  end
+  object CheckBox1: TCheckBox
+    Left = 338
+    Height = 21
+    Top = 408
+    Width = 117
+    Caption = 'Defence mode'
+    TabOrder = 23
   end
 end
