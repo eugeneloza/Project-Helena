@@ -19,7 +19,7 @@ const bottypes=4; {0..bottypes}
       maxcracks=11;
       maxpass=22;
       maxwall=25;
-      maxmusic=5;
+      maxmusic=14;
 
 const maxmaxx={113}226;  //max 'reasonable' 50x50
       minmaxx=35;
@@ -41,7 +41,6 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
       backpacksize=12;
       changeweapontime=100;
-      //fixweapontime=255;
       dropitemtime=20;
       pickupitemtime=40;
 
@@ -96,7 +95,6 @@ const player=1;
 const map_free=0;
       map_smoke=15;
       maxstatus=31;
-//      maxstatusdivision=9; //number of cracks
       map_wall=128;
       map_wall_smoke=map_smoke div 2;
       die_smoke=map_smoke div 3;
@@ -107,14 +105,6 @@ const map_free=0;
       map_generation2=245;
       map_generation3=244;
       map_generation4=243;
-
-//      statuspattern=32-1; //00011111
-//      tilepattern=96;     //01100000 shr 5
-
-//      map_tile1=0;        // .00.....
-//      map_tile2=32;       // .01.....
-//      map_tile3=64;       // .10.....
-//      map_tile4=96;       // .11.....
 
 const gamemode_game=255;
       gamemode_victory=254;
@@ -239,7 +229,6 @@ type
     procedure CheckBox5Change(Sender: TObject);
     procedure ComboBox2Change(Sender: TObject);
     procedure Edit4Change(Sender: TObject);
-    procedure Edit6Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure CastleControl1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -359,15 +348,6 @@ type bottype=record
   lastseen_x,lastseen_y,lastseen_tu:byte;
 end;
 
-
-{type TDrawMap = class(TThread)
-  private
-
-  protected
-    procedure Execute; override;
-  public
-end;}
-
 type map_array = array[1..maxmaxx,1..maxmaxy] of byte;
 
 var
@@ -434,7 +414,7 @@ var
   do_explosion:boolean;
   explosion_area:^map_array;
   do_highlight:boolean;
-  highlight_area:^map_array;
+  highlight_x,highlight_y:byte;
   animationtimer:TDatetime;
 
   txt_out:TStringList;
@@ -3839,6 +3819,7 @@ var ix,iy:integer;
     t:TDAtetime;
 //    srect:TRectangle;
     sx,sy:integer;
+    highlight:single;
 begin
  //initialize routines buggy-wooggy
  if img_selected=nil then img_selected:=TGLImage.create(datafolder+'png'+pathdelim + 'selected.png');
@@ -3889,9 +3870,14 @@ begin
       cracks_img[(3*ix+4*iy) mod maxcracks+1].color:=Vector4Single( shadebright, shadebright , shadebright , 0.7);
       cracks_img[(3*ix+4*iy) mod maxcracks+1].draw(getx(ix),gety(iy));
     end else begin
-      shadecolor[0]:=shadecolor[0]*map_shade[2,1];
-      shadecolor[1]:=shadecolor[1]*map_shade[2,2];
-      shadecolor[2]:=shadecolor[2]*map_shade[2,3];
+      highlight:=0;
+      if do_highlight then begin
+        if check_LOS(ix,iy,highlight_x,highlight_y,true)>0 then
+           highlight:=0.5;
+      end;
+      shadecolor[0]:=shadecolor[0]*map_shade[2,1]+highlight;
+      shadecolor[1]:=shadecolor[1]*map_shade[2,2]-highlight/2;
+      shadecolor[2]:=shadecolor[2]*map_shade[2,3]-highlight/2;
       GLI2[map_pass_img].Color:=ShadeColor;
       GLI2[map_pass_img].draw(getx(ix),gety(iy));
       if (vis^[ix,iy]>oldvisible) and (map_status^[ix,iy]>0) then begin
@@ -3938,8 +3924,6 @@ begin
       UIFont.PrintStrings(txt_x-1, txt_y+1, Vector4Single(0,0,0,1), txt_out, false, 0);
       UIFont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,1), txt_out, false, 0);
     finally end;
-{do_highlight:boolean;
-  highlight_area:^map_array;}
 
  form1.label1.caption:=inttostr(round((now-t)*24*60*60*1000));
 end;
@@ -3984,8 +3968,7 @@ end;
 {==============================}
 
 procedure TForm1.FormCreate(Sender: TObject);
-var ix,iy:integer;
-    Duration: TFloatTime;
+var Duration: TFloatTime;
 begin
    txt_out:=TStringList.create;
    animationtimer:=0;
@@ -3998,11 +3981,20 @@ begin
    item_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item.wav', Duration);
    drop_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item_reverse.wav', Duration);
 
-   music[1]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.ogg',music_duration[1]);
-   music[2]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.ogg',music_duration[2]);
-   music[3]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.ogg',music_duration[3]);
-   music[4]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.ogg',music_duration[4]);
-   music[5]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.ogg',music_duration[5]);
+   music[ 1]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.ogg',music_duration[1]);
+   music[ 2]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.ogg',music_duration[2]);
+   music[ 3]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.ogg',music_duration[3]);
+   music[ 4]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.ogg',music_duration[4]);
+   music[ 5]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.ogg',music_duration[5]);
+   music[ 6]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Alert_0.ogg',music_duration[6]);
+   music[ 7]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Dirt_City_0.ogg',music_duration[7]);
+   music[ 8]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Forgoten_tombs_1.ogg',music_duration[8]);
+   music[ 9]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Grey_land.ogg',music_duration[9]);
+   music[10]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Myst.ogg',music_duration[10]);
+   music[11]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Road.ogg',music_duration[11]);
+   music[12]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Trance_0.ogg',music_duration[12]);
+   music[13]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Vault_0.ogg',music_duration[13]);
+   music[14]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Wind_0.ogg',music_duration[14]);
    timer1.enabled:=true;
    timer1.Interval:=1000;
    oldmusic:=-1;
@@ -4087,7 +4079,6 @@ begin
   do_explosion:=false;
   new(explosion_area);
   do_highlight:=false;
-  new(highlight_area);
 
   gamemode:=gamemode_none;
   form1.DoubleBuffered:=true;
@@ -4122,7 +4113,7 @@ begin
   animationtimer:=now;
   repeat form1.castlecontrol1.paint; until (now-animationtimer)*24*60*60*1000>hitdelay;
   do_txt:=false;
-  form1.castlecontrol1.paint;
+  form1.draw_map;
 
   if bot[thisbot].hp>dam then dec(bot[thisbot].hp,dam) else begin
    bot[thisbot].hp:=0;
@@ -4164,8 +4155,6 @@ procedure Tform1.calculate_area(ax,ay,a,asmoke,ablast:integer);
 var ix,iy,dx,dy,ddx,ddy,count,generation,i,j:integer;
     flg,flg_x:boolean;
     direction_x,direction_y:^blastarea;
-    mytimer:tdate;
-    x2,y2:integer;
 var area:^blastarea;
     generationsum:float;
 //    regeneratelos:boolean;
@@ -4243,7 +4232,7 @@ begin
   animationtimer:=now;
   repeat castlecontrol1.paint; until (now-animationtimer)*24*60*60*1000>blastdelay;
   do_explosion:=false;
-  castlecontrol1.paint;
+  draw_map;
 
    //damage tagets //make smoke // destroy walls
 //   regenerate_los:=false;
@@ -4383,7 +4372,7 @@ end;
 {--------------------------------------------------------------------------------}
 
 procedure tform1.bot_shots(attacker,defender:integer);
-var dx,dy,i:integer;
+var dx:integer;
     damage:integer;
     LOS:integer;
     flg:boolean;
@@ -4391,9 +4380,6 @@ var dx,dy,i:integer;
     timetoattack:word;
     range,statedamper:float;
     ACC,DAM:float;
-    mytimer:TDate;
-
-    x1,y1,x2,y2:integer;
 begin
  flg:=true;
  if (bot[attacker].items[1].w_id>0) and (bot[attacker].items[1].ammo_id>0) then begin
@@ -5042,7 +5028,7 @@ begin
 //  MyImage.canvas.width:=CastleControl1.width;
   MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help.jpg');
   CastleControl1.visible:=true;
-  destrect:=Rect(0,0,CastleControl1.width,CastleControl1.height);
+  {destrect:=Rect(0,0,CastleControl1.width,CastleControl1.height);}
 {zzzzzzzzzzzzzzzzzzzzzz}
   {  CastleControl1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);}
   MyImage.free;
@@ -5093,7 +5079,6 @@ begin
   writeinifile;
 end;
 
-
 procedure TForm1.Edit4Change(Sender: TObject);
 var botsquantity,hpquantity,playerhp,playerquantity,i:integer;
     difficulty,mapsizex,mapsizey:integer;
@@ -5134,32 +5119,6 @@ begin
   label10.visible:=true;
 end;
 
-procedure TForm1.Edit6Change(Sender: TObject);
-begin
-
-end;
-
-
-{--------------------------------------------------------------------------------------}
-
-{procedure TForm1.CheckBox1Change(Sender: TObject);
-begin
-  if checkbox1.checked then begin
-    button2.enabled:=true;
-    button3.enabled:=true;
-    radiobutton1.enabled:=true;
-    radiobutton2.Enabled:=true;
-    radiobutton3.Enabled:=true;
-    combobox1.enabled:=true;
-  end else begin
-    button2.enabled:=false;
-    button3.enabled:=false;
-    radiobutton1.enabled:=false;
-    radiobutton2.Enabled:=false;
-    radiobutton3.Enabled:=false;
-    combobox1.enabled:=false;
-  end;
-end;}
 
 {--------------------------------------------------------------------------------------}
 
@@ -5174,7 +5133,6 @@ begin
   dispose(LOS_base);
   dispose(botvis);
   dispose(explosion_area);
-  dispose(highlight_area);
   freeandnil(txt_out);
 
 end;
@@ -5186,12 +5144,12 @@ end;
 
 procedure TForm1.CastleControl1MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var // scalex,scaley:float;
-    mousex,mousey:integer;
+var mousex,mousey:integer;
     i:integer;
     found:integer;
 begin
 if gamemode>200 then begin
+ do_highlight:=false;
  mousex:=round(x / (CastleControl1.width / viewsizex)+0.5)+viewx;
  mousey:=round(y / (CastleControl1.height / viewsizey)+0.5)+viewy;
  if (Button=mbmiddle) then begin
@@ -5228,8 +5186,11 @@ if gamemode>200 then begin
           selectedx:=-1; selectedy:=-1;
           if check_LOS(bot[selected].x,bot[selected].y,bot[selectedenemy].x,bot[selectedenemy].y,true)>0 then
             bot_shots(selected,selectedenemy)
-          else
-            show_LOS:=true;
+          else if selectedenemy>0 then begin
+            do_highlight:=true;
+            highlight_x:=bot[selectedenemy].x;
+            highlight_y:=bot[selectedenemy].y;
+          end;
         end;
       end;
     end else begin
@@ -5272,12 +5233,10 @@ end;
 
 procedure TForm1.CastleControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
-var {scalex,scaley,}mousex,mousey:integer;
+var mousex,mousey:integer;
     i:integer;
     found:boolean;
 begin
- { scalex:=;
-  scaley:=;}
  if gamemode>200 then begin
   mousex:=round(x / (CastleControl1.width / viewsizex)+0.5)+viewx;
   mousey:=round(y / (CastleControl1.height / viewsizey)+0.5)+viewy;
@@ -5364,8 +5323,6 @@ procedure TForm1.Image3MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var tmpitem:item_type;
     selectednew,freespace,i:integer;
-    //i:integer;
-    //flg:boolean;
 begin
   if (y>=0) and (y<=(backpacksize*2-1)*fontsize) and (selected>0) then begin
     selectednew:=round((y-fontsize-3+scrollbar1.position)/(2*fontsize))+2;
@@ -5481,10 +5438,7 @@ end;
 
 procedure TForm1.Image4MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var //tmpitem:item_type;
-    selectednew:integer;
-    //i:integer;
-    //flg:boolean;
+var selectednew:integer;
 begin
   if (onfloorn>0) and (selected>0) then begin
     selectednew:=round((y-font7size-3+scrollbar2.position)/(2*font7size))+1;
@@ -5798,10 +5752,10 @@ const item_box_x=50;
       item_box_y=50;
       font_size10=15;
 procedure Tform1.display_item_info(thisitem:item_type);
-var starty,startx:integer;
+{var starty,startx:integer;
     descr:string;
     line_width:integer;
-    tmp:integer;
+    tmp:integer;      }
 begin
  {zzzzzzzzzzzzzzzzzzzzz}
 { if (thisitem.w_id>0) or (thisitem.ammo_id>0) then begin
@@ -6183,241 +6137,12 @@ procedure TForm1.Draw_map;
     btc1,btc2,btc3:byte;}
     //dx,dy,range,maxrange:integer;
 var thistime:TDatetime;
-    ix,iy:integer;
 begin
   thistime:=now;
   castlecontrol1.Paint;
   castlecontrol2.Paint;
-{  for ix:=1 to zoom do
-    for iy:=1 to zoom do
-      MapImage[ix,iy].URL:=ApplicationData('png'+pathdelim+'Wall.png');}
 
-{ CastleControl1.canvas.lock;
-  sx:=CastleControl1.width;
-  sy:=CastleControl1.height;
-  scalex:=sx / viewsizex;
-  scaley:=sy / viewsizey;
-  scaleminimapx:=image7.Width / max_max_value;
-  scaleminimapy:=image7.height / max_max_value;
-  if maxx>=maxy then minimapx0:=0 else minimapx0:=round(scaleminimapx * (maxy-maxx) / 2);
-  if maxy>=maxx then minimapy0:=0 else minimapy0:=round(scaleminimapy * (maxx-maxy) / 2);
-
-  image7.canvas.brush.style:=bssolid;
-
-  if (show_los) and (selectedenemy>0) then begin
-   for mx:=2 to maxx-1 do
-     for my:=2 to maxy-1 do if (check_los(mx,my,bot[selectedenemy].x,bot[selectedenemy].y,true)>0) and (vis^[mx,my]>0) and (map^[mx,my]<map_wall) then mapchanged^[mx,my]:=2;
-  end;
-
-  if {(draw_map_all) and }(maxx<>maxy) then with image7.canvas do begin
-    brush.color:=clgray;
-    if minimapx0>0 then begin
-      fillrect(0,0,minimapx0,image7.height);
-      fillrect(minimapx0+round(maxx*scaleminimapx),0,image7.width,image7.height);
-    end else begin
-      fillrect(0,0,image7.width,minimapy0);
-      fillrect(0,minimapy0+round(maxy*scaleminimapy),image7.width,image7.height);
-    end;
-  end;
-
-  with CastleControl1.canvas do begin
-    pen.width:=1;
-    {draw_map}
-    for mx:=1 to maxx do
-      for my:=1 to maxy do if (mapchanged^[mx,my]>0) or (draw_map_all) then begin
-        //mapchanged^[mx,my]:=1;
-        if vis^[mx,my]=0 then begin
-          brush.color:=$330000
-        end else begin
-          if vis^[mx,my]=oldvisible then begin
-             if map^[mx,my]>=map_wall then begin
-               tmp_color:=99;
-               brush.color:=RGB(tmp_color,255,220,220);
-               pen.color:=RGB(tmp_color-15,255,220,220);
-             end else begin
-               tmp_color:=50;
-               brush.color:=RGB(tmp_color,80,99,80);
-               pen.color:=RGB(tmp_color-15,80,99,80);
-             end;
-           end else begin
-             if map^[mx,my]>=map_wall then begin
-               tmp_color:=round(155*sqr((vis^[mx,my]-oldvisible)/(maxvisible-oldvisible)))+100;
-               brush.color:=RGB(tmp_color,255,220,220);
-               pen.color:=RGB(tmp_color-15,255,220,220);
-             end else begin
-               tmp_color:=round(200*sqr((vis^[mx,my]-oldvisible)/(maxvisible-oldvisible)))+55;
-               brush.color:=RGB(tmp_color,80,99,80);
-               pen.color:=RGB(tmp_color-15,80,99,80);
-             end;
-           end;
-        end;
-
-
-        if mapchanged^[mx,my]=255 then begin
-          image7.canvas.brush.color:=brush.color;
-          image7.canvas.fillrect(round((mx-1)*scaleminimapx)+minimapx0, round((my-1)*scaleminimapy)+minimapy0, round(mx*scaleminimapx)+minimapx0, round(my*scaleminimapy)+minimapy0);
-        end;
-
-        if (mx>viewx) and (my>viewy) and (mx<=viewx+viewsizex) and (my<=viewy+viewsizey) then begin
-          brush.style:=bssolid;
-          fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-
-          if (vis^[mx,my]>=oldvisible) then begin
-            if (map^[mx,my]=3) or (map^[mx,my]=3+map_wall) then begin
-              brush.style:= bsCross;
-              brush.color:= pen.color;
-              fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-            end else
-            if (map^[mx,my]=2) or (map^[mx,my]=2+map_wall) then begin
-              rectangle(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-            end else
-            if (map^[mx,my]=1) or (map^[mx,my]=1+map_wall) then begin
-              brush.color:= pen.color;
-              rectangle(round((mx-1-viewx)*scalex+scalex/4), round((my-1-viewy)*scaley+scaley/4), round((mx-viewx)*scalex-scalex/4), round((my-viewy)*scaley-scaley/4));
-            end else
-          end;
-          if map^[mx,my]<map_wall then begin
-
-            if mapchanged^[mx,my]=2 then begin
-              brush.style:= bsDiagCross;
-              brush.color:=$000088;
-              fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-            end;
-
-            if (map_status^[mx,my]>0) and (vis^[mx,my]>oldvisible) then begin
-              for i:=1 to 1+round((0.01+0.3*(map_status^[mx,my]-1)/(map_smoke-1))*scalex*scaley) do begin
-                brush.style:=bssolid;
-                brush.color:=RGB(round(150*(random*vis^[mx,my]-oldvisible)/(maxvisible-oldvisible))+100,255,255,255);
-                x1:=round((mx-1-viewx+random*(scalex-1)/scalex)*(scalex));
-                y1:=round((my-1-viewy+random*(scaley-1)/scaley)*(scaley));
-                fillrect(x1,y1,x1+1,y1+1);
-              end;
-            end;
-          end else begin
-            if (map_status^[mx,my]<(2*maxstatusdivision-1)*maxstatus div maxstatusdivision div 2) and (vis^[mx,my]>0) then begin
-              for i:=1 to 1+maxstatusdivision*(maxstatus-map_status^[mx,my]) div maxstatus do begin
-                x1:=round((mx-1-viewx+sqr(sin(mx*1.4+my*1.1+i*1.3))*(scalex-1)/scalex)*(scalex));
-                y1:=round((my-1-viewy+sqr(cos(mx*1.2+my*1.3+i*1.1))*(scaley-1)/scaley)*(scaley));
-                x2:=round((mx-1-viewx+sqr(sin(mx*1.1+my*1.5+i*1.2))*(scalex-1)/scalex)*(scalex));
-                y2:=round((my-1-viewy+sqr(cos(mx*1.3+my*1.2+i*1.4))*(scaley-1)/scaley)*(scaley));
-{                tmp_color:=40;
-                pen.color:=tmp_color+256*tmp_color+65536*tmp_color;}
-                pen.color:=RGB(tmp_color-20-round((tmp_color/2)*sqr(sin(mx*0.3+my+i*3.4)){/(sqrt(sqrt(sqr(x1-x2)+sqr(y1-y2))))}),255,220,220);
-                moveto(x1,y1);
-                lineto(x2,y2);
-              end;
-            end;
-          end;
-{          //++++++++++++++++++++++++++++++++++++++++++++++++++++++
-          if (botvis^[mx,my]=strategy_possibleloc) then begin
-              brush.style:= bsCross;
-              brush.color:= clred;
-              fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-          end;
-          if (botvis^[mx,my]=strategy_possible_los) then begin
-              brush.style:= bsCross;
-              brush.color:= clyellow;
-              fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-          end;
-          //++++++++++++++++++++++++++++++++++++++++++++++}
-          if vis^[mx,my]=0 then begin
-            brush.style:= bsDiagCross;
-            brush.color:=$990000;
-            fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
-          end;
-          //*******
-//          font.color:=$FFFFFF;font.size:=5;textout(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), inttostr(LOS_base^[mx,my]));
-//          font.color:=$FFFFFF;font.size:=5;textout(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), inttostr(distance^[mx,my]));
-        end;
-
-     //     if (selectedx>0) and (movement^[mx,my]<10) then textout((mx-1)*scalex,(my-1)*scaley, inttostr(movement^[mx,my]));
-      end;
-
-    brush.style:=bssolid;
-    {draw_items}
-     pen.width:=1;
-     if itemsn>0 then
-      for i:=1 to itemsn do if (vis^[item[i].x,item[i].y]>0) and ((mapchanged^[item[i].x,item[i].y]>0) or (draw_map_all)) then begin
-        if vis^[item[i].x,item[i].y]>oldvisible then begin
-          pen.color:=RGB(round(150*((vis^[item[i].x,item[i].y]-oldvisible)/(maxvisible-oldvisible)))+105,128,128,255);
-          brush.color:=RGB(255,80,99,80);
-        end
-        else begin
-          pen.color:=RGB(99,50,50,99);
-          brush.color:=RGB(150,80,99,80);
-        end;
-        if (item[i].x-viewx>0) and (item[i].y-viewy>0) and (item[i].x-viewx<=viewsizex) and (item[i].y-viewy<=viewsizey) then begin
-          fx1:=(item[i].x-viewx-1)*scalex;
-          fy1:=(item[i].y-viewy-1)*scaley;
-          rectangle(round(fx1+scalex / 3),round(fy1+scaley / 3), round(fx1+(2*scalex) /3), round(fy1 + (2*scaley) / 3));
-        end;
-        image7.canvas.brush.color:=$FF9999;
-        image7.canvas.fillrect(round((item[i].x-1)*scaleminimapx)+minimapx0, round((item[i].y-1)*scaleminimapy)+minimapy0, round(item[i].x*scaleminimapx)+minimapx0, round(item[i].y*scaleminimapy)+minimapy0);
-       end;
-     {draw_bots}
-     for mx:=1 to nbot do if bot[mx].hp>0 then begin
-       if (vis^[bot[mx].x,bot[mx].y]>oldvisible) and ((mapchanged^[bot[mx].x,bot[mx].y]>0) or (draw_map_all)) then begin
-         if (bot[mx].x-viewx>0) and (bot[mx].y-viewy>0) and (bot[mx].x-viewx<=viewsizex) and (bot[mx].y-viewy<=viewsizey) then begin
-           fx1:=(bot[mx].x-viewx-1)*scalex;
-           fy1:=(bot[mx].y-viewy-1)*scaley;
-           fx2:=(bot[mx].x-viewx  )*scalex-1;
-           fy2:=(bot[mx].y-viewy  )*scaley-1;
-           case bot[mx].bottype of
-              2:begin btc1:=120; btc2:=150; btc3:=150 end;
-              3:begin btc1:=140; btc2:=140; btc3:=220 end;
-              4:begin btc1:=200; btc2:=140; btc3:=140 end;
-              else begin btc1:=140; btc2:=140; btc3:=170 end;
-           end;
-           pen.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,btc1,btc2,btc3);
-           if scalex>6 then pen.width:=round (scalex / 6) else pen.width:=1;
-           moveto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*(bot[mx].angle+75)/maxangle)),round((fy1+fy2)/2+0.4*scaley*sin(2*Pi*(bot[mx].angle+75)/maxangle)));
-           lineto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*(bot[mx].angle+25)/maxangle)),round((fy1+fy2)/2+0.4*scaley*sin(2*Pi*(bot[mx].angle+25)/maxangle)));
-           moveto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*(bot[mx].angle-75)/maxangle)),round((fy1+fy2)/2+0.4*scaley*sin(2*Pi*(bot[mx].angle-75)/maxangle)));
-           lineto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*(bot[mx].angle-25)/maxangle)),round((fy1+fy2)/2+0.4*scaley*sin(2*Pi*(bot[mx].angle-25)/maxangle)));
-           pen.width:=1;
-         end;
-
-         if bot[mx].owner=player then begin
-                                          brush.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+105,120,180,120);
-                                          pen.color:=RGB({round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+}255,0,255,0)
-                             end else begin
-                                          brush.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,180,120,120);
-                                          pen.color:=RGB({round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+}255,255,0,0)
-                             end;
-
-         image7.canvas.brush.color:=pen.color;
-         image7.canvas.fillrect(round((bot[mx].x-1)*scaleminimapx)+minimapx0, round((bot[mx].y-1)*scaleminimapy)+minimapy0, round(bot[mx].x*scaleminimapx)+minimapx0, round(bot[mx].y*scaleminimapy)+minimapy0);
-
-         if (bot[mx].x-viewx>0) and (bot[mx].y-viewy>0) and (bot[mx].x-viewx<=viewsizex) and (bot[mx].y-viewy<=viewsizey) then begin
-           ellipse(round(fx1+scalex / 6), round(fy1+scaley / 6), round(fx2-scalex / 6), round(fy2-scaley / 6));
-           pen.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,btc1+10,btc2+10,btc3);
-           if scalex>6 then pen.width:=round (scalex / 6) else pen.width:=1;
-           moveto(round((fx1+fx2)/2), round((fy1+fy2)/2));
-           lineto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*bot[mx].angle/maxangle)),round((fy1+fy2)/2+0.4*scalex*sin(2*Pi*bot[mx].angle/maxangle)));
-           pen.width:=1;
-           ellipse(round(fx1+scalex / 4), round(fy1+scaley / 4), round(fx2-scalex/4), round(fy2-scaley / 4));
-
-           if (selected=mx) or ((selectedenemy=mx) and (selected>0)) then begin
-             x1:=round(fx1);
-             x2:=round(fx2);
-             y1:=round(fy1);
-             y2:=round(fy2);
-             if selected=mx then pen.color:=$FF0000 else begin
-               if check_LOS(bot[selected].x,bot[selected].y,bot[selectedenemy].x,bot[selectedenemy].y,true)>0 then pen.color:=$0000FF else pen.color:=$00EEFF;
-               moveto(x1,y1);lineto(x2,y2);
-               moveto(x2,y1);lineto(x1,y2);
-             end;
-             arc(x1,y1,x2-1,y2-1,x1-1,y1,x1,y1);
-           end;
-         end;
-       end;
-     end;
-
-
-     for mx:=1 to maxx do
-      for my:=1 to maxy do mapchanged^[mx,my]:=0;
-
-     if (show_los) and (selectedenemy>0) then begin
+{     if (show_los) and (selectedenemy>0) then begin
       for mx:=2 to maxx-1 do
         for my:=2 to maxy-1 do if (check_los(mx,my,bot[selectedenemy].x,bot[selectedenemy].y,true)>0) and (vis^[mx,my]>0) and (map^[mx,my]<map_wall) then mapchanged^[mx,my]:=255;
      end;
@@ -6460,10 +6185,7 @@ begin
        end;
      end;
   end;
-
-  CastleControl1.canvas.unlock;
-  CastleControl1.update; }
-
+}
 
   draw_stats;
   if debugmode then label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
@@ -6472,13 +6194,6 @@ begin
 
 end;
 
-{procedure TDrawMap.execute;
-begin
-    if map_changed then begin
-      map_changed:=false;
-      form1.draw_map;
-    end;
-end;}
 
 end.
 
