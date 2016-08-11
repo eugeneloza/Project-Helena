@@ -4093,9 +4093,9 @@ begin
    CharSet:=TUnicodeCharList.Create;
    CharSet.add(SimpleAsciiCharacters);
    CharSet.add('ЁЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮёйцукенгшщзхъфывапролджэячсмитьбю');
-   damagefont:= TTextureFont.Create('Arial',20,true);
-   infofont:= TTextureFont.Create('Arial',18,true,CharSet);
-   movefont:= TTextureFont.create('Arial',9,true);
+   damagefont:= TTextureFont.Create(datafolder+'DejaVuSans',20,true);
+   infofont:= TTextureFont.Create(datafolder+'DejaVuSans',18,true,CharSet);
+   movefont:= TTextureFont.create(datafolder+'DejaVuSans',9,true);
    FreeAndNil(CharSet);
 
 //   castlecontrol1.DoubleBuffered:=true;

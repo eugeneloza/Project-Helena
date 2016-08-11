@@ -15,6 +15,8 @@ libvorbis
 libvorbis-dev
 libfreetype6
 libfreetype6-dev
+You will also need dev version of OpenGL drivers for your videocard. In general case it is libgl1-mesa-dev.
+
 Or Castle Game Engine DLLs (32 bit / 64 bit) in case of Windows. These may be downloaded here: http://castle-engine.sourceforge.net/engine.php
 The DLLs must be placed in the exe folder.
 
