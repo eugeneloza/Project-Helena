@@ -1,0 +1,146 @@
+#Wasp weapon class
+#weapon kind 1 is given to player
+#weapon kind 1&2 is given to bots and rarely 3
+#weapon kind 3 is given in bazooka mode
+#maxstate may not be greater than 255!!!
+<WEAPON>
+	ID=1
+	NAME=Lt. Wasp
+	ACC=        20
+	DAM=         0
+	RECHARGE=   40
+	AIM=        10
+	RELOAD=     50
+	MAXSTATE=  150
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+	AMMO= 7
+	AMMO= 8
+	AMMO= 9
+	AMMO=10
+	KIND=         1
+	RND=        100
+	DESCRIPTION=Lt. Wasp is a basic and average accurate weapon.
+</WEAPON>
+<WEAPON>
+	ID=2
+	NAME=Hv. Wasp
+	ACC=         0
+	DAM=        10
+	RECHARGE=   50
+	AIM=        10
+	RELOAD=    100
+	MAXSTATE=   90
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+	AMMO= 7
+	AMMO= 8
+	AMMO= 9
+	AMMO=10
+	KIND=         2
+	RND=         10
+	DESCRIPTION=Hv. Wasp is a heavy modification of Lt. wasp. Less accurate but more powerful. Slower to recharge. It's the most powerful Wasp type in low-to-mid range.
+</WEAPON>
+<WEAPON>
+	ID=3
+	NAME=Sniper Wasp
+	ACC=       100
+	DAM=         2
+	RECHARGE=   40
+	AIM=        60
+	RELOAD=    100
+	MAXSTATE=   80
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+	AMMO= 7
+	AMMO= 8
+	AMMO= 9
+	AMMO=10
+	KIND=         2
+	RND=         10
+	DESCRIPTION=Sniper Wasp is a very accurate modification of Lt. wasp. It's best for long-range shots.
+</WEAPON>
+<WEAPON>
+	ID=4
+	NAME=St. Falcon
+	ACC=        10
+	DAM=         0
+	RECHARGE=  150
+	AIM=        60
+	RELOAD=    200
+	MAXSTATE=  120
+	AMMO= 5
+	AMMO= 6
+	KIND=         3
+	RND=        100
+	DESCRIPTION=St.Falcon is a standard heavy cannon. Slow recharge rate enables only one shot per turn, but it deals a lot of damage.
+</WEAPON>
+<WEAPON>
+	ID=5
+	NAME=Auto Wasp
+	ACC=         0
+	DAM=         0
+	RECHARGE=   20
+	AIM=        10
+	RELOAD=     40
+	MAXSTATE=  130
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+	AMMO= 7
+	AMMO= 8
+	AMMO= 9
+	AMMO=10
+	KIND=         2
+	RND=         10
+	DESCRIPTION=Auto Wasp is a modification of Lt.Wasp having lower accuracy but much quicker recharge making it the most powerful Wasp type at short range. It cosumes a lot of ammo.
+</WEAPON>
+<WEAPON>
+	ID=6
+	NAME=Wasp(+1)
+	ACC=        24
+	DAM=         1
+	RECHARGE=   37
+	AIM=         8
+	RELOAD=     45
+	MAXSTATE=  190
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+	AMMO= 7
+	AMMO= 8
+	AMMO= 9
+	AMMO=10
+	KIND=         1
+	RND=          9
+	DESCRIPTION=Lt. Wasp is a basic and average accurate weapon. This one is slightly upgraded.
+</WEAPON>
+<WEAPON>
+	ID=7
+	NAME=Wasp(+2)
+	ACC=        28
+	DAM=         2
+	RECHARGE=   36
+	AIM=         7
+	RELOAD=     43
+	MAXSTATE=  250
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+	AMMO= 7
+	AMMO= 8
+	AMMO= 9
+	AMMO=10
+	KIND=         2
+	RND=          7
+	DESCRIPTION=Lt. Wasp is a basic and average accurate weapon. This one is slightly upgraded.
+</WEAPON>

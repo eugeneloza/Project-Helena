@@ -1,0 +1,185 @@
+#this file is interface translation
+#first line is element name
+#second line is element caption
+#third line is element hint
+#symbol * represents 'null' hint
+
+#--------------- Buttons
+
+-button01
+NEXT TURN
+This button ends the current turn and lets enemy move.
+
+-button02
+GENERATE NEW MAP
+This button generates new map
+
+-button03
+STOP THE GAME
+This button stops the game, destroys all player bots and shows the map
+
+-button04
+RESUME GAME
+Return to game
+
+-button05
+Game help
+Display game interface help 
+
+-button06
+QUIT
+Quit the game
+
+-button07
+Menu help
+Display menu interface help
+
+#
+
+-togglebox01
+MENU
+Switches game and menu modes
+
+#--------------- Checkboxes
+
+-checkbox01
+Defence mode
+Checking this box will make all bots attack you
+
+-checkbox02
+Confirm?
+Check this button to avoid miss-clicks, click movement or attack first to select and then to execute.
+
+-checkbox03
+Bazooka party
+Gives all units bazookas (lot's of explosions and fun)
+
+-checkbox04
+Tutorial mode
+*
+
+-checkbox05
+Demand difficulty
+When this checkbox is checked the computer calculates number of enemy bots depending on the demanded difficulty.
+
+-checkbox06
+Generate buildings
+Enables 'buildings' generation at the map.
+
+-checkbox07
+Attack weaker targets
+If checked then computer preffers attacking weaker targets to finish them quicker. Otherwise computer will attack nearest target.
+
+#
+
+-radiobutton01
+No smoke
+No smoke will be generated at new maps.
+
+-radiobutton02
+20% chance of smoke
+There is 20% chance that smoke will be generated at new maps.
+
+-radiobutton03
+100% smoke generated
+The newly generated map will contain lots of smoke making it difficult to navigate and explore.
+
+#------------- labels
+
+-label01
+display ms
+*
+
+-label02
+Map generation options:
+*
+
+-label03
+Map type:
+*
+
+-label04
+BOTS:
+*
+
+-label05
+Map size (min 30...max 50):
+*
+
+-label06
+Enemy
+*
+
+-label07
+YOU
+*
+
+-label08
+Formal test ok
+*
+
+-label09
+Zoom level:
+*
+
+-label10
+Difficulty estimate here
+*
+
+-label11
+(1..500)
+*
+
+-label12
+(1..16)
+*
+
+-label13
+30
+*
+
+-label14
+HP:
+*
+
+-label15
+x
+*
+
+-label16
+STRATEGY settings
+*
+
+-label17
+Cheater
+*
+
+-label18
+Honest
+*
+
+-label19
+Agressive
+*
+
+-label20
+Cautious
+*
+
+-label21
+Language:
+*
+
+#----------- trackbars
+
+-trackbar01
+Zoom level
+Enables to change the zoom level of the main screen.
+
+-trackbar02
+Cheater strategy
+This is strategy selection slider controlling how computer is aware of your presence. The left slider position is 'cheater' i.e. the computer bots know location of your units without seeing them. Honest strategy makes computer guess your location based on place he last seen your units.
+
+-trackbar03
+Caution strategy
+This is strategy selection slider controlling enemy bots caution level from Agressive to very cautious. If enemy is agressive it will try to close-in your units at any cost. If enemy is cautious it will try shoot-and-hide tactic.

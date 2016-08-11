@@ -1,0 +1,79 @@
+^001	Enemy nearby!
+^002	Not enough TUs
+^003	ERROR: action is impossible...
+^004	EASY
+^005	NORMAL
+^006	HARD
+^007	VERY HARD
+^008	IMPOSSIBLE?
+^009	chance to win is
+^010	Generating map...
+^011	Map size
+^012	Generating smoke...
+^013	Calculating map strategy...
+^014	Average LOS
+^015	LOS adjusted
+^016	Map ready. Setting bots.
+^017	Strategy settings:
+^018	Cheater
+^019	Caution
+^020	Shall attack WEAKER target
+^021	Shall attack CLOSER target
+^022	Player units
+^023	Total Player HP
+^024	Enemy bots
+^025	Total bot HP
+^026	Difficulty
+^027	Creating items...
+^028	Starting!
+^029	Map free area
+^030	is destroyed
+^031	is hit for
+^032	by explosion
+^033	Weapon jammed!
+^034	No ammo!
+^035	shots
+^036	for
+^037	TURN
+^038	bots remaining
+^039	---- VICTORY!!! ----
+^040	---- DEFEAT... ----
+
+
+
+
+^045	MapExplored
+^046	Are you sure you want to end the turn? You have not moved any units.
+^047	Are you sure you want to end the turn?
+^048	your units are idle this turn.
+^049	Are you sure? Current map will be lost.
+^050	Are you sure? Your progress will be lost.
+^051	Formal test ok
+^052	Additional ammo will be generated
+^053	Enemies will not be able to kill you
+^054	Not enough space on the map to place bots
+
+^056	ERROR CALCULATING DIFFICULTY
+^057	Inappropriate ammo!
+^058	Backpack is full!
+^059	STATE
+^060	DAM
+^061	Time to AIM
+^062	Time to RECHARGE
+^063	ACC
+^064	Time to CHANGE CLIP
+^065	QUANTITY
+^066	EXPLOSION
+^067	AREA
+^068	SMOKE
+^069	SUMMARY ESTIMATE:
+^070	Shots per turn
+^071	Damage per turn
+^072	Average explosion damage
+^073	NEXT TURN
+^074	units have not moved yet.
+^075	units can still move.
+^076	* JAMMED *
+^077	RELOADING
+^078	TU
+^079	* NO AMMO *

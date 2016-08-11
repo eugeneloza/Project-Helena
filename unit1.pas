@@ -8,6 +8,8 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, ComCtrls, types;
 
+const debugmode=false;
+
 const maxmaxx={113}226;  //max 'reasonable' 50x50
       minmaxx=20;
       maxmaxy=maxmaxx;
@@ -102,7 +104,7 @@ const gamemode_game=255;
       gamemode_victory=254;
       gamemode_defeat=253;
 
-        gamemode_map=127; //separator between mode "click to continue" and "move"
+      gamemode_map=127; //separator between mode "click to continue" and "move"
 
       gamemode_none=0;
       gamemode_help=1;
@@ -114,6 +116,7 @@ const border_size=7;
 
 const datafolder='DAT'+pathdelim;
       scriptfolder=datafolder+'default'+pathdelim;
+      inifilename='projecthelena.ini';
 
 const strategy_hide=true;
 
@@ -158,6 +161,7 @@ type
     CheckBox6: TCheckBox;
     CheckBox7: TCheckBox;
     ComboBox1: TComboBox;
+    ComboBox2: TComboBox;
     Edit1: TEdit;
     Edit2: TEdit;
     Edit3: TEdit;
@@ -185,6 +189,7 @@ type
     Label19: TLabel;
     Label2: TLabel;
     Label20: TLabel;
+    Label21: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
@@ -213,7 +218,9 @@ type
     procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
+    procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox5Change(Sender: TObject);
+    procedure ComboBox2Change(Sender: TObject);
     procedure Edit4Change(Sender: TObject);
     procedure Edit6Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -252,6 +259,9 @@ type
   private
     { private declarations }
   public
+    procedure create_language_interface;
+    procedure readinifile;
+    procedure writeinifile;
     procedure generate_map;
     procedure generate_items_types;
     procedure draw_map;
@@ -365,6 +375,7 @@ var
   viewx,viewy,viewsizex,viewsizey:integer;
   draw_map_all,show_los:boolean;
   mapgenerated:boolean;
+  mapgenerationtext,mapfreetext:string;
   random_tiles:boolean;
   regenerate_los:boolean;
   gamemode,previous_gamemode:byte;
@@ -394,6 +405,8 @@ var
   strategy_finishhim:boolean;
 
   w_types,a_types:integer;
+
+  txt:array[1..100]of string;
 
 //  sintable,costable: array[0..maxangle] of float;
 
@@ -594,7 +607,7 @@ begin
     generate_enemy_list:=true;
     if (enemyunits_new>enemyunitsn) and (messageflag) and (this_turn=player) then begin
      draw_map;
-     showmessage('Enemy nearby!');
+     showmessage(txt[1]);
     end;
   end else generate_enemy_list:=false;
   enemyunitsn:=enemyunits_new;
@@ -691,14 +704,14 @@ begin
        bot[thisbot].lastseen_x :=bot[thisbot].x;
        bot[thisbot].lastseen_y :=bot[thisbot].y;
        bot[thisbot].lastseen_tu:=oldtu;
-       memo1.lines.add('[dbg/spend] '+bot[thisbot].name+' lastseen: '+inttostr(bot[thisbot].lastseen_x)+'.'+inttostr(bot[thisbot].lastseen_y)+' / '+inttostr(bot[thisbot].lastseen_tu)+' tu');
+       if debugmode then memo1.lines.add('[dbg/spend] '+bot[thisbot].name+' lastseen: '+inttostr(bot[thisbot].lastseen_x)+'.'+inttostr(bot[thisbot].lastseen_y)+' / '+inttostr(bot[thisbot].lastseen_tu)+' tu');
      end;
 
    spend_tu:=true;
  end else begin
    spend_tu:=false;
    if bot[thisbot].owner=player then begin
-     if tus<=255 then showmessage('Not enough TUs') else showmessage('Impossible...')
+     if tus<=255 then showmessage(txt[2]) else showmessage(txt[3])
    end;
  end;
 end;
@@ -792,7 +805,7 @@ begin
          bot[thisbot].lastseen_x :=bot[thisbot].x;
          bot[thisbot].lastseen_y :=bot[thisbot].y;
          bot[thisbot].lastseen_tu:=bot[thisbot].tu;
-         memo1.lines.add('[dbg/move] '+bot[thisbot].name+' lastseen: '+inttostr(bot[thisbot].lastseen_x)+'.'+inttostr(bot[thisbot].lastseen_y)+' / '+inttostr(bot[thisbot].lastseen_tu)+' tu');
+         if debugmode then memo1.lines.add('[dbg/move] '+bot[thisbot].name+' lastseen: '+inttostr(bot[thisbot].lastseen_x)+'.'+inttostr(bot[thisbot].lastseen_y)+' / '+inttostr(bot[thisbot].lastseen_tu)+' tu');
        end;
        if generate_enemy_list(true) then waypointn:=0
      end else begin
@@ -840,7 +853,7 @@ var ix,iy,cx,cy:integer;
     flg,flgx:boolean;
 begin
   random_tiles:=false;
-  form1.memo1.lines.add('COCON MAP * no');
+  mapgenerationtext:='COCON MAP * no';
   if map_parameter[1]=-1 then cx:=round((2+random)*maxx/5) else cx:=round(map_parameter[1]);
   if map_parameter[2]=-1 then cy:=round((2+random)*maxy/5) else cy:=round(map_parameter[2]);
   for ix:=1 to maxx do
@@ -892,7 +905,7 @@ var ix,iy:integer;
     map_seed:float;
 begin
   if map_parameter[1]=-1 then map_seed:=0.4+0.3*random else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('RANDOM MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='RANDOM MAP * '+inttostr(round(map_seed*100));
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
        if random>map_seed then mapg^[ix,iy]:=map_generation_wall else mapg^[ix,iy]:=map_generation_free;
@@ -910,7 +923,7 @@ begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then Ncircles:=round(sqr(sqr(random))*(max_max_value/10-1))+1 else Ncircles:=round(map_parameter[1]);
   if NCircles>maxcircles then NCircles:=maxcircles;
-  form1.memo1.lines.add('RANDOM CIRCLES MAP * '+inttostr(Ncircles));
+  mapgenerationtext:='RANDOM CIRCLES MAP * '+inttostr(Ncircles);
   for i:=1 to NCircles do begin
     r[i]:=round(max_max_value/(Ncircles+1)*sqr(random))+5;
     cx[i]:=round((maxx/2)*random)+maxx div 4;
@@ -931,7 +944,7 @@ var ix,iy,i,dx,dy:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.4+random/4 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('CIRCLES MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='CIRCLES MAP * '+inttostr(round(map_seed*100));
   repeat
     i:=round(sqr(sqr(random))*max_max_value/5)+4;
     ix:=round(random*(maxx-1)+1);
@@ -953,7 +966,7 @@ var ix,iy,i,dx,dy:integer;
 begin
   generate_map_makewalls(map_generation_free);
   if map_parameter[1]=-1 then map_seed:=0.3+random/3 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('ANTI-CIRCLES MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='ANTI-CIRCLES MAP * '+inttostr(round(map_seed*100));
   repeat
     i:=round(sqr(sqr(random))*max_max_value/5)+1;
     ix:=round(random*(maxx-1)+1);
@@ -975,7 +988,7 @@ var ix,iy,i,dx,dy:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.2+random*0.6 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('RECTAGONAL MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='RECTAGONAL MAP * '+inttostr(round(map_seed*100));
 
   repeat
     i:=round(random*max_max_value/3);
@@ -1010,7 +1023,7 @@ begin
   if map_parameter[1]=-1 then map_seed:=0.45+random/5 else map_seed:=map_parameter[1];
   if map_parameter[2]=-1 then dx:=round(random*5)+1 else dx:=round(map_parameter[2]);
   if map_parameter[3]=-1 then dy:=round(random*5)+1 else dy:=round(map_parameter[3]);
-  form1.memo1.lines.add('BLOCK MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='BLOCK MAP * '+inttostr(round(map_seed*100));
   if (dx=1) and (dy=1) then dx:=2;
   for ix:=1 to maxx div dx do
    for iy:=1 to maxy div dy do if random>map_seed then begin
@@ -1029,7 +1042,7 @@ begin
   if map_parameter[1]=-1 then map_seed:=0.22+random/8 else map_seed:=map_parameter[1];
   if map_parameter[2]=-1 then dx:=round(random*5+3) else dx:=round(map_parameter[2]);
   dy:=dx;
-  form1.memo1.lines.add('DIAMONDS MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='DIAMONDS MAP * '+inttostr(round(map_seed*100));
 
 //      if (dx=1) and (dy=1) then dx:=2;
   for ix:=0 to maxx div dx do
@@ -1047,7 +1060,7 @@ var ix,iy:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.2+random/8 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('T MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='T MAP * '+inttostr(round(map_seed*100));
 
   for ix:=0 to maxx div 4-1 do
    for iy:=0 to maxy div 4-1 do begin
@@ -1086,7 +1099,7 @@ var ix,iy,i:integer;
 begin
  maxlinearsinus:=max_max_value div 2;
  if map_parameter[1]=-1 then maptype:=round(random*1.3+0.45) else maptype:=round(map_parameter[1]);
- form1.memo1.lines.add('LINEAR SINUS MAP * type'+inttostr(maptype));
+ mapgenerationtext:='LINEAR SINUS MAP * type'+inttostr(maptype);
  for i:=1 to maxlinearsinus do begin
    sum:=random;
    if maptype=0 then sum:=(2*random-1);
@@ -1122,7 +1135,7 @@ begin
   if map_parameter[1]=-1 then room_n:=round(sqr(sqr(random))*(sqrt(maxx*maxy/sqr(room_max+3))))+3 else room_n:=round(map_parameter[1]);
   pass_min:=min_max_value div 5;
   pass_max:=max_max_value div 2;
-  form1.memo1.lines.add('ROOMS MAP * '+inttostr(room_n));
+  mapgenerationtext:='ROOMS MAP * '+inttostr(room_n);
   //make rooms
   for i:=1 to room_n do begin
     roomx:=round((room_max-room_min)*random)+room_min;
@@ -1204,7 +1217,7 @@ begin
   if map_parameter[1]=-1 then dx:=round(sqr(random)*max_max_value/2)+3 else dx:=round(map_parameter[1]);
  // if random>0.1 then dx:=round(max_max_value/2+random*max_max_value/2)+1;
 
-  form1.memo1.lines.add('CONCENTRIC MAP * '+inttostr(dx));
+  mapgenerationtext:='CONCENTRIC MAP * '+inttostr(dx);
 
   dy:=dx;
   start_phase_x:=random*dx;
@@ -1227,7 +1240,7 @@ var ix,iy:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.98+random*0.02 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('SLANT * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='SLANT * '+inttostr(round(map_seed*100));
 {  for ix:=1 to 14 do
    for iy:=1 to 14 do mapg^[ix,iy]:=map_generation_free;}
 
@@ -1300,7 +1313,7 @@ var ix,iy:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.2+random/4 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('BOXES MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='BOXES MAP * '+inttostr(round(map_seed*100));
   repeat
     ax:=round(maxx/5*random)+4;
     ay:=round(maxy/5*random)+4;
@@ -1337,7 +1350,7 @@ var ix,iy,j:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.2+random/4 else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('CONCENTRIC FULL MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='CONCENTRIC FULL MAP * '+inttostr(round(map_seed*100));
 
   if map_parameter[2]=-1 then begin
     maxr:=random*min_max_value+10;
@@ -1401,7 +1414,7 @@ begin
   if rout<sqrt(sqr(cx0)+sqr(maxy-cy0)) then rout:=sqrt(sqr(cx0)+sqr(maxy-cy0));
   //rout:=rout-random*4;
   rin:=rout-1-5*random;
-  form1.memo1.lines.add('EGG MAP * no');
+  mapgenerationtext:='EGG MAP * no';
   repeat
     cx:=cx0+random*2-1;
     cy:=cy0+random*2-1;
@@ -1474,7 +1487,7 @@ begin
   map_maxrange:=map_stepx+map_stepy{+random*map_irregularity};
   if map_irregularity<=2 then map_seed:=map_seed/2;
 
-  form1.memo1.lines.add('NET MAP * '+inttostr(round(map_irregularity))+'/'+inttostr(round(map_stepx)));
+  mapgenerationtext:='NET MAP * '+inttostr(round(map_irregularity))+'/'+inttostr(round(map_stepx));
 
   n:=0;
   for ix:=0 to round(maxx / map_stepx)+2 do
@@ -1558,7 +1571,7 @@ begin
   end;
   h_phase:=round(random*h);
   w_phase:=round(random*w);
-  form1.memo1.lines.add('PLUS MAP * '+inttostr(w)+'x'+inttostr(h));
+  mapgenerationtext:='PLUS MAP * '+inttostr(w)+'x'+inttostr(h);
   for ix:=0 to (maxx div w)+2 do
    for iy:=0 to (maxy div h)+2 do begin
      x1:=ix*w+w_phase;
@@ -1626,7 +1639,7 @@ begin
   if map_parameter[3]=-1 then map_seed3:=random*0.40 else map_seed3:=map_parameter[3];
   xphase:=round(random*smalroomssize);
   yphase:=round(random*smalroomssize);
-  form1.memo1.lines.add('SMALLROOMS MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='SMALLROOMS MAP * '+inttostr(round(map_seed*100));
   for ix:=0 to maxx div smalroomssize+2 do
    for iy:=0 to maxy div smalroomssize+2 do begin
      x1:=ix*smalroomssize-xphase;
@@ -1676,7 +1689,7 @@ begin
  xphase:=round(random*Ixsize);
  yphase:=round(random*Iysize);
  if map_seed3>0.5 then begin
-  form1.memo1.lines.add('I-map Vertical MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='I-map Vertical MAP * '+inttostr(round(map_seed*100));
   for ix:=0 to maxx div Ixsize+2 do
    for iy:=0 to maxy div Iysize+2 do begin
      x1:=ix*Ixsize-xphase;
@@ -1722,7 +1735,7 @@ begin
      if random>map_seed then safemapwrite(x1+2,y1+4,map_generation_wall);
    end;
  end else begin
-     form1.memo1.lines.add('I-map Horizontal MAP * '+inttostr(round(map_seed*100)));
+     mapgenerationtext:='I-map Horizontal MAP * '+inttostr(round(map_seed*100));
      for ix:=0 to maxx div Iysize+2 do
       for iy:=0 to maxy div Ixsize+2 do begin
         x1:=ix*Iysize-yphase;
@@ -1782,7 +1795,7 @@ begin
   if map_parameter[1]=-1 then map_seed:=0.5+random*0.2 else map_seed:=map_parameter[1];   //blockers
   xphase:=round(random*foursize);
   yphase:=round(random*foursize);
-  form1.memo1.lines.add('FOUR MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='FOUR MAP * '+inttostr(round(map_seed*100));
   for ix:=0 to maxx div foursize+2 do
    for iy:=0 to maxy div foursize+2 do begin
      x1:=ix*foursize-xphase;
@@ -1825,7 +1838,7 @@ begin
   if map_parameter[1]=-1 then map_seed:=0.5+random*0.2 else map_seed:=map_parameter[1];   //blockers
   xphase:=round(random*fivesize);
   yphase:=round(random*fivesize);
-  form1.memo1.lines.add('FIVE MAP * '+inttostr(round(map_seed*100)));
+  mapgenerationtext:='FIVE MAP * '+inttostr(round(map_seed*100));
   for ix:=0 to maxx div fivesize+2 do
    for iy:=0 to maxy div fivesize+2 do begin
      x1:=ix*fivesize-xphase;
@@ -1870,8 +1883,8 @@ begin
 
   if map_parameter[3]=-1 then map_type:=random else map_type:=map_parameter[3];
   if map_type>0.5 then begin
-    form1.memo1.lines.add('DASH horizontal MAP * '+inttostr(round(map_seed*100)));
-    if kind then form1.memo1.lines.add('top-left variant') else form1.memo1.lines.add('top-right variant');
+    mapgenerationtext:='DASH horizontal MAP * '+inttostr(round(map_seed*100));
+    if kind then mapgenerationtext:=mapgenerationtext+' top-left variant' else mapgenerationtext:=mapgenerationtext+' top-right variant';
     for ix:=0 to maxx div dashsize+2 do
      for iy:=0 to maxy div dashsize+2 do begin
        x1:=ix*dashsize-xphase;
@@ -1911,8 +1924,8 @@ begin
      end;
   end
   else begin
-    form1.memo1.lines.add('DASH vertical MAP * '+inttostr(round(map_seed*100)));
-    if kind then form1.memo1.lines.add('top-left variant') else form1.memo1.lines.add('top-right variant');
+    mapgenerationtext:='DASH vertical MAP * '+inttostr(round(map_seed*100));
+    if kind then mapgenerationtext:=mapgenerationtext+' top-left variant' else mapgenerationtext:=mapgenerationtext+'top-right variant';
     for ix:=0 to maxx div dashsize+2 do
      for iy:=0 to maxy div dashsize+2 do begin
        x1:=ix*dashsize-xphase;
@@ -1968,7 +1981,7 @@ begin
   maxrotorlength:=1.5+10*sqr(sqr(random));
   if map_parameter[3]=-1 then max_angles:=2+round(random*3+sqr(sqr(sqr(random)))*32) else max_angles:=round(map_parameter[3]);
   phase:=random*2*Pi;
-  form1.memo1.lines.add('ROTOR MAP * '+inttostr(round(map_seed*100))+'/'+inttostr(max_angles)+'/'+inttostr(round(max_length)));
+  mapgenerationtext:='ROTOR MAP * '+inttostr(round(map_seed*100))+'/'+inttostr(max_angles)+'/'+inttostr(round(max_length));
   freearea:=0;
   repeat
     x1:=round(random*max_length)+1;
@@ -2000,7 +2013,7 @@ var x1,y1,x2,y2,xx1,xx2,yy1,yy2:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then map_seed:=0.8+0.2*random else map_seed:=map_parameter[1];
-  form1.memo1.lines.add('EGGRE MAP * '+inttostr(round(100*map_seed)));
+  mapgenerationtext:='EGGRE MAP * '+inttostr(round(100*map_seed));
   x1:=2;
   y1:=2;
   x2:=maxx-1;
@@ -2167,9 +2180,9 @@ begin
   if map_parameter[2]>=0 then snowflakes:=round(map_parameter[2]);
 
   if snowflakes=0 then
-    form1.memo1.lines.add('SNOWFLAKE MAP * different /'+inttostr(round(snowflakesize)))
+    mapgenerationtext:='SNOWFLAKE MAP * different /'+inttostr(round(snowflakesize))
   else
-    form1.memo1.lines.add('SNOWFLAKE MAP * equal='+inttostr(snowflakes)+'/'+inttostr(round(snowflakesize)));
+    mapgenerationtext:='SNOWFLAKE MAP * equal='+inttostr(snowflakes)+'/'+inttostr(round(snowflakesize));
 
   for ix:=0 to round(maxx / snowflakesize) + 2 do
    for iy:=0 to round(maxy / snowflakesize) + 2 do begin
@@ -2202,7 +2215,7 @@ begin
   generate_map_makewalls(map_generation_wall);
   if map_parameter[1]=-1 then areasize:=round(sqr(random)*maxx*maxy/13)+50 else areasize:=round(map_parameter[1]);
   entrance_x:=2; entrance_y:=2;//************************
-  form1.memo1.lines.add('AREAS MAP * '+inttostr(areasize));
+  mapgenerationtext:='AREAS MAP * '+inttostr(areasize);
   for ix:=2 to maxx-1 do
    for iy:=2 to maxy-1 do mapg^[ix,iy]:=map_generation1; //diggable
   x1:=entrance_x;  y1:=entrance_y; //entrance
@@ -2306,7 +2319,7 @@ var ix,iy,dx,dy,x1,y1:integer;
     stophole,flg,stopworms:boolean;
 begin
   generate_map_makewalls(map_generation_wall);
-  form1.memo1.lines.add('WORMHOLE MAP * no');
+  mapgenerationtext:='WORMHOLE MAP * no';
   entrance_x:=6; entrance_y:=6;//**************
   xx:=entrance_x; yy:=entrance_y;
   angle:=round(random*2*Pi);
@@ -2409,7 +2422,7 @@ begin
   if map_parameter[1]=-1 then map_roomsn:=1+average_max_value div 7+round(average_max_value/7 * random) else map_roomsn:=round(map_parameter[1]);
   if map_parameter[2]=-1 then map_seed:=sqr(1/map_roomsn)+0.2*random else map_seed:=map_parameter[2];
   if map_roomsn>maxmaxrooms then map_roomsn:=maxmaxrooms;
-  form1.memo1.lines.add('UNTANGLE MAP * '+inttostr(round(map_seed*100))+'/rooms='+inttostr(map_roomsn));
+  mapgenerationtext:='UNTANGLE MAP * '+inttostr(round(map_seed*100))+'/rooms='+inttostr(map_roomsn);
   if map_parameter[4]=-1 then begin
     if random>0.5 then roomsize:=0 else roomsize:=1+(random*min_max_value/10);
   end else
@@ -2417,9 +2430,9 @@ begin
   if map_parameter[3]=-1 then shape:=trunc(random*3) else shape:=trunc(map_parameter[3]);
   if map_parameter[5]=-1 then radius:=min_max_value div 2-round(random*min_max_value/9) else radius:=round(map_parameter[5]);
   case shape of
-    0:form1.memo1.lines.add('random shape');
-    1:form1.memo1.lines.add('circle shape '+inttostr(radius));
-    2:form1.memo1.lines.add('random circle shape '+inttostr(radius));
+    0:mapgenerationtext:=mapgenerationtext+' random shape';
+    1:mapgenerationtext:=mapgenerationtext+'circle shape '+inttostr(radius);
+    2:mapgenerationtext:=mapgenerationtext+'random circle shape '+inttostr(radius);
   end;
   roomx[0]:=2;
   roomy[0]:=2;
@@ -2468,7 +2481,7 @@ begin
   if map_parameter[1]=-1 then map_seed1:=(0.1+random/10) else map_seed1:=map_parameter[1];
   if map_parameter[2]=-1 then map_seed2:=1-(0.1+random/10) else map_seed2:=map_parameter[2];
   if map_parameter[3]=-1 then checkersize:=3+(sqr(sqr(random))*min_max_value/3) else checkersize:=map_parameter[3];
-  form1.memo1.lines.add('CHECKERS MAP * '+inttostr(round(checkersize)));
+  mapgenerationtext:='CHECKERS MAP * '+inttostr(round(checkersize));
   shiftx:=(checkersize*random);
   shifty:=(checkersize*random);
   for ix:=1 to maxx do
@@ -2519,7 +2532,7 @@ begin
   safemapwritefinal(bx+bsizex+2,by+bsizey div 2-1,map_generation_wall);
   safemapwritefinal(bx+bsizex+2,by+bsizey div 2  ,map_generation_wall);
 
-  form1.memo1.lines.add('Bunker building created.');
+  if debugmode then form1.memo1.lines.add('Bunker building created.');
 end;
 
 {-----------------------------------------------------}
@@ -2553,14 +2566,14 @@ begin
   end;
   inc(bldg_area,(x2-x1+1)*(y2-y1+1));
 
-  form1.memo1.lines.add('Box building created.');
+  if debugmode then form1.memo1.lines.add('Box building created.');
 end;
 
 {----------------------------------------------------------------}
 
 const box_probability=0.3;
 //      bunker_probabioity=0.4;
-      bldg_probability=0.5;
+//      bldg_probability=0.5;
 procedure generate_map_buildings;
 var f1:file of byte;
     ix,iy,jx,jy,tmp:integer;
@@ -2618,7 +2631,7 @@ begin
          until (flg) or (value>50);
 
          if flg then begin
-           form1.memo1.lines.add('Adding building '+s1);
+           if debugmode then form1.memo1.lines.add('Adding building '+s1);
            for ix:=1 to bldgx do
             for iy:=1 to bldgy do if tmpmap[ix,iy]>0 then begin
               if seed1<0.5 then jx:=ix else jx:=bldgx-ix+1;
@@ -2716,8 +2729,8 @@ until thismapfloor<>thismapwall;
 
 
 
- form1.memo1.lines.add('Map error rate: '+inttostr(round(nerrors/maxx/maxy*100))+'%');
- form1.memo1.lines.add('Map free area: '+inttostr(round(nfree/maxx/maxy*100))+'%');
+ if debugmode then form1.memo1.lines.add('Map error rate: '+inttostr(round(nerrors/maxx/maxy*100))+'%');
+ mapfreetext:=txt[29]+': '+inttostr(round(nfree/maxx/maxy*100))+'%';
 
  //homogenity check
  deviation:=0;
@@ -2733,8 +2746,13 @@ until thismapfloor<>thismapwall;
      deviation:=deviation+sqr((free_count/all_count)/(nfree/maxx/maxy)-1);
   end;
  mapinhomogenity:=sqrt(deviation)/(homogenity_x*homogenity_y);
- form1.memo1.lines.add('Map inhomogenity: '+inttostr(round(mapinhomogenity*100))+'%');
- form1.memo1.lines.add('...');
+
+ if debugmode then begin
+   form1.memo1.lines.add('Map inhomogenity: '+inttostr(round(mapinhomogenity*100))+'%');
+   form1.memo1.lines.add(mapgenerationtext);
+   form1.memo1.lines.add(mapfreetext);
+   form1.memo1.lines.add('...');
+ end;
 
 if (nfree/maxx/maxy>free_from/100) and (nfree/maxx/maxy<free_to/100) and (mapinhomogenity<0.15) then test_map:=true else test_map:=false; {(nerrors/maxx/maxy<0.2) and (nerrors<nfree/3) and}
 end;
@@ -2830,7 +2848,7 @@ var ix,iy,dx,dy,count:integer;
     tmp_bar:integer;
 begin
   regenerate_los:=false;
-  form1.memo1.lines.add('Generating LOS base map...');
+  if debugmode then form1.memo1.lines.add('Generating LOS base map...');
   form1.set_progressbar(true);
   tmp_bar:= form1.progressbar1.max;
   form1.progressbar1.max:=maxx;
@@ -2889,15 +2907,15 @@ function saydifficulty(difficulty:integer):string;
 var winchance:integer;
 begin
   case difficulty of
-      0.. 75:saydifficulty:='EASY'+' ('+inttostr(difficulty)+'%)';
-     76..150:saydifficulty:='NORMAL'+' ('+inttostr(difficulty)+'%)';
-    151..225:saydifficulty:='HARD'+' ('+inttostr(difficulty)+'%)';
-    226..320:saydifficulty:='VERY HARD'+' ('+inttostr(difficulty)+'%)';
-    ELSE   saydifficulty:='INSANE?'+' ('+inttostr(difficulty)+'%)'
+      0.. 75:saydifficulty:=txt[4]+' ('+inttostr(difficulty)+'%)';
+     76..150:saydifficulty:=txt[5]+' ('+inttostr(difficulty)+'%)';
+    151..225:saydifficulty:=txt[6]+' ('+inttostr(difficulty)+'%)';
+    226..320:saydifficulty:=txt[7]+' ('+inttostr(difficulty)+'%)';
+    ELSE   saydifficulty:=txt[8]+' ('+inttostr(difficulty)+'%)'
   end;
   winchance:=round(100*exp(-0.0135446*(difficulty-100)));
   if winchance>100 then winchance:=100;
-  saydifficulty:=saydifficulty + ' chance to win is '+inttostr(winchance)+'%';
+  saydifficulty:=saydifficulty + ' '+txt[9]+' '+inttostr(winchance)+'%';
 end;
 
 {-------------------------------------------------------------------}
@@ -2976,8 +2994,8 @@ begin
     trackbar1.position:=min_max_value;
   end;
 
-  memo1.lines.add('Generating map...');
-  memo1.lines.add('Map size: '+inttostr(maxx)+'x'+inttostr(maxy));
+  if debugmode then memo1.lines.add(txt[10]);
+  memo1.lines.add(txt[11]+': '+inttostr(maxx)+'x'+inttostr(maxy));
 
   random_tiles:=true;
   if combobox1.itemIndex<1 then map_type:=trunc(random*20)+1 else map_type:=combobox1.ItemIndex;
@@ -3032,6 +3050,11 @@ begin
 // until mapinhomogenity<0.15;
 
  dispose(mapg);
+  if not debugmode then begin
+    memo1.lines.add(mapgenerationtext);
+    memo1.lines.add(mapfreetext);
+    //memo1.lines.add('...');
+  end;
 
  for ix:=1 to maxx do
    for iy:= 1 to maxy do begin
@@ -3040,23 +3063,23 @@ begin
    end;
 
   if (form1.radiobutton3.checked) or ((form1.radiobutton2.checked) and (random>0.8)) then begin
-    memo1.lines.add('Generating smoke...');
+    memo1.lines.add(txt[12]);
     for ix:=maxx div 5+2 to maxx do
      for iy:=maxy div 5+2 to maxy do if map^[ix,iy]<map_wall then map_status^[ix,iy]:=round(map_smoke*sqrt(random)); //tile
     for ix:=1 to 10 do grow_smoke;
   end;
 
 
-  memo1.lines.add('Calculating map strategy...');
+  if debugmode then memo1.lines.add(txt[13]);
 
   for ix:=1 to maxx do
    for iy:=1 to maxy do LOS_base^[ix,iy]:=255;
   generate_LOS_base_map{(true,1,1)};
-  memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
+  memo1.lines.add(txt[14]+' = '+inttostr(round(averageLOS)));
   if averageLOS<group_attack_range*Pi*mapfreespace/(maxx*maxy) then
-    form1.memo1.lines.add('LOS adjusted = '+inttostr(round(group_attack_range*Pi*mapfreespace/(maxx*maxy))));
+    form1.memo1.lines.add(txt[15]+' = '+inttostr(round(group_attack_range*Pi*mapfreespace/(maxx*maxy))));
 
-  memo1.lines.add('Map ready. Setting bots.');
+  if debugmode then memo1.lines.add(txt[16]);
 
   itemsn:=0;
   nbot:=0;
@@ -3108,10 +3131,10 @@ begin
   strategy_finishhim:=checkbox7.checked;
   strategy_cheater:=trackbar2.position;
 
-  memo1.lines.add('Strategy settings:');
-  memo1.lines.add('Cheater: '+inttostr(strategy_cheater)+' tu');
-  memo1.lines.add('Caution: '+inttostr(round(100*strategy_caution))+' %');
-  if strategy_finishhim then memo1.lines.add('Shall attack WEAKER target') else memo1.lines.add('Shall attack CLOSER target');
+  memo1.lines.add(txt[17]);
+  memo1.lines.add(txt[18]+': '+inttostr(strategy_cheater)+' tu');
+  memo1.lines.add(txt[19]+': '+inttostr(round(100*strategy_caution))+' %');
+  if strategy_finishhim then memo1.lines.add(txt[20]) else memo1.lines.add(txt[21]);
   memo1.lines.add('...');
 
   i_bot:=playersn;
@@ -3143,16 +3166,16 @@ begin
 
   until (i_flag) or (nbot>maxbots) or (nbot>=mapfreespace);
 
-  memo1.lines.add('Player units = '+inttostr(playersn));
-  memo1.lines.add('Total Player HP = '+inttostr(total_player_hp));
-  memo1.lines.add('Enemy bots = '+inttostr(nbot-playersn));
-  memo1.lines.add('Total bot HP = '+inttostr(total_bot_hp{ div (nbot-playersn)}));
-  memo1.lines.add('Bots together = '+floattostr(round(estimated_botstogether*10)/10));
+  memo1.lines.add(txt[22]+' = '+inttostr(playersn));
+  memo1.lines.add(txt[23]+' = '+inttostr(total_player_hp));
+  memo1.lines.add(txt[24]+' = '+inttostr(nbot-playersn));
+  memo1.lines.add(txt[25]+' = '+inttostr(total_bot_hp{ div (nbot-playersn)}));
+  if debugmode then memo1.lines.add('Bots together = '+floattostr(round(estimated_botstogether*10)/10));
 
-  memo1.lines.add('True difficulty = '+saydifficulty(estimated_difficulty));
+  memo1.lines.add(txt[26]+' = '+saydifficulty(estimated_difficulty));
 
   //generate ground items
-  memo1.lines.add('Creating items...');
+  if debugmode then memo1.lines.add(txt[27]);
   iy:=0;
   for ix:=1 to nbot do {if bot[ix].owner=computer then} begin
     inc(iy,bot[ix].hp);
@@ -3195,13 +3218,14 @@ begin
       item[itemsn].item.n:=round((ammo_specifications[item[itemsn].item.ammo_id].quantity-1)*random)+1;
   end;
 
+//  memo1.lines.add('...');
   memo2.lines:=memo1.lines;
 
-  memo1.lines.add('...');
+  memo1.clear;
 
   mapgenerated:=true;
 
-  memo1.lines.add('Starting!');
+  memo1.lines.add(txt[28]);
   scrollbar1.position:=0; scrollbar2.position:=0;
   selected:=-1;
   selectedenemy:=-1;
@@ -3213,6 +3237,8 @@ begin
   viewx:=0;
   viewy:=0;
   memo1.lines.add('=========================');
+
+  writeinifile;
 
   if checkbox4.checked then begin
     memo1.lines.add('Tutorial mode on');
@@ -3240,8 +3266,13 @@ procedure TForm1.generate_items_types;
 var i:integer;
     s:string;
     f1:Textfile;
+    languagefolder:string;
 begin
- assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+'weapon.inf');
+ case combobox2.itemindex of
+   0:languagefolder:='ENG'+pathdelim;
+   1:languagefolder:='RUS'+pathdelim;
+ end;
+ assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+languagefolder+'weapon.inf');
  reset(f1);
  w_types:=0;
  repeat
@@ -3293,7 +3324,7 @@ begin
  until eof(f1);
  closefile(f1);
 
- assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+'ammo.inf');
+ assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+languagefolder+'ammo.inf');
  reset(f1);
  a_types:=0;
  repeat
@@ -3339,21 +3370,376 @@ end;
 
 {--------------------------------------------------------------------------------------}
 
+const standardcropsymbol=80;
+Procedure Tform1.create_language_interface;
+var s,caption_text,hint_text,hint_text0:string;
+    doshowhint:boolean;
+    f1:Textfile;
+    cropsymbol:integer;
+    languagefolder:string;
+begin
+ case combobox2.itemindex of
+   0:languagefolder:='ENG'+pathdelim;
+   1:languagefolder:='RUS'+pathdelim;
+ end;
+
+ assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+languagefolder+'interface.inf');
+ reset(f1);
+ repeat
+   readln(f1,s); s:=trim(s);
+   if copy(s,1,1)='-' then begin
+    readln(f1,caption_text); caption_text:=trim(caption_text);
+    readln(f1,hint_text0);    hint_text0:=trim(hint_text0);
+    if hint_text0='*' then doshowhint:=false else doshowhint:=true;
+    hint_text:='';
+    repeat
+      if length(hint_text0)<=standardcropsymbol then
+        cropsymbol:=length(hint_text0)
+      else begin
+        cropsymbol:=standardcropsymbol;
+        repeat
+          inc(cropsymbol);
+        until (copy(hint_text0,cropsymbol,1)=' ') or (length(hint_text0)<=cropsymbol);
+
+      end;
+      hint_text:=hint_text+copy(hint_text0,1,cropsymbol);
+      hint_text0:=copy(hint_text0,cropsymbol+1,length(hint_text0));
+      if length(hint_text0)>0 then hint_text:=hint_text+slinebreak;
+    until length(hint_text0)=0;
+    case s of
+      '-button01': begin
+                     button1.caption:=caption_text;
+                     button1.showhint:=doshowhint;
+                     button1.hint:=hint_text;
+                   end;
+      '-button02': begin
+                     button2.caption:=caption_text;
+                     button2.showhint:=doshowhint;
+                     button2.hint:=hint_text;
+                   end;
+      '-button03': begin
+                     button3.caption:=caption_text;
+                     button3.showhint:=doshowhint;
+                     button3.hint:=hint_text;
+                   end;
+      '-button04': begin
+                     button4.caption:=caption_text;
+                     button4.showhint:=doshowhint;
+                     button4.hint:=hint_text;
+                   end;
+      '-button05': begin
+                     button5.caption:=caption_text;
+                     button5.showhint:=doshowhint;
+                     button5.hint:=hint_text;
+                   end;
+      '-button06': begin
+                     button6.caption:=caption_text;
+                     button6.showhint:=doshowhint;
+                     button6.hint:=hint_text;
+                   end;
+      '-button07': begin
+                     button7.caption:=caption_text;
+                     button7.showhint:=doshowhint;
+                     button7.hint:=hint_text;
+                   end;
+      '-togglebox01': begin
+                     togglebox1.caption:=caption_text;
+                     togglebox1.showhint:=doshowhint;
+                     togglebox1.hint:=hint_text;
+                   end;
+      '-checkbox01': begin
+                     checkbox1.caption:=caption_text;
+                     checkbox1.showhint:=doshowhint;
+                     checkbox1.hint:=hint_text;
+                   end;
+      '-checkbox02': begin
+                     checkbox2.caption:=caption_text;
+                     checkbox2.showhint:=doshowhint;
+                     checkbox2.hint:=hint_text;
+                   end;
+      '-checkbox03': begin
+                     checkbox3.caption:=caption_text;
+                     checkbox3.showhint:=doshowhint;
+                     checkbox3.hint:=hint_text;
+                   end;
+      '-checkbox04': begin
+                     checkbox4.caption:=caption_text;
+                     checkbox4.showhint:=doshowhint;
+                     checkbox4.hint:=hint_text;
+                   end;
+      '-checkbox05': begin
+                     checkbox5.caption:=caption_text;
+                     checkbox5.showhint:=doshowhint;
+                     checkbox5.hint:=hint_text;
+                   end;
+      '-checkbox06': begin
+                     checkbox6.caption:=caption_text;
+                     checkbox6.showhint:=doshowhint;
+                     checkbox6.hint:=hint_text;
+                   end;
+      '-checkbox07': begin
+                     checkbox7.caption:=caption_text;
+                     checkbox7.showhint:=doshowhint;
+                     checkbox7.hint:=hint_text;
+                   end;
+      '-radiobutton01': begin
+                     radiobutton1.caption:=caption_text;
+                     radiobutton1.showhint:=doshowhint;
+                     radiobutton1.hint:=hint_text;
+                   end;
+      '-radiobutton02': begin
+                     radiobutton2.caption:=caption_text;
+                     radiobutton2.showhint:=doshowhint;
+                     radiobutton2.hint:=hint_text;
+                   end;
+      '-radiobutton03': begin
+                     radiobutton3.caption:=caption_text;
+                     radiobutton3.showhint:=doshowhint;
+                     radiobutton3.hint:=hint_text;
+                   end;
+      '-label01': begin
+                     label1.caption:=caption_text;
+                     label1.showhint:=doshowhint;
+                     label1.hint:=hint_text;
+                   end;
+      '-label02': begin
+                     label2.caption:=caption_text;
+                     label2.showhint:=doshowhint;
+                     label2.hint:=hint_text;
+                   end;
+      '-label03': begin
+                     label3.caption:=caption_text;
+                     label3.showhint:=doshowhint;
+                     label3.hint:=hint_text;
+                   end;
+      '-label04': begin
+                     label4.caption:=caption_text;
+                     label4.showhint:=doshowhint;
+                     label4.hint:=hint_text;
+                   end;
+      '-label05': begin
+                     label5.caption:=caption_text;
+                     label5.showhint:=doshowhint;
+                     label5.hint:=hint_text;
+                   end;
+      '-label06': begin
+                     label6.caption:=caption_text;
+                     label6.showhint:=doshowhint;
+                     label6.hint:=hint_text;
+                   end;
+      '-label07': begin
+                     label7.caption:=caption_text;
+                     label7.showhint:=doshowhint;
+                     label7.hint:=hint_text;
+                   end;
+      '-label08': begin
+                     //label8.caption:=caption_text;
+                     label8.showhint:=doshowhint;
+                     label8.hint:=hint_text;
+                     label8.visible:=false;
+                   end;
+      '-label09': begin
+                     label9.caption:=caption_text;
+                     label9.showhint:=doshowhint;
+                     label9.hint:=hint_text;
+                   end;
+      '-label10': begin
+                     //label10.caption:=caption_text;
+                     label10.showhint:=doshowhint;
+                     label10.hint:=hint_text;
+                     label10.visible:=false;
+                   end;
+      '-label11': begin
+                     label11.caption:=caption_text;
+                     label11.showhint:=doshowhint;
+                     label11.hint:=hint_text;
+                   end;
+      '-label12': begin
+                     label12.caption:=caption_text;
+                     label12.showhint:=doshowhint;
+                     label12.hint:=hint_text;
+                   end;
+      '-label13': begin
+                     label13.caption:=caption_text;
+                     label13.showhint:=doshowhint;
+                     label13.hint:=hint_text;
+                   end;
+      '-label14': begin
+                     label14.caption:=caption_text;
+                     label14.showhint:=doshowhint;
+                     label14.hint:=hint_text;
+                   end;
+      '-label15': begin
+                     label15.caption:=caption_text;
+                     label15.showhint:=doshowhint;
+                     label15.hint:=hint_text;
+                   end;
+      '-label16': begin
+                     label16.caption:=caption_text;
+                     label16.showhint:=doshowhint;
+                     label16.hint:=hint_text;
+                   end;
+      '-label17': begin
+                     label17.caption:=caption_text;
+                     label17.showhint:=doshowhint;
+                     label17.hint:=hint_text;
+                   end;
+      '-label18': begin
+                     label18.caption:=caption_text;
+                     label18.showhint:=doshowhint;
+                     label18.hint:=hint_text;
+                   end;
+      '-label19': begin
+                     label19.caption:=caption_text;
+                     label19.showhint:=doshowhint;
+                     label19.hint:=hint_text;
+                   end;
+      '-label20': begin
+                     label20.caption:=caption_text;
+                     label20.showhint:=doshowhint;
+                     label20.hint:=hint_text;
+                   end;
+      '-label21': begin
+                     label21.caption:=caption_text;
+                     label21.showhint:=doshowhint;
+                     label21.hint:=hint_text;
+                   end;
+      '-trackbar01': begin
+                     //trackbar1.caption:=caption_text;
+                     trackbar1.showhint:=doshowhint;
+                     trackbar1.hint:=hint_text;
+                   end;
+      '-trackbar02': begin
+                     //trackbar2.caption:=caption_text;
+                     trackbar2.showhint:=doshowhint;
+                     trackbar2.hint:=hint_text;
+                   end;
+      '-trackbar03': begin
+                     //trackbar3.caption:=caption_text;
+                     trackbar3.showhint:=doshowhint;
+                     trackbar3.hint:=hint_text;
+                   end;
+      end;
+   end;
+
+ until eof(f1);
+ closefile(f1);
+
+ assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+languagefolder+'text.inf');
+ reset(f1);
+ repeat
+   readln(f1,s); s:=trim(s);
+   if copy(s,1,1)='^' then begin
+     txt[valueof(copy(s,2,3))]:=trim(copy(s,6,length(s)));
+   end;
+  until eof(f1);
+ closefile(f1);
+
+ Edit4Change(nil);
+end;
+
+{--------------------------------------------------------------------------------------}
+
+
+procedure tform1.readinifile;
+var f1:textfile;
+    ininame:string;
+    s,s1:string;
+    i,value:integer;
+begin
+ ininame:=ExtractFilePath(application.ExeName)+pathdelim+inifilename;
+ if fileexists(ininame) then begin
+   assignfile(f1,ininame);
+   reset(f1);
+   repeat
+     readln(f1,s);
+     s:=trim(s);
+     if copy(s,1,1)='^' then begin
+       s1:='';
+       i:=0;
+       repeat
+         inc(i);
+       until copy(s,i,1)='=';
+       s1:=copy(s,2,i-2);
+       value:=valueof(trim(copy(s,i+1,length(s))));
+       case s1 of
+         'LANGUAGE':combobox2.itemindex:=value;
+         'MAXX':edit2.text:=inttostr(value);
+         'MAXY':edit7.text:=inttostr(value);
+         'SMOKE':begin
+                   if value=0 then radiobutton1.checked:=true else
+                   if value=1 then radiobutton2.checked:=true else
+                   if value=2 then radiobutton3.checked:=true;
+                 end;
+         'BUILDINGS': if value=1 then checkbox6.checked:=true else checkbox6.checked:=false;
+         'E-BOTS':edit1.text:=inttostr(value);
+         'P-BOTS':edit5.text:=inttostr(value);
+         'E-HP':edit3.text:=inttostr(value);
+         'P-HP':edit4.text:=inttostr(value);
+         'DEFENCE': if value=1 then checkbox1.checked:=true else checkbox1.checked:=false;
+         'BAZOOKA': if value=1 then checkbox3.checked:=true else checkbox3.checked:=false;
+         'DEMAND': if value=1 then checkbox5.checked:=true else checkbox5.checked:=false;
+         'DIFFICULTY':edit6.text:=inttostr(value);
+         'CHEATER':trackbar2.position:=value;
+         'CAUTION':trackbar3.position:=value;
+         'FINISHHIM': if value=1 then checkbox7.checked:=true else checkbox7.checked:=false;
+         'CONFIRM': if value=1 then checkbox2.checked:=true else checkbox2.checked:=false;
+       end;
+     end;
+   until eof(f1);
+   closefile(f1);
+ end;
+end;
+
+procedure tform1.writeinifile;
+var f1:textfile;
+begin
+ assignfile(f1,ExtractFilePath(application.ExeName)+pathdelim+inifilename);
+ rewrite(f1);
+ writeln(f1,'^LANGUAGE='+inttostr(combobox2.itemindex));
+ writeln(f1,'^MAXX='+edit2.text);
+ writeln(f1,'^MAXY='+edit7.text);
+ if radiobutton1.checked then writeln(f1,'^SMOKE=0');
+ if radiobutton2.checked then writeln(f1,'^SMOKE=1');
+ if radiobutton3.checked then writeln(f1,'^SMOKE=2');
+ if checkbox6.checked then writeln(f1,'^BUILDINGS=1') else writeln(f1,'^BUILDINGS=0');
+ writeln(f1,'^E-BOTS='+edit1.text);
+ writeln(f1,'^P-BOTS='+edit5.text);
+ writeln(f1,'^E-HP='+edit3.text);
+ writeln(f1,'^P-HP='+edit4.text);
+ if checkbox1.checked then writeln(f1,'^DEFENCE=1') else writeln(f1,'^DEFENCE=0');
+ if checkbox3.checked then writeln(f1,'^BAZOOKA=1') else writeln(f1,'^BAZOOKA=0');
+ if checkbox5.checked then writeln(f1,'^DEMAND=1') else writeln(f1,'^DEMAND=0');
+ writeln(f1,'^DIFFICULTY='+edit6.text);
+ writeln(f1,'^CHEATER='+inttostr(trackbar2.position));
+ writeln(f1,'^CAUTION='+inttostr(trackbar3.position));
+ if checkbox7.checked then writeln(f1,'^FINISHHIM=1') else writeln(f1,'^FINISHHIM=0');
+ if checkbox2.checked then writeln(f1,'^CONFIRM=1') else writeln(f1,'^CONFIRM=0');
+
+ closefile(f1);
+end;
+
+{--------------------------------------------------------------------------------------}
+
 procedure TForm1.FormCreate(Sender: TObject);
 //var i:integer;
 begin
   maxx:=maxmaxx;
   maxy:=maxmaxy;
 
+  edit1.text:=inttostr(37);
+  edit2.text:=inttostr(40);
+  edit5.text:=inttostr(4);
+  readinifile;
+
   viewsizex:=30;
   viewsizey:=30;
 
-  label5.caption:='Map size (min '+inttostr(minmaxx)+' ... max '+inttostr(maxmaxx)+'):';
-  edit2.text:=inttostr(40);
+  create_language_interface;
+
+  label5.caption:=txt[11]+' (min '+inttostr(minmaxx)+' ... max '+inttostr(maxmaxx)+'):';
   label11.caption:='(1..'+inttostr(maxbots-maxplayers)+')';
-  edit1.text:=inttostr(37);
   label12.caption:='(1..'+inttostr(maxplayers)+')';
-  edit5.text:=inttostr(4);
 
   new(map);
   new(map_status);
@@ -3401,7 +3787,7 @@ begin
    if smk>map_smoke then smk:=map_smoke;
    map_status^[bot[thisbot].x,bot[thisbot].y]:=smk;
 
-   form1.memo1.lines.add(bot[thisbot].name + ' is destroyed');
+   form1.memo1.lines.add(bot[thisbot].name + ' '+txt[30]);
    if thisbot=selected then begin
      form1.scrollbar1.position:=0; form1.scrollbar2.position:=0;
      selected:=-1;
@@ -3531,7 +3917,7 @@ begin
            for i:=1 to nbot do if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (bot[i].hp>0) then begin
              ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
              if ix<1 then ix:=1;
-             memo1.lines.add(bot[i].name+' is hit for '+inttostr(ix)+' by explosion');
+             memo1.lines.add(bot[i].name+' '+txt[31]+' '+inttostr(ix)+' '+txt[32]);
              hit_bot(i,ix);
              if vis^[bot[i].x,bot[i].y]>oldvisible then
              with image1.canvas do begin
@@ -3586,7 +3972,7 @@ begin
              for j:=1 to nbot do
                if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
              if flg then begin
-//               memo1.lines.add('[dbg] push '+bot[i].name);
+//               if debugmode then memo1.lines.add('[dbg] push '+bot[i].name);
                dec(bot[i].x,sgn(direction_x^[dx,dy]));
                dec(bot[i].y,sgn(direction_y^[dx,dy]));
                mapchanged^[bot[i].x,bot[i].y]:=255;
@@ -3597,7 +3983,7 @@ begin
              for j:=1 to nbot do
                if (bot[j].x=bot[i].x) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
              if flg then begin
-//               memo1.lines.add('[dbg] push '+bot[i].name);
+//               if debugmode then memo1.lines.add('[dbg] push '+bot[i].name);
                //dec(bot[i].x,sgn(direction_x^[dx,dy]));
                dec(bot[i].y,sgn(direction_y^[dx,dy]));
                mapchanged^[bot[i].x,bot[i].y]:=255;
@@ -3608,7 +3994,7 @@ begin
              for j:=1 to nbot do
                if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y) and (bot[j].hp>0) then flg:=false;
              if flg then begin
-//               memo1.lines.add('[dbg] push '+bot[i].name);
+//               if debugmode then memo1.lines.add('[dbg] push '+bot[i].name);
                dec(bot[i].x,sgn(direction_x^[dx,dy]));
                //dec(bot[i].y,sgn(direction_y^[dx,dy]));
                mapchanged^[bot[i].x,bot[i].y]:=255;
@@ -3668,12 +4054,12 @@ begin
       flg:=false;
     end;
     if bot[attacker].items[1].state=0 then begin
-       if bot[attacker].owner=player then showmessage('weapon jammed!');
+       if bot[attacker].owner=player then showmessage(txt[33]);
       flg:=false;
     end;
  end else begin
     flg:=false;
-    if bot[attacker].owner=player then showmessage('No ammo!');
+    if bot[attacker].owner=player then showmessage(txt[34]);
  end;
 
  if (flg) and (bot[attacker].tu>=timetoattack) and (bot[defender].hp>0) then begin
@@ -3688,7 +4074,7 @@ begin
      damage:=round(statedamper*DAM / sqrt(sqrt(range)));
      if damage<1 then damage:=1;
      {if damage>0 then} begin
-       memo1.lines.add(bot[attacker].name+' shots '+bot[defender].name + ' for ' + inttostr(damage));
+       memo1.lines.add(bot[attacker].name+' '+txt[35]+' '+bot[defender].name + ' '+txt[36]+' ' + inttostr(damage));
 
 
        if bot[defender].owner=computer then begin
@@ -3843,7 +4229,7 @@ end;
 procedure Tform1.bot_calculate_possible_LOS;
 var i,x1,y1,x2,y2:integer;
 begin
-  memo1.lines.add('[dbg] los recalculated');
+  if debugmode then memo1.lines.add('[dbg] los recalculated');
   for x1:=1 to maxx do
    for y1:=1 to maxy do if botvis^[x1,y1]=strategy_possible_los then botvis^[x1,y1]:=0;
   for i:=1 to nbot do if bot[i].owner=computer then bot_look_around(i);
@@ -3860,7 +4246,7 @@ end;
 procedure Tform1.bot_recalc_visible;
 var i:integer;
 begin
-  memo1.lines.add('[dbg] visible recalculated');
+  if debugmode then memo1.lines.add('[dbg] visible recalculated');
   recalculate_los_strategy:=false;
   use_los_strategy:=false;
   for i:=1 to nbot do if (bot[i].owner=player) and (bot[i].hp>0) then begin
@@ -3876,7 +4262,7 @@ begin
       use_los_strategy:=true;
       bot_calculate_possibleloc(i);
     end;
-    memo1.lines.add('[dbg/recalc] '+bot[i].name+' lastseen: '+inttostr(bot[i].lastseen_x)+'.'+inttostr(bot[i].lastseen_y)+' / '+inttostr(bot[i].lastseen_tu)+' tu');
+    if debugmode then memo1.lines.add('[dbg/recalc] '+bot[i].name+' lastseen: '+inttostr(bot[i].lastseen_x)+'.'+inttostr(bot[i].lastseen_y)+' / '+inttostr(bot[i].lastseen_tu)+' tu');
   end;
   if not use_los_strategy then cheater_type:=strategy_type_damncheater;
 {  need_los_strategy:=false;
@@ -4018,7 +4404,7 @@ begin
     if 255-cautiontime<timetoshot then cautiontime:=timetoshot;
     if strategy_hide then
     if (bot[thisbot].tu<cautiontime) and (bot[thisbot].tu>=bot[thisbot].speed) {and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible)} then begin
-     memo1.lines.add('[dbg] '+bot[thisbot].name+' caution time used '+inttostr(bot[thisbot].tu)+' of '+inttostr(cautiontime));
+      if debugmode then memo1.lines.add('[dbg] '+bot[thisbot].name+' caution time used '+inttostr(bot[thisbot].tu)+' of '+inttostr(cautiontime));
       x1:=bot[thisbot].x;
       y1:=bot[thisbot].y;
       generatemovement(thisbot,bot[bot[thisbot].target].x,bot[bot[thisbot].target].y); //buggy
@@ -4034,9 +4420,9 @@ begin
               end;
             end;
       if (x1<>bot[thisbot].x) or (y1<>bot[thisbot].y) then begin
-//        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides from vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
+//        if debugmode then memo1.lines.add('[dbg] '+bot[thisbot].name+' hides from vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
         move_bot(thisbot,x1,y1,100);
-//        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides to vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
+//        if debugmode then memo1.lines.add('[dbg] '+bot[thisbot].name+' hides to vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
 
       end;
       stopactions:=true;
@@ -4120,9 +4506,13 @@ begin
   end;
 
   bot_clear_visible;
-  if cheater_type=strategy_type_cheater then memo1.lines.add('[dbg/clear] weak cheater') else memo1.lines.add('[dbg] damncheater');
+  if debugmode then begin
+    if cheater_type=strategy_type_cheater then memo1.lines.add('[dbg/clear] weak cheater') else memo1.lines.add('[dbg] damncheater');
+  end;
   bot_recalc_visible;
-  if cheater_type=strategy_type_cheater then memo1.lines.add('[dbg/recalc] weak cheater') else memo1.lines.add('[dbg] damncheater');
+  if debugmode then begin
+    if cheater_type=strategy_type_cheater then memo1.lines.add('[dbg/recalc] weak cheater') else memo1.lines.add('[dbg] damncheater');
+  end;
 
   set_progressbar(true);
   progressbar1.max:=nbot;
@@ -4145,7 +4535,7 @@ begin
   this_turn:=player;
   inc(current_turn);
   set_progressbar(false);
-  memo1.lines.add('TURN: '+inttostr(current_turn));
+  memo1.lines.add(txt[37]+': '+inttostr(current_turn));
   grow_smoke;
 
   clear_visible;
@@ -4159,7 +4549,7 @@ begin
       bot[i].lastseen_x :=bot[i].x;
       bot[i].lastseen_y :=bot[i].y;
       bot[i].lastseen_tu:=bot[i].tu;
-      memo1.lines.add('[dbg/newturn] '+bot[i].name+' lastseen: '+inttostr(bot[i].lastseen_x)+'.'+inttostr(bot[i].lastseen_y)+' / '+inttostr(bot[i].lastseen_tu)+' tu');
+      if debugmode then memo1.lines.add('[dbg/newturn] '+bot[i].name+' lastseen: '+inttostr(bot[i].lastseen_x)+'.'+inttostr(bot[i].lastseen_y)+' / '+inttostr(bot[i].lastseen_tu)+' tu');
       inc(n2)
     end else
       inc(n1);
@@ -4170,18 +4560,18 @@ begin
       bot[i].target:=round(random*(playersn-1))+1;
     end;
   end;
-  memo1.lines.add('bots remaining: '+inttostr(n1));
+  memo1.lines.add(txt[38]+': '+inttostr(n1));
   if n1=0 then begin
     gamemode:=gamemode_victory;
-    memo1.lines.add('---- VICTORY!!! ----');
+    memo1.lines.add(txt[39]);
   end;
   if n2=0 then begin
     gamemode:=gamemode_defeat;
-    memo1.lines.add('---- DEFEAT... ----');
+    memo1.lines.add(txt[40]);
   end;
   if (n1=0) or (n2=0) then begin
-   memo1.lines.add('Players = '+inttostr(n2));
-   memo1.lines.add('Bots = '+inttostr(n1));
+   memo1.lines.add(txt[22]+' = '+inttostr(n2));
+   memo1.lines.add(txt[24]+' = '+inttostr(n1));
    for n1:=1 to maxx do
     for n2:=1 to maxy do begin
       vis^[n1,n2]:=maxvisible;
@@ -4189,8 +4579,8 @@ begin
     end;
     ix:=0;iy:=0;
     for i:=1 to nbot do if bot[i].owner=player then inc(ix,bot[i].hp) else inc(iy,bot[i].hp);
-    memo1.lines.add('Player HP sum = '+inttostr(ix));
-    memo1.lines.add('Bot HP sum = '+inttostr(iy));
+    memo1.lines.add(txt[23]+' = '+inttostr(ix));
+    memo1.lines.add(txt[25]+' = '+inttostr(iy));
   end;
   n1:=0; n2:=0;
   for ix:=1 to maxx do
@@ -4198,7 +4588,7 @@ begin
       inc(n1);
       if vis^[ix,iy]>0 then inc(n2);
     end;
-  memo1.lines.add('MapExplored: '+inttostr(round(n2*100/n1))+'%');
+  memo1.lines.add(txt[45]+': '+inttostr(round(n2*100/n1))+'%');
   memo1.lines.add('------------------------------');
   generate_enemy_list(false);
 
@@ -4219,10 +4609,10 @@ begin
     if bot[i].tu=255 then inc(n2);
   end;
   if (n1=n2) and (n1>0) then begin
-    if MessageDlg('Are you sure you want to end the turn? You have not moved any units.',mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
+    if MessageDlg(txt[46]+' '+txt[47],mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
   end else begin
      if (n2>0) and (checkbox2.checked) then begin
-       if MessageDlg('Are you sure you want to end the turn? '+inttostr(n2)+' your units are idle this turn.',mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
+       if MessageDlg(txt[46]+' '+inttostr(n2)+' '+txt[48],mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
      end else end_turn;
   end;
 end;
@@ -4232,7 +4622,7 @@ end;
 procedure TForm1.Button2Click(Sender: TObject);
 var buttonpressed:boolean;
 begin
- if (mapgenerated) and ((gamemode=gamemode_game) or (gamemode=gamemode_iteminfo)) then buttonpressed:=(MessageDlg('Are you sure? Current map will be lost.',mtCustom, [mbYes,mbCancel], 0)=MrYes) else buttonpressed:=true;
+ if (mapgenerated) and ((gamemode=gamemode_game) or (gamemode=gamemode_iteminfo)) then buttonpressed:=(MessageDlg(txt[49],mtCustom, [mbYes,mbCancel], 0)=MrYes) else buttonpressed:=true;
  if buttonpressed then begin
   memo1.clear;
   generate_map;
@@ -4248,7 +4638,7 @@ end;
 procedure TForm1.Button3Click(Sender: TObject);
 var ix,iy:integer;
 begin
-if MessageDlg('Are you sure? Your progress will be lost.',mtCustom, [mbYes,mbCancel], 0)=MrYes then begin
+if MessageDlg(txt[50],mtCustom, [mbYes,mbCancel], 0)=MrYes then begin
  selected:=-1; selectedx:=-1; selectedy:=-1; selectedenemy:=-1; selecteditem:=-1; selectedonfloor:=-1;
  for ix:=1 to playersn do bot[ix].hp:=0;
  for ix:=1 to maxx do
@@ -4318,11 +4708,22 @@ begin
   MyImage.free;
 end;
 
+procedure TForm1.CheckBox2Change(Sender: TObject);
+begin
+  writeinifile;
+end;
+
 procedure TForm1.CheckBox5Change(Sender: TObject);
 begin
   edit6.enabled:=checkbox5.checked;
   edit1.enabled:=not checkbox5.checked;
   Edit4Change(nil);
+end;
+
+procedure TForm1.ComboBox2Change(Sender: TObject);
+begin
+  create_language_interface;
+  writeinifile;
 end;
 
 
@@ -4338,18 +4739,19 @@ begin
   val(edit2.text,mapsizex,i);
   val(edit7.text,mapsizey,i);
   val(edit3.text,hpquantity,i);
-  label8.caption:='Formal test ok';
+  label8.visible:=true;
+  label8.caption:=txt[51];
   label8.color:=$AAFFAA;
   if hpquantity*botsquantity>playerquantity*20*10+botsquantity*10*10 then begin
-    label8.caption:='Additional ammo will be generated';
+    label8.caption:=txt[52];
     label8.color:=$AAAAFF;
   end;
   if playerhp*playerquantity>botsquantity*20*10 then begin
-    label8.caption:='Enemies will not be able to kill you';
+    label8.caption:=txt[53];
     label8.color:=$0000FF;
   end;
   if botsquantity+playerquantity>mapsizex*mapsizey*0.2 then begin
-    label8.caption:='Not enough space on the map to place bots';
+    label8.caption:=txt[54];
     label8.color:=$0000FF;
   end;
 
@@ -4360,8 +4762,9 @@ begin
 
       if checkbox1.checked then difficulty:=difficulty*defensedifficulty;
     end;
-    label10.Caption:='Difficulty: '+saydifficulty(difficulty);
-  end else label10.caption:='ERROR CALCULATING DIFFICULTY';
+    label10.Caption:=txt[26]+': '+saydifficulty(difficulty);
+  end else label10.caption:=txt[56];
+  label10.visible:=true;
 end;
 
 procedure TForm1.Edit6Change(Sender: TObject);
@@ -4575,7 +4978,7 @@ begin
        bot[thisbot].items[1].rechargestate:=weapon_specifications[bot[thisbot].items[1].w_id].recharge;
        loadw:=true;
      end
-   end else showmessage('Inappropriate ammo!');
+   end else showmessage(txt[57]);
   end;
  load_weapon:=loadw;
 end;
@@ -4617,7 +5020,7 @@ begin
             bot[selected].items[freespace].n:=bot[selected].items[selectednew].n;
             bot[selected].items[selectednew].ammo_id:=0;
            end
-         end else showmessage('Backpack is full!');
+         end else showmessage(txt[58]);
 
         end
        end else if selecteditem=selectednew then begin
@@ -4693,7 +5096,7 @@ begin
     for i:=onfloor[thisitem] to itemsn-1 do item[i]:=item[i+1];
       dec(itemsn);
   end;
-  if (not flg) and (bot[thisbot].owner=player) then showmessage('Backpack is full!');
+  if (not flg) and (bot[thisbot].owner=player) then showmessage(txt[58]);
  end;
 
 end;
@@ -4888,7 +5291,7 @@ begin
  scrollbar2.visible:=flg;
  scrollbar3.visible:=flg;
  scrollbar4.visible:=flg;
- label1.visible:=flg;
+ if debugmode then label1.visible:=flg else label1.visible:=false;
  checkbox2.visible:=flg;
  image7.visible:=flg;
 // if gamemode>200 then button1.enabled:=true else button1.enabled:=false;
@@ -4946,6 +5349,9 @@ begin
   checkbox7.visible:=flg;
   trackbar2.visible:=flg;
   trackbar3.visible:=flg;
+
+  label21.visible:=flg;
+  combobox2.visible:=flg;
 
  if mapgenerated then begin
    if gamemode>200 then button4.enabled:=true else button4.enabled:=false;
@@ -5034,11 +5440,11 @@ begin
      font.size:=16;
      textout(startx,starty,WEAPON_SPECIFICATIONS[thisitem.w_id].name);
      font.size:=10;
-     textout(startx,starty+25,'STATE: '+inttostr(thisitem.state)+'/'+inttostr(thisitem.maxstate)+'('+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].maxstate)+')      = '+inttostr(round(100*thisitem.state/thisitem.maxstate))+'%');
-     textout(startx,starty+25+font_size10,'DAM: +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].dam)+'         ACC: +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].acc));
-     textout(startx,starty+25+2*font_size10,'Time to AIM: '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].aim));
-     textout(startx,starty+25+3*font_size10,'Time to RECHARGE: '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].recharge));
-     textout(startx,starty+25+4*font_size10,'Time to CHANGE CLIP: '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].reload));
+     textout(startx,starty+25,txt[59]+': '+inttostr(thisitem.state)+'/'+inttostr(thisitem.maxstate)+'('+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].maxstate)+')      = '+inttostr(round(100*thisitem.state/thisitem.maxstate))+'%');
+     textout(startx,starty+25+font_size10,txt[60]+': +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].dam)+'         '+txt[63]+': +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].acc));
+     textout(startx,starty+25+2*font_size10,txt[61]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].aim));
+     textout(startx,starty+25+3*font_size10,txt[62]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].recharge));
+     textout(startx,starty+25+4*font_size10,txt[64]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].reload));
 
      font.color:=clyellow;
      starty:=starty+25+5*font_size10;
@@ -5061,9 +5467,9 @@ begin
       font.size:=16;
       textout(startx,starty,AMMO_SPECIFICATIONS[thisitem.ammo_id].name);
       font.size:=10;
-      textout(startx,starty+25,'QUANTITY: '+inttostr(thisitem.n)+'/'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].quantity));
-      textout(startx,starty+25+1*font_size10,'DAM: +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].dam)+'         ACC: +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc));
-      textout(startx,starty+25+2*font_size10,'EXPLOSION: '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion)+' / AREA: '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Area)+' / SMOKE: '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Smoke));
+      textout(startx,starty+25,txt[65]+': '+inttostr(thisitem.n)+'/'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].quantity));
+      textout(startx,starty+25+1*font_size10,txt[60]+': +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].dam)+'         '+txt[63]+': +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc));
+      textout(startx,starty+25+2*font_size10,txt[66]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion)+' / '+txt[67]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Area)+' / '+txt[68]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Smoke));
 
       font.color:=clyellow;
       starty:=starty+25+3*font_size10;
@@ -5084,15 +5490,15 @@ begin
         {summary stats}
         font.color:=clwhite-255;
         font.size:=16;
-        textout(startx,starty,'SUMMARY ESTIMATE:');
+        textout(startx,starty,txt[69]);
         font.size:=10;
         if thisitem.state>thisitem.maxstate div 3 then tmp:=thisitem.maxstate div 3 else begin tmp:=thisitem.state; font.color:=clred; end;
-        textout(startx,starty+25,'DAM: '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))));
+        textout(startx,starty+25,txt[60]+': '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))));
         font.color:=clwhite-255;
-        textout(startx,starty+font_size10+25,'ACC: '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc+WEAPON_SPECIFICATIONS[thisitem.w_id].acc));
-        textout(startx,starty+2*font_size10+25,'Shots per turn: '+ inttostr(trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge))));
+        textout(startx,starty+font_size10+25,txt[63]+': '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc+WEAPON_SPECIFICATIONS[thisitem.w_id].acc));
+        textout(startx,starty+2*font_size10+25,txt[70]+': '+ inttostr(trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge))));
         if thisitem.state>thisitem.maxstate div 3 then tmp:=thisitem.maxstate div 3 else begin tmp:=thisitem.state; font.color:=clred; end;
-        textout(startx,starty+3*font_size10+25,'Damage per turn: '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))*trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge))));
+        textout(startx,starty+3*font_size10+25,txt[71]+': '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))*trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge))));
         font.color:=clwhite-255;
 
         if AMMO_SPECIFICATIONS[thisitem.ammo_id].Area>0 then begin
@@ -5104,7 +5510,7 @@ begin
               82 .. 121: tmp:=121;
              else tmp:=AMMO_SPECIFICATIONS[thisitem.ammo_id].Area;
           end;
-          textout(startx,starty+4*font_size10+25,'Average explosion damage: '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion div tmp));
+          textout(startx,starty+4*font_size10+25,txt[72]+': '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion div tmp));
         end;
       end;
     end;
@@ -5140,10 +5546,10 @@ begin
     if bot[i].tu=255 then inc(n2);
     if bot[i].tu>bot[i].speed*1.5 then inc(n1);
   end;
-  s:='NEXT TURN';
+  s:=txt[73];
   {$IFDEF UNIX}
-  if n2>0 then s:=s+sLineBreak+inttostr(n2)+' units have not moved yet.';
-  if n1-n2>0 then s:=s+sLineBreak+inttostr(n1-n2)+' units can still move.';
+  if n2>0 then s:=s+sLineBreak+inttostr(n2)+' '+txt[74];
+  if n1-n2>0 then s:=s+sLineBreak+inttostr(n1-n2)+' '+txt[75];
   {$ENDIF}
   button1.caption:=s;
 
@@ -5187,23 +5593,23 @@ begin
        if (bot[selected].items[1].ammo_id>0) and (bot[selected].items[1].n>0) then begin
          if bot[selected].items[1].state=0 then begin
            font.color:=$2222FF;
-           textout(  5,itemsy+fontsize,'* JAMMED *');
+           textout(  5,itemsy+fontsize,txt[76]);
          end else
          if bot[selected].items[1].rechargestate>0 then begin
            font.color:=$2222FF;
-           textout(  5,itemsy+fontsize,'RELOADING '+inttostr(round(100*(1-bot[selected].items[1].rechargestate/weapon_specifications[bot[selected].items[1].w_id].RECHARGE)))+'%');
+           textout(  5,itemsy+fontsize,txt[77]+' '+inttostr(round(100*(1-bot[selected].items[1].rechargestate/weapon_specifications[bot[selected].items[1].w_id].RECHARGE)))+'%');
          end else
          begin
            font.color:=$FFFFFF;
-           textout(  5,itemsy+fontsize,'DAM: '+inttostr(weapon_specifications[bot[selected].items[1].w_id].DAM+ammo_specifications[bot[selected].items[1].ammo_id].DAM));
-           textout( 70,itemsy+fontsize,'ACC: '+inttostr(weapon_specifications[bot[selected].items[1].w_id].ACC+ammo_specifications[bot[selected].items[1].ammo_id].ACC));
+           textout(  5,itemsy+fontsize,txt[60]+': '+inttostr(weapon_specifications[bot[selected].items[1].w_id].DAM+ammo_specifications[bot[selected].items[1].ammo_id].DAM));
+           textout( 70,itemsy+fontsize,txt[63]+': '+inttostr(weapon_specifications[bot[selected].items[1].w_id].ACC+ammo_specifications[bot[selected].items[1].ammo_id].ACC));
          end;
          font.color:=$FFFFFF;
-         textout(  5,itemsy+3*fontsize,'TU: ' +inttostr(weapon_specifications[bot[selected].items[1].w_id].AIM)+'+'+inttostr(weapon_specifications[bot[selected].items[1].w_id].RECHARGE));
+         textout(  5,itemsy+3*fontsize,txt[78]+': ' +inttostr(weapon_specifications[bot[selected].items[1].w_id].AIM)+'+'+inttostr(weapon_specifications[bot[selected].items[1].w_id].RECHARGE));
          textout(  5,itemsy+2*fontsize,ammo_specifications[bot[selected].items[1].ammo_id].name+' '+inttostr(bot[selected].items[1].n)+'/'+inttostr(ammo_specifications[bot[selected].items[1].ammo_id].quantity));
        end else begin
          font.color:=$0000FF;
-         textout(  5,itemsy+fontsize,'* NO AMMO *');
+         textout(  5,itemsy+fontsize,txt[79]);
        end;
 {        EXPLOSION   :=  0;
          TRACE_SMOKE :=  0;  }
@@ -5675,7 +6081,7 @@ begin
 
 
   draw_stats;
-  label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
+  if debugmode then label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
 
   show_los:=false;
 
