@@ -15,10 +15,10 @@ uses
 
 const debugmode=false;
 
-const bottypes=3;
+const bottypes=4; {0..bottypes}
       maxcracks=11;
-      maxpass=18;
-      maxwall=21;
+      maxpass=22;
+      maxwall=25;
       maxmusic=5;
 
 const maxmaxx={113}226;  //max 'reasonable' 50x50
@@ -62,6 +62,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       playerbotmovedelay=100;     {ms}
       enemybotmovedelay=300;      {ms}
       shotdelay=200;              {ms}
+      hitdelay=200;
       blastdelay=500;             {ms}
 
       defensedifficulty=5;
@@ -344,7 +345,6 @@ type bottype=record
   action:byte;
   btype:byte;
   caution:byte;
-  bottype:byte;
   target:integer;
   hp,maxhp:word;
   tu:byte;
@@ -439,7 +439,7 @@ var
   txt_x,txt_y:integer;
   do_txt:boolean;
 
-  shot_sound,reload_sound: TSoundBuffer;
+  shot_sound,reload_sound,clip_sound,item_sound,drop_sound: TSoundBuffer;
 
   music:array[1..maxmusic] of TSoundBuffer;
   music_duration:array[1..maxmusic] of TFloatTime;
@@ -2819,6 +2819,39 @@ begin
   bot[nbot].owner:=owner;
   bot[nbot].speed:=30;
   bot[nbot].angle:=round(random*maxangle);
+
+  bot[nbot].btype:=0;
+  if bot[nbot].owner<>player then begin
+    if random<0.3 then weapon_kind:=2;
+    if random<0.05 then weapon_kind:=3;
+    bot[nbot].caution:=round((random)*2*bot[nbot].speed*strategy_caution);
+    bot[nbot].btype:=2;
+    if random<0.2 then begin
+      bot[nbot].maxhp:=2*bot[nbot].maxhp div 3;
+      bot[nbot].hp:=bot[nbot].maxhp;
+      bot[nbot].speed:=25;
+      bot[nbot].caution:=round((random)*3*bot[nbot].speed*strategy_caution);
+      bot[nbot].btype:=4;
+    end else
+    if random<0.1 then begin
+      bot[nbot].maxhp:=bot[nbot].maxhp*3;
+      bot[nbot].hp:=bot[nbot].maxhp;
+      bot[nbot].speed:=40;
+      bot[nbot].caution:=round(sqr(random)*bot[nbot].speed*strategy_caution);
+      bot[nbot].name:=name+'(H)';
+      bot[nbot].btype:=3;
+    end else
+    if random<0.1 then begin
+      bot[nbot].maxhp:=bot[nbot].maxhp div 2;
+      bot[nbot].hp:=bot[nbot].maxhp;
+      bot[nbot].speed:=20;
+      bot[nbot].caution:=round((3*bot[nbot].speed+(sqrt(random)*3*bot[nbot].speed))*strategy_caution);
+      bot[nbot].name:=name+'(Q)';
+      bot[nbot].btype:=1;
+    end;
+
+  end;
+
   for i:=2 to backpacksize do begin
     bot[nbot].items[i].w_id:=0;
     bot[nbot].items[i].ammo_id:=0;
@@ -2828,35 +2861,6 @@ begin
   repeat
     inc(i);
     weapon_kind:=1;
-    bot[nbot].btype:=0;
-    if bot[nbot].owner<>player then begin
-      if random<0.3 then weapon_kind:=2;
-      if random<0.05 then weapon_kind:=3;
-      bot[nbot].caution:=round((random)*2*bot[nbot].speed*strategy_caution);
-      bot[nbot].bottype:=2;
-      bot[nbot].btype:=2;
-      if random<0.1 then begin
-        bot[nbot].bottype:=3;
-        bot[nbot].maxhp:=bot[nbot].maxhp*2;
-        bot[nbot].hp:=bot[nbot].maxhp;
-        bot[nbot].speed:=40;
-        bot[nbot].caution:=round(sqr(random)*bot[nbot].speed*strategy_caution);
-        bot[nbot].name:=name+'(H)';
-        bot[nbot].btype:=3;
-      end else
-      if random<0.1 then begin
-        bot[nbot].bottype:=4;
-        bot[nbot].maxhp:=bot[nbot].maxhp div 2;
-        bot[nbot].hp:=bot[nbot].maxhp;
-        bot[nbot].speed:=20;
-        bot[nbot].caution:=round((3*bot[nbot].speed+(sqrt(random)*3*bot[nbot].speed))*strategy_caution);
-        bot[nbot].name:=name+'(Q)';
-        bot[nbot].btype:=1;
-      end;
-
-    end else begin
-      bot[nbot].bottype:=1;
-    end;
     if form1.checkbox3.checked then weapon_kind:=3;
     repeat
       weapon_type:=trunc(w_types*random)+1;
@@ -3170,7 +3174,6 @@ begin
       x1:=5;
     end;
     if bot[nbot].hp>15 then inc(total_player_hp,bot[nbot].hp) else inc(total_player_hp,15);
-    bot[nbot].bottype:=1;
 //      inc(total_player_firepower,standard_damage);
   end;
   //  bot[1].items[1].w_id:=4;
@@ -3836,27 +3839,28 @@ var ix,iy:integer;
     sx,sy:integer;
 begin
  //initialize routines buggy-wooggy
- if img_selected=nil then img_selected:=TGLImage.create('png'+pathdelim + 'selected.png');
- if img_enemyselected=nil then img_enemyselected:=TGLImage.create('png'+pathdelim + 'enemyselected.png');
+ if img_selected=nil then img_selected:=TGLImage.create(datafolder+'png'+pathdelim + 'selected.png');
+ if img_enemyselected=nil then img_enemyselected:=TGLImage.create(datafolder+'png'+pathdelim + 'enemyselected.png');
  for i:=1 to 10 do
-   if expl_img[i]=nil then expl_img[i]:=TGLImage.create('png'+pathdelim + 'expl'+inttostr(i)+'.png');
+   if expl_img[i]=nil then expl_img[i]:=TGLImage.create(datafolder+'png'+pathdelim + 'expl'+inttostr(i)+'.png');
  for i:=1 to maxwall do
-   if GLI1[i]=nil then GLI1[i]:=TGLImage.create('png'+pathdelim + 'wall'+inttostr(i)+'.png');
+   if GLI1[i]=nil then GLI1[i]:=TGLImage.create(datafolder+'png'+pathdelim + 'wall'+inttostr(i)+'.png');
  for i:=1 to maxpass do
-   if GLI2[i]=nil then GLI2[i]:=TGLImage.create('png'+pathdelim + 'pass'+inttostr(i)+'.png');
- if Item_Img=nil then Item_img:=TGLImage.create('png'+pathdelim + 'Item.png');
+   if GLI2[i]=nil then GLI2[i]:=TGLImage.create(datafolder+'png'+pathdelim + 'pass'+inttostr(i)+'.png');
+ if Item_Img=nil then Item_img:=TGLImage.create(datafolder+'png'+pathdelim + 'Item.png');
  for ix:=0 to bottypes do
   for iy:=0 to maxangle do if Bot_img[ix,iy]=nil then begin
      if iy<maxangle then
        case ix of
-         0:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'T'+inttostr(iy)+'.png');
-         1:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'Q'+inttostr(iy)+'.png');
-         2:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'N'+inttostr(iy)+'.png');
-         3:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'H'+inttostr(iy)+'.png');
+         0:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'T'+inttostr(iy)+'.png');
+         1:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'Q'+inttostr(iy)+'.png');
+         2:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'N'+inttostr(iy)+'.png');
+         3:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'H'+inttostr(iy)+'.png');
+         4:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'M'+inttostr(iy)+'.png');
        end
      else Bot_img[ix,maxangle]:=Bot_img[ix,0];
    end;
- for ix:=1 to maxcracks do if cracks_img[ix]=nil then cracks_img[ix]:=TGLImage.create('png'+pathdelim + 'cracks'+inttostr(ix)+'.png');
+ for ix:=1 to maxcracks do if cracks_img[ix]=nil then cracks_img[ix]:=TGLImage.create(datafolder+'png'+pathdelim + 'cracks'+inttostr(ix)+'.png');
 
  t:=now;
  //drawing the map
@@ -3930,7 +3934,7 @@ begin
     try
       UIFont.PrintStrings(txt_x+1, txt_y-1, Vector4Single(0,0,0,1), txt_out, false, 0);
       UIFont.PrintStrings(txt_x-1, txt_y+1, Vector4Single(0,0,0,1), txt_out, false, 0);
-      UIFont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/shotdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/shotdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/shotdelay,1), txt_out, false, 0);
+      UIFont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,1), txt_out, false, 0);
     finally end;
 {do_highlight:boolean;
   highlight_area:^map_array;}
@@ -3985,14 +3989,17 @@ begin
    CastleControl1.OnRender:=@Render;
    CastleControl2.OnRender:=@Render_minimap;
    animationtimer:=0;
-   shot_sound := SoundEngine.LoadBuffer('wav'+pathdelim+'Shotgun.wav', Duration);
-   reload_sound := SoundEngine.LoadBuffer('wav'+pathdelim+'Reload.wav', Duration);
+   shot_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Shotgun.wav', Duration);
+   reload_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Reload.wav', Duration);
+   clip_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Clip.wav', Duration);
+   item_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item.wav', Duration);
+   drop_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item_reverse.wav', Duration);
 
-   music[1]:=soundengine.loadbuffer('music'+pathdelim+'Socapex - Dark Ambiance - Mastered.wav',music_duration[1]);
-   music[2]:=soundengine.loadbuffer('music'+pathdelim+'gloom.wav',music_duration[2]);
-   music[3]:=soundengine.loadbuffer('music'+pathdelim+'dark_caves.wav',music_duration[3]);
-   music[4]:=soundengine.loadbuffer('music'+pathdelim+'Caves of sorrow.wav',music_duration[4]);
-   music[5]:=soundengine.loadbuffer('music'+pathdelim+'ambientmain_0.wav',music_duration[5]);
+   music[1]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.wav',music_duration[1]);
+   music[2]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.wav',music_duration[2]);
+   music[3]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.wav',music_duration[3]);
+   music[4]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.wav',music_duration[4]);
+   music[5]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.wav',music_duration[5]);
    timer1.enabled:=true;
    timer1.Interval:=1000;
    oldmusic:=-1;
@@ -4103,6 +4110,17 @@ var j,ammo_d:integer;
 begin
   if bot[thisbot].items[1].state>round(dam*itemdamagerate) then dec(bot[thisbot].items[1].state,round(dam*itemdamagerate)) else bot[thisbot].items[1].state:=0;
   bot[thisbot].action:=action_attack;
+
+  do_txt:=true;
+  txt_out.clear;
+  txt_out.append(inttostr(dam));
+  txt_x:=getx(bot[thisbot].x){-zoomscale div 2};
+  txt_y:=gety(bot[thisbot].y){+zoomscale div 2};
+  animationtimer:=now;
+  repeat form1.castlecontrol1.paint; until (now-animationtimer)*24*60*60*1000>hitdelay;
+  do_txt:=false;
+  form1.castlecontrol1.paint;
+
   if bot[thisbot].hp>dam then dec(bot[thisbot].hp,dam) else begin
    bot[thisbot].hp:=0;
 
@@ -4204,17 +4222,19 @@ begin
   //draw explosion
   //prepare drawing matrix
   for ix:=1 to maxx do
-   for iy:=1 to maxy do if vis^[ix,iy]>=oldvisible then begin
+   for iy:=1 to maxy do begin
+    explosion_area^[ix,iy]:=0;
+    if vis^[ix,iy]>=oldvisible then begin
     dx:=ix-ax;
     dy:=iy-ay;
-    explosion_area^[ix,iy]:=0;
     if (abs(dx)<generation) and (abs(dy)<generation) then
       if (area^[dx,dy]<=maxgeneration) then begin
-        i:=round((sqr((ablast/10/generationsum)/sqrt(area^[dx,dy]))+zoomscale/4));
-        if i>zoomscale then i:=zoomscale;
+        i:=round(1.5*(sqr((ablast/10/generationsum)/sqrt(area^[dx,dy]))+zoomscale/3));
+        if i>zoomscale*2 then i:=zoomscale*2;
         explosion_area^[ix,iy]:=i;
       end;
-  end;
+    end;
+   end;
 
   do_explosion:=true;
   animationtimer:=now;
@@ -4427,15 +4447,6 @@ begin
                center_map((bot[attacker].x+bot[defender].x) div 2,(bot[attacker].y+bot[defender].y) div 2);
 
          SoundEngine.PlaySound(shot_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
-         do_txt:=true;
-         txt_out.clear;
-         txt_out.append(inttostr(damage));
-         txt_x:=getx(bot[defender].x){-zoomscale div 2};
-         txt_y:=gety(bot[defender].y){+zoomscale div 2};
-         animationtimer:=now;
-         repeat castlecontrol1.paint; until (now-animationtimer)*24*60*60*1000>shotdelay;
-         do_txt:=false;
-         castlecontrol1.paint;
 
 {zzzzzzzzzzzzzzzzzzzzzzzzzzzz}
  {        with CastleControl1.canvas do begin
@@ -5331,7 +5342,7 @@ begin
        bot[thisbot].items[thisitem].ammo_id:=0;
        bot[thisbot].items[1].n:= bot[thisbot].items[thisitem].n;
        bot[thisbot].items[1].rechargestate:=weapon_specifications[bot[thisbot].items[1].w_id].recharge;
-       if bot[thisbot].owner=player then SoundEngine.PlaySound(reload_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+       if bot[thisbot].owner=player then SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
        loadw:=true;
      end
    end else showmessage(txt[57]);
@@ -5356,14 +5367,16 @@ begin
     if selectednew>backpacksize then selectednew:=backpacksize;
     if button=mbleft then begin
       if (ssShift in shift) or ((ssCtrl in shift) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0)) then begin
-        if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then
-          drop_item(selected,selectednew)
-        else
+        if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then begin
+          drop_item(selected,selectednew);
+          SoundEngine.PlaySound(drop_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
+        end else
         if (bot[selected].items[1].ammo_id>0) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0) then
          if spend_tu(selected,weapon_specifications[bot[selected].items[1].w_id].reload) then begin
           bot[selected].items[selectednew].ammo_id:=bot[selected].items[1].ammo_id;
           bot[selected].items[selectednew].n:=bot[selected].items[1].n;
           bot[selected].items[1].ammo_id:=0;
+          SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
          end;
       end else if ssCtrl in shift then begin
         if (bot[selected].items[selectednew].ammo_id>0) and (bot[selected].items[selectednew].w_id>0) then begin
@@ -5375,6 +5388,7 @@ begin
             bot[selected].items[freespace].ammo_id:=bot[selected].items[selectednew].ammo_id;
             bot[selected].items[freespace].n:=bot[selected].items[selectednew].n;
             bot[selected].items[selectednew].ammo_id:=0;
+            SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
            end
          end else showmessage(txt[58]);
 
@@ -5478,10 +5492,12 @@ begin
         item[itemsn].item.w_id:=0;
         selectedonfloor:=selectednew;
         selecteditem:=-1;
+        SoundEngine.PlaySound(clip_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
       end;
     end else
     if selectednew=selectedonfloor then begin
       pick_up(selected,selectedonfloor);
+      SoundEngine.PlaySound(item_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
       selectedonfloor:=-1;
     end else begin
       selectedonfloor:=selectednew;
