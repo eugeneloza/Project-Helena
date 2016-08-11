@@ -1,0 +1,193 @@
+
+	BUGS
+Всегда подсвечивать в режиме "осторожный". И вообще оптимизировать режим.
+Can shoot >minimapsize -> wierd behaviour
+If bldg-generation x<>y swapped then vis^[ix,iy] check fails
+? You cannot attack enemy too far away (further than your visible range) / this will make bots shot from out of sight especially in smoke.
+damage is reduced only to 50% at max range... maybe it's fine?
+two bots names can be equal
+! sometimes LOS(x1,y1,x2,y2)<>LOS(x2,y2,x1,y1); (stupid bugfix made)
+! sometimes some mess is left after shot
+LOS_base is sometimes set to 0 near wall... why??? / see bug*.png
+! When enemy is locked and cannot move and tu<time to shot the endturn hangs up for a while
+(?) Range check error 1enemy=HP/3000 bazooka party at enemy turn / could not reproduce
+wall tile 4 at high state may cross with map_generation
+"holes" in vis far away...
+demanded difficulty bots>free area
+if select - change y0 position in list of units (if the list does not fit the screen)
+Русское описание оружия!!!
+см. геймдев.ру
+
+	BETTA
+Display message/dialog
+shop. Type=shop,weapon repair,Heal,research
+Event
+A few more weapon types. Optimize weapon/ammo id
+Each weapon has its own weapon damage rate - BY attacks, not uses (special cannons may have less than 40%)
+Inequippable weapons (artifacts): Scorpio cannon
+sound/music http://opengameart.org/art-search-advanced?keys=&&&field_art_tags_tid_op=and&field_art_tags_tid=Post-Apocalyptic&name=&sort_by=created&sort_order=DESC&items_per_page=24&collection=&page=3
+SCRIPTING
+	
+	logic:
+{$R+}{$Q+}
+Technologies
+load ammo into weapons in the backpack (e.g. by ctrl-click?)
+generate and move enemies in group
+See which items lie in a pile (if seen before)
+Short-ranged weapons (i.e. acc-100 with min distance specified) for mobs (claws, clubs etc) adjust AI for such stuff
+Tutorial mode: achievements[array] = not yet(0) / required+event(1..254) / done(255). If required and action then initiate event [+event]
+	general information & comments
+	Select/move/shot/end turn
+	change weapon/load clip/unload clip/ctrl-click
+shadowing by corners. (e.g. target is 50% visible) - reduction of the damage
+Use distance^[x,y] to display TUs required
+?remember path (target xy) for each player bot for next turn?
+(+) click item and click primary item screen to change item / load ammo
+click to wait for reload (?)
+shot at any map square, not only at enemies. When target is empty then confirmation. Only for explosive?
+difficulty increases with lower LOS, e.g. both high and low LOS (including smoke) are dangerous for player.
+difficulty estimate for a single enemy must be irrelevant to map size.
+try sqrt(los/mapfree) difficulty estimate
+High scores
+!homogeneous enemy placement at the map 
+10% to violate bot homogenity. 1..20 or mapx/3 ---- 50% less bot density.
+DIGGABLE!!!!!
+
+	graphic:
+??? - thread drawing
+(10%) blast animation
+(90%) optimize "redraw all"
+(60%) modify lists and info only when needed
+textures * different textures for different maps
+see if copyrect can copy with changed colors/opacity (16 tiles) or should all colors be drawn beforehand (16x16 tiles or more)?
+better sprites
+scalable gui
+smooth wall corners
+animated movement
+
+	bot AI:
+movement considering other bots or not (for group movement/attack)
+Bots with explosive ammo should not blow themselves up?
+Guarding / if the bot can move to LOS, shot and return back to guardpoint(guardarea)
+bot chooses better weapon/ammo from the backpack if possible and not buisy
+
+	maps:
+(+)!!! fixed STAMP & Building- generate from files.
+map_generation should give different tiles for different map parts
+logical random_tiles for
+	eggRe,
+	small rooms,
+	plus,
+	snowflake,
+	areas,
+	worms
+generate spawnpoints[i] / guard
+generate eventpoints[i] / place bot[i] at spawnpoint near event[j]
+Deform
+Combine
+TrueRooms / rooms have impenetratable walls and are connected by logic passages (some broad)
+Randomwalker (walk N steps at angle alpha (discrete), then turn. rnd*Die. At Die fill walls to be superwalls at passage. Pick random superwall and walk, not penetrating superwalls if random.
+HELENA
+ARENA
+Sequential maps
+Many parallel maps
+draw geo map
+load/save map from a file
+
+--------------------------------------------------------------
+
+	ideas
+reaction shot?
+energy? walking/shooting/lasers reduced by hits
+Different units specializations / character classes / strengths&weaknesess
+Different enemies classes / visible difference
+
+	mission:
+quests
+scripting, messages*dialogs
+- clear territory (kill all, %)
+- explore 75%
+- destroy specific bot
+- protect specific bot
+- find item
+- move from A to B
+- protect area
+- visit waypoints 1..2..3..4.. (triggers)
+
+	Hacks:
+See through walls
+See x,y
+Shot through walls
+Direct attack
+Destroy wall
+Create smoke
+Explosion
+Chain lighting
+Acceleration
+Accuracy
+...
+
+---------------------------------------------------------
+
+repair value formula / coef=3; {for in-hand repairs coef is float (0..2) based on experience and is always less than shop repair}
+Repair_amount:=(max-state)/(coef+1)
+//Repaired_state=repaired_max:=(coef*max+state)/(coef+1)
+...
+Repaired_max:=maxs-trunc(Repair_amount);
+Repaired_state:=state+coef*trunc(Repair_amount);
+
+item_value:=basevalue*sqr(sqr(sqr(sqr(((max-state)/(coef+1)/maxmax)))))-repair_amount*repair_cost //? or repair cost = value difference
+if item_value<minimal_value then item_value:=minimal_value;
+
+//////////////////////////////////////////////////////////////////////////
+
+- shops & events attached to map(x1,y1,x2,y2)
+- quests are all-game
+
+event:
+status = active, passive, special status (finished)
+x1,y1,x2,y2
+'message' // if message ='' then do not display, just go through conditions
+IF condition THEN event 1 ELSE event 2 // event may be 'exit'
+// condition = none // simple event, just click to skip to next
+// condition = quest status
+// condition = event 3 . status
+// multiple conditions = multiple events
+// condition = player input
+set condition status
+set quest status
+
+if starts with < then parse / seek for parameters =...;
+WRITE PARSER-TESTER
+
+TRIGGERS 1..255;
+
+#COMMENT <EMPTY LINE DOES NOT COUNT>
+#IT'S MADE TO LOOK SIMILIAR TO XLM, THOU IT IS NOT XML
+
+<MAP NAME=***; TYPE=***; (PARAMETERS) FULLNAME='***'/>;
+<MAPCONDITIONS FREE=***..***; INHOMOGENITY=***..***; DIFFICULTY=***..***; ERRORS=***..***/>
+
+<BOT N=*** (PARAMETERS)/>
+
+<ITEM N=***; WEARPON=***; (PARAMETERS) AMMO=***; (PARAMETERS) / VALUE=***/>
+
+<SHOP TYPE=REPAIR,UPGRADE,SHOP/>
+
+<EVENT NAME=***;>
+STATE=ACTIVE-PASSIVE
+X1; Y1; X2; Y2;
+MESSAGE[1] AUTHOR=***; TEXT=***;
+MESSAGE[2] AUTHOR=***; TEXT=***; //use as next event
+MESSAGE[N] AUTHOR=***; TEXT=***;
+SELECTION
+VARIANT[1]=YES; VARIANT[2]=NO;
+
+***CONDITION= ITEM/TRIGGER/MISSION
+***SET TRIGGER=
+***ONCONDITION= CHANGE EVENT STATE
+</EVENT>
+
+</MAP>
+
+if unable to place event at xy then seek closest place _ or make room

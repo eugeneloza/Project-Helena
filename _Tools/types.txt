@@ -1,0 +1,98 @@
+Itemtype=
+
+01 light wasp           // standard wearpon // TU=50
+02 sniper wasp          // ACC bonus // TU penalty
+03 heavy wasp           // DAM bonus // TU penalty
+04 auto wasp            // ACC penalty // TU bonus
+
+101 clip               // DAM=30 / n=20
+102 AP clip            // DAM=40 / n=15
+103 heavy clip         // DAM=50 / n=10
+104 extended clip      // DAM=30 / n=30
+105 extended clip II   // DAM=30 / n=40
+105 extended clip III  // DAM=30 / n=50
+106 superheavy clip    // DAM=75 / n=5
+107 extended AP clip   // DAM=40 / n=25
+
+11 falcon              // standard wearpon (cannon) / TU=100
+12 sniper falcon       // TU=150
+13 heavy falcon        // TU=200
+14 superheavy falcon   // TU=250
+
+111 F-clip             // DAM=100 //n=10
+112 heavy F-clip       // DAM=125 //n=7
+113 superheavy F-clip  // DAM=150 //n=4
+114 extended F-clip    // DAM=100 //n=15
+115 explosive F-clip   // DAM=75 + EXPLOSION 40
+116 vast F-clip        // DAM=50 + EXPLOSION 80
+117 blaster F-clip     // DAM=100 + EXPLOSION 50
+119 vacuum F-clip      // DAM=0 + EXPLOSION 150
+
+21 Rhino launcher      // TU=500
+
+121 Standard Missle    // DAM=100 // n=1 // EXPLOSION=100
+122 AP Missle          // DAM=150 // n=1 // EXPLOSION=100
+123 HEAVY Missle       // DAM=150 // n=1 // EXPLOSION=100
+
+autocannon /// ACC penalty
+-- rounds
+
+smoke clips
+
+
+
+explosion
+
+
+first generation goes 3 steps in direction of the shot (if possible)
+                      3333333
+                     332222233
+------------------------1112233
+                     332222233
+                      333333
+growing until area>explostion area or max explosion radius or no moves
+
+1&2nd generations are equal strength
+last generation+1 is strength=0;
+1 full
+2 full
+3
+4
+..
+n
+n+1 0
+1/(generation-1)-1/(n+1-1)
+
+
+CLIP
+n
+ACC bonus
+DAM bonus
+EXPLOSION + pushes targets if possible
+EXPLOSION AREA
+SMOKE // aka explosion
+TRACE SMOKE
+
+WEARPON
+ACC bonus
+DAM bonus
+TU reload
+TU aim
+RELOAD(TU)
+RECHARGE(TU)
+STATE/MAXSTATE
+
+Modifier
+CW ACC+1
+CW DAM+1
+CW RECHARGE+1
+ W RELOAD+1
+CW AIM+1
+C  EXPLOSION+1(area+1)
+C  SMOKE+1
+C  TRACE SMOKE+1
+C  N+1
+CW VALUE+1
+ W STATE+1
+C  PUSH
+C  TELEPORT+1 (within visible range)
