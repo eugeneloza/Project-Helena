@@ -43,7 +43,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
       defensedifficulty=5;
       standard_damage=10;
-      average_los_value=43.68;   ////////////////////////////// LOS!!!
+      average_los_value=42.34;   ////////////////////////////// corrected LOS
 
 const itemdamagerate=0.4;           //40% damage taken by armed weapon
 
@@ -2238,6 +2238,64 @@ begin
    for iy:=2 to maxy-1 do if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_wall;
 end;
 
+{----------------------------------------------------------------------------------}
+
+const maxmaxrooms=maxmaxx div 3;
+procedure generate_map_untangle;
+var map_seed,roomsize,thisroomsize:float;
+    map_roomsn:integer;
+    roomx,roomy:array[0..maxmaxrooms]of byte;
+    i,j,dx,dy,length,radius:integer;
+    shape:byte;
+begin
+  generate_map_makewalls(map_generation_wall);
+  map_roomsn:=1+maxx div 7+round(maxx/7 * random);
+  map_seed:=sqr(1/map_roomsn)+0.2*random;
+  if map_roomsn>maxmaxrooms then map_roomsn:=maxmaxrooms;
+  form1.memo1.lines.add('UNTANGLE MAP * '+inttostr(round(map_seed*100))+'/rooms='+inttostr(map_roomsn));
+  if random>0.5 then roomsize:=0 else roomsize:=1+(random*maxx/10);
+  shape:=trunc(random*3);
+  radius:=maxx div 2-round(random*maxx/9);
+  case shape of
+    0:form1.memo1.lines.add('random shape');
+    1:form1.memo1.lines.add('circle shape '+inttostr(radius));
+    2:form1.memo1.lines.add('random circle shape '+inttostr(radius));
+  end;
+  roomx[0]:=2;
+  roomy[0]:=2;
+  for i:=1 to map_roomsn do begin
+    case shape of
+      0:begin roomx[i]:=round((maxx-2)*random)+2;roomy[i]:=round((maxy-2)*random)+2;  end;
+      1:begin roomx[i]:=maxx div 2+round(radius*sin(2*Pi*i/map_roomsn));roomy[i]:=maxy div 2+round(radius*cos(2*Pi*i/map_roomsn));  end;
+      2:begin roomx[i]:=maxx div 2+round((radius/3+2*radius/3*random)*sin(2*Pi*i/map_roomsn));roomy[i]:=maxy div 2+round((radius/3+2*radius/3*random)*cos(2*Pi*i/map_roomsn));  end;
+    end;
+  end;
+
+  //create rooms
+  if roomsize>0 then
+  for i:=0 to map_roomsn do begin
+    thisroomsize:=sqr(random)*roomsize;
+    if round(thisroomsize)>0 then
+    for dx:=roomx[i]-round(thisroomsize)-1 to roomx[i]+round(thisroomsize)+1 do if (dx>1) and (dx<maxx) then
+     for dy:=roomy[i]-round(thisroomsize)-1 to roomy[i]+round(thisroomsize)+1 do if (dy>1) and (dy<maxy) then
+      if sqr(roomx[i]-dx)+sqr(roomy[i]-dy)<=sqr(thisroomsize) then
+        map^[dx,dy]:=map_generation_free;
+  end;
+
+  //create passages
+  for i:=0 to map_roomsn-1 do
+   for j:=i+1 to map_roomsn do if ((random<map_seed) or (i=0)) and ((i>0) or (j=1)) then begin
+     length:=round(5*sqrt(sqr(roomx[i]-roomx[j])+sqr(roomy[i]-roomy[j])));
+     if length>0 then
+     for dx:=0 to length do begin
+       safemapwrite(roomx[i]+round(     (roomx[j]-roomx[i])*dx/length),roomy[i]+round(    (roomy[j]-roomy[i])*dx/length),map_generation_free);
+{       safemapwrite(roomx[i]+round( 0.5+(roomx[j]-roomx[i])*dx/length),roomy[i]+round(0.5+(roomy[j]-roomy[i])*dx/length),map_generation_free);
+       safemapwrite(roomx[i]+round(-0.5+(roomx[j]-roomx[i])*dx/length),roomy[i]+round(0.5+(roomy[j]-roomy[i])*dx/length),map_generation_free);}
+     end;
+   end;
+
+end;
+
 {-------------------------------------------------------------------------------------------}
 
 procedure create_bunker(bx,by,bsizex,bsizey:integer);
@@ -2565,7 +2623,7 @@ begin
        12:   repeat generate_map_egg            until test_map(20,70);
        13:   repeat generate_map_net            until test_map(20,70);       //problems at 700x700
        14:   repeat generate_map_plus           until test_map(20,70);
-       15:      if random<1/5 then
+       15: if random<1/5 then
              repeat generate_map_smallrooms     until test_map(20,70)
            else if random<1/4 then
              repeat generate_map_Imap           until test_map(20,70)
@@ -2575,12 +2633,18 @@ begin
              repeat generate_map_five           until test_map(20,70)
            else
              repeat generate_map_dash          until test_map(20,70);
-       16:   repeat generate_map_rotor          until test_map(20,70);
+       16: if random>0.5 then
+             repeat generate_map_untangle       until test_map(30,60)
+           else
+             repeat generate_map_rotor          until test_map(20,70);
        17:   repeat generate_map_eggre          until test_map(20,70);
        18:   repeat generate_map_snowflake      until test_map(20,70);
        19:   repeat generate_map_areas          until test_map(20,90);
        20:   repeat generate_map_wormhole       until test_map(20,90);
   end;
+
+
+
 
   if (form1.radiobutton3.checked) or ((form1.radiobutton2.checked) and (random>0.8)) then begin
     memo1.lines.add('Generating smoke...');
@@ -4596,6 +4660,7 @@ begin
    end;
     {draw backpack items}
    with image3.canvas do begin
+       font.size:=9;
        if (backpacksize*2-2)*fontsize+8<image3.height then begin
          scrollbar1.enabled:=false;
          scrollbar1.position:=0;
