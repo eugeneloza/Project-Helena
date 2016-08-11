@@ -1,0 +1,61 @@
+# at this moment ID is not required, the ID is automatially assigned as 1,2,3,4... but the weapons require ID to count loadable ammo, therefore ID is given for reference and convenience
+<AMMO>
+	ID=1
+	NAME=Lt. Wasp clip
+	ACC=          0
+	DAM=         15
+	QUANTITY=    20
+	EXPLOSION=    0
+	AREA=         0
+	SMOKE=        0
+</AMMO>
+<AMMO>
+	ID=2
+	NAME=Ext. Wasp clip
+	ACC=          0
+	DAM=         15
+	QUANTITY=    30
+	EXPLOSION=    0
+	AREA=         0
+	SMOKE=        0
+</AMMO>
+<AMMO>
+	ID=3
+	NAME=Hv. Wasp clip
+	ACC=          0
+	DAM=         20
+	QUANTITY=    10
+	EXPLOSION=    0
+	AREA=         0
+	SMOKE=        0
+</AMMO>
+<AMMO>
+	ID=4
+	NAME=Acc. Wasp clip
+	ACC=         80
+	DAM=         16
+	QUANTITY=    12
+	EXPLOSION=    0
+	AREA=         0
+	SMOKE=        0
+</AMMO>
+<AMMO>
+	ID=5
+	NAME=St. Falcon clip
+	ACC=          0
+	DAM=        130
+	QUANTITY=     7
+	EXPLOSION=   30
+	AREA=         3
+	SMOKE=       10
+</AMMO>
+<AMMO>
+	ID=6
+	NAME=Expl. Falcon clip
+	ACC=          0
+	DAM=         10
+	QUANTITY=     7
+	EXPLOSION=  999
+	AREA=        26
+	SMOKE=       20
+</AMMO>

@@ -42,6 +42,8 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       blastdelay=500;              {ms}
 
       defensedifficulty=5;
+      standard_damage=10;
+      average_los_value=45;
 
 const itemdamagerate=0.4;           //40% damage taken by armed weapon
 
@@ -91,10 +93,17 @@ const map_free=0;
       map_tile4=96;       // .11.....
 
 const gamemode_game=255;
-      gamemode_help=1;
-      gamemode_none=0;
       gamemode_victory=254;
-      gamemode_defeat=101;
+      gamemode_defeat=253;
+        gamemode_map=127; //separator between mode "click to continue" and "move"
+      gamemode_help=1;
+      gamemode_message=2;
+      gamemode_none=0;
+
+const datafolder='DAT'+pathdelim;
+      scriptfolder=datafolder+'script'+pathdelim;
+
+//const tutorial_
 
 type float=double;
 
@@ -113,6 +122,7 @@ type
     CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
     CheckBox3: TCheckBox;
+    CheckBox4: TCheckBox;
     ComboBox1: TComboBox;
     Edit1: TEdit;
     Edit2: TEdit;
@@ -209,7 +219,7 @@ type
     procedure find_onfloor(x,y:integer);
     procedure grow_smoke;
     procedure bot_shots(attacker,defender:integer);
-    function spend_tu(thisbot:integer;tus:byte):boolean;
+    function spend_tu(thisbot:integer;tus:integer):boolean;
     procedure calculate_area(ax,ay,a,asmoke,ablast:integer);
     function load_weapon(thisbot,thisitem:integer):boolean;
     procedure pick_up(thisbot,thisitem:integer);
@@ -217,20 +227,17 @@ type
     procedure setcontrols_menu(flg:boolean);
     procedure setcontrols_game(flg:boolean);
     procedure center_map(tox,toy:integer);
+
+//    procedure display_message(mess:string);
   end;
 
-const maxmodifiers=2;
 type item_type=record
   w_id:byte;                 //for weapons, 0 if pure ammo
   state,maxstate:byte;
   rechargestate:word;
-//  w_modifier_type:array[1..maxmodifiers] of byte;
-//  w_modifier_level:array[1..maxmodifiers] of shortint;
 
   ammo_id:byte;
   n:byte;
-//  a_modifier_type:array[1..maxmodifiers] of byte;
-//  a_modifier_level:array[1..maxmodifiers] of shortint;
 end;
 
 const maxusableammo=9;
@@ -245,7 +252,7 @@ type ammo_type=record
   name:string[30];
   quantity:byte;
   ACC,DAM:integer;
-  EXPLOSION,AREA,SMOKE,TRACE_SMOKE:integer;
+  EXPLOSION,AREA,SMOKE:integer;
 end;
 
 type laying_item_type = record
@@ -288,8 +295,9 @@ var
   maxx,maxy:integer;
   playersn:integer;
   viewx,viewy,viewsizex,viewsizey:integer;
-  draw_map_all:boolean;
+  draw_map_all,show_los:boolean;
   mapgenerated:boolean;
+  random_tiles:boolean;
   regenerate_los:boolean;
   gamemode,previous_gamemode:byte;
 
@@ -311,6 +319,10 @@ var
 
   movement_map_for: integer;
   nx1,nx2,ny1,ny2:integer;
+
+  f1:text;
+
+  w_types,a_types:integer;
 
 //  sintable,costable: array[0..maxangle] of float;
 
@@ -526,7 +538,7 @@ end;
 {================================================================================}
 {================================================================================}
 
-function TForm1.spend_tu(thisbot:integer;tus:byte):boolean;
+function TForm1.spend_tu(thisbot:integer;tus:integer):boolean;
 begin
  if (bot[thisbot].tu>=tus) or (gamemode=gamemode_victory) then begin
    if gamemode<>gamemode_victory then dec(bot[thisbot].tu,tus);
@@ -534,7 +546,9 @@ begin
    spend_tu:=true;
  end else begin
    spend_tu:=false;
-   if bot[thisbot].owner=player then showmessage('Not enough TUs');
+   if bot[thisbot].owner=player then begin
+     if tus<=255 then showmessage('Not enough TUs') else showmessage('Impossible...')
+   end;
  end;
 end;
 
@@ -661,16 +675,55 @@ end;
 {--------------------------------------------------------------------------------------}
 procedure generate_map_cocon; //???
 var ix,iy,cx,cy:integer;
+    dx,dy:integer;
     map_seed:float;
+    tile:byte;
+    flg,flgx:boolean;
 begin
+  random_tiles:=false;
   form1.memo1.lines.add('COCON MAP * no');
   cx:=round((2+random)*maxx/5);
   cy:=round((2+random)*maxy/5);
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
        map_seed:=1.5*sqrt((sqr(ix-cx+0.0001)+sqr(iy-cy+0.0001)+1)/(sqr((maxx +0.0001)/ 2)+sqr((maxy+0.0001) / 2)+1));
-       if (random>map_seed) or (random<0.3) then map^[ix,iy]:=map_generation_wall else map^[ix,iy]:=map_generation_free;
+       if 1>map_seed then tile:=3 else
+       if 0.5>map_seed then tile:=2 else
+                            tile:=1;
+       if (random>map_seed) or (random<0.3) then map^[ix,iy]:=map_generation_wall+tile else map^[ix,iy]:=map_generation_free+tile;
      end;
+
+  map^[cx,cy]:=map_generation1;
+  repeat
+   flgx:=true;
+   for ix:=2 to maxx-1 do
+     for iy:=2 to maxy-1 do if (map^[ix,iy]<map_generation_free) and (map^[ix,iy]>=map_generation_wall) then begin
+       flg:=false;
+       for dx:=-1 to 1 do
+        for dy:=-1 to 1 do
+           if map^[ix+dx,iy+dy]=map_generation1 then flg:=true;
+       for dx:=-1 to 1 do
+         for dy:=-1 to 1 do
+           if map^[ix+dx,iy+dy]>=map_generation_free then flg:=false;
+
+       if flg then begin
+         map^[ix,iy]:=map_generation1;
+         flgx:=false;
+       end;
+     end;
+  until flgx;
+
+  repeat
+    ix:=round(random*(maxx-3))+2;
+    iy:=round(random*(maxy-3))+2;
+  until (map^[ix,iy]>=map_generation_free);
+
+  for dx:=0 to maxx do
+    map^[cx+round((ix-cx)*dx/maxx),cy+round((iy-cy)*dx/maxx)]:=map_generation1;
+
+  for ix:=2 to maxx-1 do
+    for iy:=2 to maxy-1 do
+      if map^[ix,iy]=map_generation1 then map^[ix,iy]:=map_generation_free+0;
 end;
 
 {----------------------------------------------------------------------------------}
@@ -828,6 +881,8 @@ begin
     for iiy:=iy*dy to (iy+1)*dy do if (abs((ix+0.5)*dx-iix)+abs((iy+0.5)*dy-iiy)<dx/1.9) and (iix>0) and (iiy>0) and (iix<=maxx) and (iiy<=maxy) then map^[iix,iiy]:=map_generation_free;
   end;
 end;
+
+{-------------------------------------------------------------------------------}
 
 procedure generate_map_tmap;
 var ix,iy:integer;
@@ -1171,7 +1226,9 @@ var ix,iy,j:integer;
     cx0,cy0,cx,cy:float;
     rout,rin:float;
     pass_count:integer;
+    tile:byte;
 begin
+  random_tiles:=false;
   generate_map_makewalls(map_generation_wall);
   cx0:=random*(maxx/2)+maxx/4;
   cy0:=random*(maxy/2)+maxy/4;
@@ -1185,9 +1242,14 @@ begin
   repeat
     cx:=cx0+random*2-1;
     cy:=cx0+random*2-1;
+    if rout>3* maxx div 4 then tile:=0 else
+    if rout>2* maxx div 4 then tile:=1 else
+    if rout>   maxx div 4 then tile:=2 else
+                            tile:=3;
+
     for ix:=1 to maxx do
      for iy:=1 to maxy do if sqr(ix-cx)+sqr(iy-cy)<=sqr(rout) then begin
-       if sqr(ix-cx)+sqr(iy-cy)<=sqr(rin) then map^[ix,iy]:=map_generation_wall else map^[ix,iy]:=map_generation_free;
+       if sqr(ix-cx)+sqr(iy-cy)<=sqr(rin) then map^[ix,iy]:=map_generation_wall+tile else map^[ix,iy]:=map_generation_free+tile;
      end;
     pass_count:=0;
     repeat
@@ -1195,9 +1257,7 @@ begin
       iy:=round(random*(maxy-2))+2;
       if (sqr(ix-cx)+sqr(iy-cy)<=sqr(rout)) and (sqr(ix-cx)+sqr(iy-cy)>=sqr(rin)) then begin
         for j:=0 to round(rout*10) do begin
-          map^[round(ix+(cx-ix)*j/round(rout*10)    ),round(iy+(cy-iy)*j/round(rout*10)    )]:=map_generation_free;
-{          map^[round(ix-(cx-ix)*j/round(rout*10)+0.5),round(iy-(cy-iy)*j/round(rout*10)-0.5)]:=map_generation_free;
-          map^[round(ix-(cx-ix)*j/round(rout*10)-0.5),round(iy-(cy-iy)*j/round(rout*10)+0.5)]:=map_generation_free;}
+          map^[round(ix+(cx-ix)*j/round(rout*10)    ),round(iy+(cy-iy)*j/round(rout*10)    )]:=map_generation_free+tile;
         end;
         inc(pass_count);
       end;
@@ -2158,24 +2218,12 @@ var ix,iy,dx,dy:integer;
 
     thismapfloor,thismapwall:byte;
 begin
- repeat
-   case trunc(random*4) of
-     0:thismapfloor:=map_tile1;
-     1:thismapfloor:=map_tile2;
-     2:thismapfloor:=map_tile3;
-     3:thismapfloor:=map_tile4;
-   end;
-   case trunc(random*4) of
-     0:thismapwall:=map_tile1;
-     1:thismapwall:=map_tile2;
-     2:thismapwall:=map_tile3;
-     3:thismapwall:=map_tile4;
-   end;
- until thismapfloor<>thismapwall;
+
+ //entrance bunker
 
  for ix:=2 to 7 do
    for iy:=2 to 7 do begin
-     map^[ix,iy]:=map_free+0 shl 5; //tile=0
+     map^[ix,iy]:=map_free{+0 shl 5}; //tile=0
    end;
 
  map^[6,6]:=map_generation_wall;
@@ -2186,14 +2234,35 @@ begin
  map^[4,6]:=map_generation_wall;
 // map^[3,6]:=map_generation_wall;
 
+if random_tiles then
+repeat
+ case trunc(random*4) of
+   0:thismapfloor:=map_tile1;
+   1:thismapfloor:=map_tile2;
+   2:thismapfloor:=map_tile3;
+   3:thismapfloor:=map_tile4;
+ end;
+ case trunc(random*4) of
+   0:thismapwall:=map_tile1;
+   1:thismapwall:=map_tile2;
+   2:thismapwall:=map_tile3;
+   3:thismapwall:=map_tile4;
+ end;
+until thismapfloor<>thismapwall;
+
  repeat
   nfree:=0;
   for ix:=2 to maxx-1 do
    for iy:= 2 to maxy-1 do begin
-     if map^[ix,iy]=map_generation_free then
+     if map^[ix,iy]>=map_generation_free then
      for dx:=-1 to 1 do
        for dy:=-1 to 1 do
-         if map^[ix+dx,iy+dy]<map_wall then begin map^[ix,iy]:=map_free+thismapfloor; nfree:=1; end; //tile
+         if map^[ix+dx,iy+dy]<map_wall then begin
+           if random_tiles then map^[ix,iy]:=map_free+thismapfloor else begin
+             if map^[ix,iy]>=map_generation_free then map^[ix,iy]:=map_free+(map^[ix,iy]-map_generation_free) shl 5;
+           end;
+           nfree:=1;
+         end;
 
    end;
  until nfree=0;
@@ -2206,7 +2275,9 @@ begin
   for ix:=1 to maxx do
    for iy:= 1 to maxy do begin
      if map^[ix,iy]<map_wall then inc(nfree);
-     if map^[ix,iy]=map_generation_wall then map^[ix,iy]:=map_wall+thismapwall+maxstatus-4+round(random*4);
+     if map^[ix,iy]>=map_generation_wall then begin
+       if random_tiles then map^[ix,iy]:=map_wall+thismapwall+maxstatus-4+round(random*4) else map^[ix,iy]:=map_wall+(map^[ix,iy]-map_generation_wall) shl 5+maxstatus-4+round(random*4);
+     end;
    end;
 
 
@@ -2335,10 +2406,10 @@ end;
 function saydifficulty(difficulty:integer):string;
 begin
   case difficulty of
-      0.. 80:saydifficulty:='EASY'+' ('+inttostr(difficulty)+'%)';
-     81..160:saydifficulty:='NORMAL'+' ('+inttostr(difficulty)+'%)';
-    161..240:saydifficulty:='HARD'+' ('+inttostr(difficulty)+'%)';
-    241..400:saydifficulty:='ULTRA HARD'+' ('+inttostr(difficulty)+'%)';
+      0.. 50:saydifficulty:='EASY'+' ('+inttostr(difficulty)+'%)';
+     51..120:saydifficulty:='NORMAL'+' ('+inttostr(difficulty)+'%)';
+    121..150:saydifficulty:='HARD'+' ('+inttostr(difficulty)+'%)';
+    151..250:saydifficulty:='ULTRA HARD'+' ('+inttostr(difficulty)+'%)';
     ELSE   saydifficulty:='INSANE?'+' ('+inttostr(difficulty)+'%)'
   end
 end;
@@ -2381,6 +2452,7 @@ begin
        mapchanged^[ix,iy]:=255;
     end;
 
+  random_tiles:=true;
   if combobox1.itemIndex<1 then map_type:=trunc(random*20)+1 else map_type:=combobox1.ItemIndex;
   case map_type of
         1: if random>0.6 then
@@ -2524,18 +2596,22 @@ begin
   for ix:=1 to nbot do begin
     if bot[ix].owner=player then begin
       if bot[ix].hp>15 then inc(total_player_hp,bot[ix].hp) else inc(total_player_hp,15);
-      inc(total_player_firepower,10);
+      inc(total_player_firepower,standard_damage);
     end else begin
       if bot[ix].hp>15 then inc(total_bot_hp,bot[ix].hp) else inc(total_bot_hp,15);
-      inc(total_bot_firepower,10);
+      inc(total_bot_firepower,standard_damage);
     end;
   end;
   memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
   if checkbox1.checked then ix:=defensedifficulty else ix:=1;
+
   memo1.lines.add('HP ratio = '+inttostr(round(100*total_bot_hp/total_player_hp))+'%');
+
   estimated_firepower:=total_bot_firepower/total_player_firepower*averageLOS/mapfreespace;
-  if estimated_firepower<1/playersn then estimated_firepower:=1/playersn;
+  if estimated_firepower<standard_damage/(standard_damage*playersn) then estimated_firepower:=standard_damage/(standard_damage*playersn);
   memo1.lines.add('Firepower ratio = '+inttostr(round(ix*100*estimated_firepower))+'%');
+  estimated_firepower:=estimated_firepower*1/({random damage}1-(nbot-playersn)*0.25*5*standard_damage/total_player_hp)/({persistent damage}1-(nbot-playersn)*standard_damage*(total_bot_hp/(nbot-playersn)/(playersn*standard_damage*5))/total_player_hp);
+  memo1.lines.add('Adjusted firepower ratio = '+inttostr(round(ix*100*estimated_firepower))+'%');
   iy:=round(100*total_bot_hp/total_player_hp * ix*estimated_firepower);
   memo1.lines.add('True difficulty = '+saydifficulty(iy));
 
@@ -2558,18 +2634,10 @@ begin
   viewy:=0;
   memo1.lines.add('=========================');
 
+  if checkbox4.checked then begin
+    memo1.lines.add('Tutorial mode on');
 
-{  map_type:=1 shl 7 + 0 shl 5 + 0 shl 2 + 7; {wall-pass shl 7 + tile-type shl 5 + status shl 2 + fire (or +status for walls)}
-  memo1.lines.add('[dbg] encoded map = '+inttostr(map_type));
-  if map_type<128 then
-    memo1.lines.add('[dbg] wall = false')
-  else begin
-    memo1.lines.add('[dbg] wall = true');
-    dec(map_type,128);
   end;
-  memo1.lines.add('[dbg] tile_type = '+inttostr(map_type and 96 shr 5));
-  dec(map_type,map_type and 96);
-  memo1.lines.add('[dbg] status = '+inttostr(map_type));}
 
 
   current_turn:=0;
@@ -2580,130 +2648,98 @@ end;
 
 {--------------------------------------------------------------------------------------}
 
+function valueof(s:string):integer;
+var v1,v2:integer;
+begin
+  val(s,v1,v2);
+  if v2<>0 then showmessage('Scripting error! Cannot read value.');
+  valueof:=v1;
+end;
+
 procedure TForm1.generate_items_types;
 var i:integer;
+    s:string;
 begin
- with weapon_specifications[1] do begin
-   NAME     := 'Lt. Wasp';
-   ACC      :=  20;
-   DAM      :=   0;
-   RECHARGE :=  40;
-   AIM      :=  10;
-   RELOAD   :=  50;
-   MAXSTATE := 150;
-   for i:=1 to maxusableammo do AMMO[i]:=0;
-   AMMO[1]  := 1;
-   AMMO[2]  := 2;
-   AMMO[3]  := 3;
-   AMMO[4]  := 4;
- end;
- with weapon_specifications[2] do begin
-   NAME     := 'Hv. Wasp';
-   ACC      :=   0;
-   DAM      :=   5;
-   RECHARGE :=  50;
-   AIM      :=  10;
-   RELOAD   := 100;
-   MAXSTATE :=  90;
-   for i:=1 to maxusableammo do AMMO[i]:=0;
-   AMMO[1]  := 1;
-   AMMO[2]  := 2;
-   AMMO[3]  := 3;
-   AMMO[4]  := 4;
- end;
- with weapon_specifications[3] do begin
-   NAME     := 'Sniper Wasp';
-   ACC      := 100;
-   DAM      :=   0;
-   RECHARGE :=  40;
-   AIM      :=  15;
-   RELOAD   := 100;
-   MAXSTATE :=  80;
-   for i:=1 to maxusableammo do AMMO[i]:=0;
-   AMMO[1]  := 1;
-   AMMO[2]  := 2;
-   AMMO[3]  := 3;
-   AMMO[4]  := 4;
- end;
- with AMMO_specifications[1] do begin
-   NAME        := 'Lt. Wasp clip';
-   ACC         :=  0;
-   DAM         := 15;
-   QUANTITY    := 20;
-   EXPLOSION   :=  0;
-   AREA        :=  0;
-   SMOKE       :=  0;
-   TRACE_SMOKE :=  0;
- end;
- with AMMO_specifications[2] do begin
-   NAME        := 'Ext. Wasp clip';
-   ACC         :=  0;
-   DAM         := 15;
-   QUANTITY    := 30;
-   EXPLOSION   :=  0;
-   AREA        :=  0;
-   SMOKE       :=  0;
-   TRACE_SMOKE :=  0;
- end;
- with AMMO_specifications[3] do begin
-   NAME        := 'Hv. Wasp clip';
-   ACC         :=  0;
-   DAM         := 20;
-   QUANTITY    := 10;
-   EXPLOSION   :=  0;
-   AREA        :=  0;
-   SMOKE       :=  0;
-   TRACE_SMOKE :=  0;
- end;
-with AMMO_specifications[4] do begin
-   NAME        := 'Acc. Wasp clip';
-   ACC         := 80;
-   DAM         := 16;
-   QUANTITY    := 12;
-   EXPLOSION   :=  0;
-   AREA        :=  0;
-   SMOKE       :=  0;
-   TRACE_SMOKE :=  0;
- end;
- {///}
- with weapon_specifications[4] do begin
-   NAME     := 'St. Falcon';
-   ACC      :=  10;
-   DAM      :=   0;
-   RECHARGE := 150;
-   AIM      :=  60;
-   RELOAD   := 200;
-   MAXSTATE := 120;
-   for i:=1 to maxusableammo do AMMO[i]:=0;
-   AMMO[1]  := 5;
-   AMMO[2]  := 6;
- end;
- with AMMO_specifications[5] do begin
-   NAME        := 'St. Falcon clip';
-   ACC         :=  0;
-   DAM         :=130;
-   QUANTITY    :=  7;
-   EXPLOSION   := 30;
-   AREA        :=  3;
-   SMOKE       := 10;
-   TRACE_SMOKE :=  0;
- end;
- with AMMO_specifications[6] do begin
-   NAME        := 'Expl. Falcon clip';
-   ACC         :=  0;
-   DAM         := 10;
-   QUANTITY    :=  7;
-   EXPLOSION   :=999;
-   AREA        := 26;
-   SMOKE       := 20;
-   TRACE_SMOKE :=  0;
- end;
+ assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+'weapon.inf');
+ reset(f1);
+ w_types:=0;
+ repeat
+   readln(f1,s);
+   if trim(s)='<WEAPON>' then begin
+     inc(w_types);
+     if w_types>255 then begin
+       w_types:=255;
+       showmessage('Scripting error: No more than 255 weapon/item types allowed');
+     end;
+     with weapon_specifications[w_types] do begin
+       for i:=1 to maxusableammo do AMMO[i]:=0;
+       NAME     := 'no name';
+       ACC      :=   0;
+       DAM      :=   0;
+       RECHARGE :=   0;
+       AIM      :=   0;
+       RELOAD   :=   0;
+       MAXSTATE :=   0;
 
-{
- type ammo_type=record
-   ACC,DAM:byte;
-   EXPLOSION,AREA,SMOKE,TRACE SMOKE:byte;
- end; }
+       i:=0;
+       repeat
+         readln(f1,s);
+         s:=trim(s);
+         if copy(s,1,5)='NAME=' then NAME:=copy(s,6,99) else
+         if copy(s,1,4)='ACC=' then ACC:=valueof(copy(s,5,99)) else
+         if copy(s,1,4)='DAM=' then DAM:=valueof(copy(s,5,99)) else
+         if copy(s,1,9)='RECHARGE=' then RECHARGE:=valueof(copy(s,10,99)) else
+         if copy(s,1,4)='AIM=' then AIM:=valueof(copy(s,5,99)) else
+         if copy(s,1,7)='RELOAD=' then RELOAD:=valueof(copy(s,8,99)) else
+         if copy(s,1,9)='MAXSTATE=' then MAXSTATE:=valueof(copy(s,10,99)) else
+         if copy(s,1,5)='AMMO=' then begin
+           inc(i);
+           if i>maxusableammo then begin
+             showmessage('Scripting error: max usable ammo types = '+inttostr(maxusableammo));
+             i:=maxusableammo;
+           end;
+           AMMO[i]:=valueof(copy(s,6,99))
+         end;
+       until (s='</WEAPON>') or (eof(f1));
+     end;
+   end;
+ until eof(f1);
+ closefile(f1);
+
+ assignfile(f1,ExtractFilePath(application.ExeName)+scriptfolder+'ammo.inf');
+ reset(f1);
+ a_types:=0;
+ repeat
+   readln(f1,s);
+   if trim(s)='<AMMO>' then begin
+     inc(a_types);
+     if a_types>255 then begin
+       a_types:=255;
+       showmessage('Scripting error: No more than 255 ammo types allowed');
+     end;
+     with ammo_specifications[a_types] do begin
+       NAME        := 'no name';
+       ACC         :=  0;
+       DAM         :=  0;
+       QUANTITY    :=  0;
+       EXPLOSION   :=  0;
+       AREA        :=  0;
+       SMOKE       :=  0;
+       repeat
+         readln(f1,s);
+         s:=trim(s);
+         if copy(s,1, 5)='NAME=' then NAME:=copy(s,6,99) else
+         if copy(s,1, 4)='ACC=' then ACC:=valueof(copy(s,5,99)) else
+         if copy(s,1, 4)='DAM=' then DAM:=valueof(copy(s,5,99)) else
+         if copy(s,1, 9)='QUANTITY=' then QUANTITY:=valueof(copy(s,10,99)) else
+         if copy(s,1,10)='EXPLOSION=' then EXPLOSION:=valueof(copy(s,11,99)) else
+         if copy(s,1, 5)='AREA=' then AREA:=valueof(copy(s,6,99)) else
+         if copy(s,1, 6)='SMOKE=' then SMOKE:=valueof(copy(s,7,99));
+       until (s='</AMMO>') or (eof(f1));
+     end;
+   end;
+ until eof(f1);
+ closefile(f1);
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -2720,7 +2756,7 @@ begin
   label5.caption:='Map size (min '+inttostr(minmaxx)+' ... max '+inttostr(maxmaxx)+'):';
   edit2.text:=inttostr(40);
   label11.caption:='(1..'+inttostr(maxbots-maxplayers)+'):';
-  edit1.text:=inttostr(40);
+  edit1.text:=inttostr(37);
   label12.caption:='(1..'+inttostr(maxplayers)+'):';
   edit5.text:=inttostr(4);
 
@@ -2946,13 +2982,35 @@ begin
              for j:=1 to nbot do
                if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
              if flg then begin
-               memo1.lines.add('[dbg] push '+bot[i].name);
+//               memo1.lines.add('[dbg] push '+bot[i].name);
                dec(bot[i].x,sgn(direction_x^[dx,dy]));
                dec(bot[i].y,sgn(direction_y^[dx,dy]));
                mapchanged^[bot[i].x,bot[i].y]:=255;
              end;
-           end;
-           end;
+           end else
+           if map^[bot[i].x,bot[i].y-sgn(direction_y^[dx,dy])]<map_wall then begin
+             flg:=true;
+             for j:=1 to nbot do
+               if (bot[j].x=bot[i].x) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
+             if flg then begin
+//               memo1.lines.add('[dbg] push '+bot[i].name);
+               //dec(bot[i].x,sgn(direction_x^[dx,dy]));
+               dec(bot[i].y,sgn(direction_y^[dx,dy]));
+               mapchanged^[bot[i].x,bot[i].y]:=255;
+             end;
+           end else
+           if map^[bot[i].x-sgn(direction_x^[dx,dy]),bot[i].y]<map_wall then begin
+             flg:=true;
+             for j:=1 to nbot do
+               if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y) and (bot[j].hp>0) then flg:=false;
+             if flg then begin
+//               memo1.lines.add('[dbg] push '+bot[i].name);
+               dec(bot[i].x,sgn(direction_x^[dx,dy]));
+               //dec(bot[i].y,sgn(direction_y^[dx,dy]));
+               mapchanged^[bot[i].x,bot[i].y]:=255;
+             end;
+           end
+          end;
          end;
     end;
 
@@ -2999,7 +3057,7 @@ begin
  end;
 
  if (flg) and (bot[attacker].tu>=timetoattack) and (bot[defender].hp>0) then begin
-   LOS:=check_LOS(bot[defender].x,bot[defender].y,bot[attacker].x,bot[attacker].y,true);
+   LOS:=check_LOS(bot[attacker].x,bot[attacker].y,bot[defender].x,bot[defender].y,true);
    if LOS>0 then begin
      ACC:=weapon_specifications[bot[attacker].items[1].w_id].ACC+ammo_specifications[bot[attacker].items[1].ammo_id].ACC+4;
      DAM:=weapon_specifications[bot[attacker].items[1].w_id].DAM+ammo_specifications[bot[attacker].items[1].ammo_id].DAM;
@@ -3070,7 +3128,7 @@ begin
       end;
        draw_map;
 
-       if ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE>0 then begin
+       if ammo_specifications[bot[attacker].items[1].ammo_id].area>0 then begin
          calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
          draw_map;
        end;
@@ -3266,9 +3324,9 @@ begin
               end;
             end;
       if (x1<>bot[thisbot].x) or (y1<>bot[thisbot].y) then begin
-        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides from vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
+//        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides from vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
         move_bot(thisbot,x1,y1,100);
-        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides to vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
+//        memo1.lines.add('[dbg] '+bot[thisbot].name+' hides to vis'+inttostr(vis^[bot[thisbot].x,bot[thisbot].y])+'/los'+inttostr(LOS_base^[bot[thisbot].x,bot[thisbot].y])+'/tu'+inttostr(bot[thisbot].tu));
 
       end;
       stopactions:=true;
@@ -3494,7 +3552,7 @@ begin
   MyImage:=TJPEGImage.create;
 //  MyImage.canvas.height:=image1.height;
 //  MyImage.canvas.width:=image1.width;
-  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+'DAT'+pathdelim+'help.jpg');
+  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help.jpg');
   image1.visible:=true;
   destrect:=Rect(0,0,image1.width,image1.height);
   image1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);
@@ -3520,7 +3578,7 @@ begin
   MyImage:=TJPEGImage.create;
 //  MyImage.canvas.height:=image1.height;
 //  MyImage.canvas.width:=image1.width;
-  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+'DAT'+pathdelim+'help_menu.jpg');
+  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help_menu.jpg');
   image1.visible:=true;
   destrect:=Rect(0,0,image1.width,image1.height);
   image1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);
@@ -3556,7 +3614,7 @@ begin
 
   if (mapsize>2) and (playerhp>0) and (playerquantity>0) and (hpquantity>0) and (botsquantity>0) then begin
     if hpquantity<15 then hpquantity:=15;
-    difficulty:=round(100*(hpquantity*botsquantity)/(playerhp*playerquantity) * botsquantity/playerquantity * 2 * 50/sqr(mapsize));
+    difficulty:=round(100*(hpquantity*botsquantity)/(playerhp*playerquantity) * botsquantity/playerquantity * 2 * average_los_value/sqr(mapsize)* 1/({random damage}1-botsquantity*0.25*5*standard_damage/(playerquantity*playerhp))/({persistent damage}1-botsquantity*standard_damage*((botsquantity*hpquantity)/botsquantity/(playerquantity*standard_damage*5))/(playerquantity*playerhp)));
     if checkbox1.checked then difficulty:=difficulty*defensedifficulty;
     label10.Caption:='Difficulty: '+saydifficulty(difficulty);
   end else label10.caption:='ERROR CALCULATING DIFFICULTY';
@@ -3642,7 +3700,10 @@ if gamemode>200 then begin
           {fire}
           if checkbox2.checked=false then begin if selectedenemy>0 then mapchanged^[bot[selectedenemy].x,bot[selectedenemy].y]:=255; selectedenemy:=found; end;
           selectedx:=-1; selectedy:=-1;
-          bot_shots(selected,selectedenemy);
+          if check_LOS(bot[selected].x,bot[selected].y,bot[selectedenemy].x,bot[selectedenemy].y,true)>0 then
+            bot_shots(selected,selectedenemy)
+          else
+            show_LOS:=true;
         end;
       end;
     end else begin
@@ -3875,7 +3936,7 @@ begin
     if selectednew<1 then selectednew:=1;
     if selectednew>onfloorn then selectednew:=onfloorn;
     if (ssCtrl in Shift) and (item[onfloor[selectednew]].item.w_id>0) and (item[onfloor[selectednew]].item.ammo_id>0) then begin
-      if spend_tu(selected,weapon_specifications[item[onfloor[selectednew]].item.w_id].reload+pickupitemtime+dropitemtime) then begin
+      if spend_tu(selected,weapon_specifications[item[onfloor[selectednew]].item.w_id].reload+(pickupitemtime+dropitemtime)div 2) then begin
         inc(itemsn);
         item[itemsn]:=item[onfloor[selectednew]];
         item[onfloor[selectednew]].item.n:=0;
@@ -4085,6 +4146,7 @@ begin
  label13.visible:=flg;
  button7.visible:=flg;
  memo2.visible:=flg;
+ checkbox4.visible:=flg;
  {$IFDEF UNIX}
  label13.visible:=false;
  {$ENDIF}
@@ -4431,6 +4493,12 @@ begin
   scaleminimapx:=image7.Width / maxx;
   scaleminimapy:=image7.height / maxy;
   image7.canvas.brush.style:=bssolid;
+
+  if (show_los) and (selectedenemy>0) then begin
+   for mx:=2 to maxx-1 do
+     for my:=2 to maxy-1 do if (check_los(mx,my,bot[selectedenemy].x,bot[selectedenemy].y,true)>0) and (vis^[mx,my]>0) and (map^[mx,my]<map_wall) then mapchanged^[mx,my]:=2;
+  end;
+
   with image1.canvas do begin
     pen.width:=1;
     {draw_map}
@@ -4487,6 +4555,13 @@ begin
             end else
           end;
           if map^[mx,my]<map_wall then begin
+
+            if mapchanged^[mx,my]=2 then begin
+              brush.style:= bsDiagCross;
+              brush.color:=$000088;
+              fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
+            end;
+
             if (map^[mx,my] and statuspattern>0) and (vis^[mx,my]>oldvisible) then begin
               for i:=1 to 1+round((0.01+0.3*(map^[mx,my] and statuspattern-1)/(map_smoke-1))*scalex*scaley) do begin
                 brush.style:=bssolid;
@@ -4601,6 +4676,12 @@ begin
 
      for mx:=1 to maxx do
       for my:=1 to maxy do mapchanged^[mx,my]:=0;
+
+     if (show_los) and (selectedenemy>0) then begin
+      for mx:=2 to maxx-1 do
+        for my:=2 to maxy-1 do if (check_los(mx,my,bot[selectedenemy].x,bot[selectedenemy].y,true)>0) and (vis^[mx,my]>0) and (map^[mx,my]<map_wall) then mapchanged^[mx,my]:=255;
+     end;
+
      draw_map_all:=false;
 
      image7.canvas.brush.style:=bsclear;
@@ -4646,6 +4727,9 @@ begin
 
   draw_stats;
   label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
+
+  show_los:=false;
+
 end;
 
 {procedure TDrawMap.execute;

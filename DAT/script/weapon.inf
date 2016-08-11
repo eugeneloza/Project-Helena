@@ -1,0 +1,69 @@
+#Wasp weapon class
+<WEAPON>
+	ID=1
+	NAME=Lt. Wasp
+	ACC=        20
+	DAM=         0
+	RECHARGE=   40
+	AIM=        10
+	RELOAD=     50
+	MAXSTATE=  150
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+</WEAPON>
+<WEAPON>
+	ID=2
+	NAME=Hv. Wasp
+	ACC=         0
+	DAM=         5
+	RECHARGE=   50
+	AIM=        10
+	RELOAD=    100
+	MAXSTATE=   90
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+</WEAPON>
+<WEAPON>
+	ID=3
+	NAME=Sniper Wasp
+	ACC=       100
+	DAM=         0
+	RECHARGE=   40
+	AIM=        15
+	RELOAD=    100
+	MAXSTATE=   80
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+</WEAPON>
+<WEAPON>
+	ID=4
+	NAME=St. Falcon
+	ACC=        10
+	DAM=         0
+	RECHARGE=  150
+	AIM=        60
+	RELOAD=    200
+	MAXSTATE=  120
+	AMMO= 5
+	AMMO= 6
+</WEAPON>
+<WEAPON>
+	ID=5
+	NAME=Auto Wasp
+	ACC=         0
+	DAM=         0
+	RECHARGE=   20
+	AIM=        10
+	RELOAD=     40
+	MAXSTATE=  130
+	AMMO= 1
+	AMMO= 2
+	AMMO= 3
+	AMMO= 4
+</WEAPON>

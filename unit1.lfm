@@ -36,7 +36,7 @@ object Form1: TForm1
   end
   object Label1: TLabel
     Left = 877
-    Height = 10
+    Height = 11
     Top = 491
     Width = 44
     Caption = 'display ms'
@@ -73,7 +73,7 @@ object Form1: TForm1
     Left = 858
     Height = 57
     Top = 494
-    Width = 16
+    Width = 15
     Enabled = False
     Kind = sbVertical
     LargeChange = 75
@@ -85,7 +85,7 @@ object Form1: TForm1
     Left = 858
     Height = 146
     Top = 342
-    Width = 16
+    Width = 15
     Enabled = False
     Kind = sbVertical
     LargeChange = 100
@@ -129,7 +129,7 @@ object Form1: TForm1
   object Button3: TButton
     Left = 296
     Height = 56
-    Top = 496
+    Top = 544
     Width = 401
     Caption = 'STOP THE GAME'
     Font.Height = -27
@@ -140,9 +140,9 @@ object Form1: TForm1
   end
   object CheckBox2: TCheckBox
     Left = 874
-    Height = 21
+    Height = 22
     Top = 472
-    Width = 80
+    Width = 81
     Caption = 'Confirm?'
     Font.Height = -9
     Font.Name = 'Sans'
@@ -150,9 +150,9 @@ object Form1: TForm1
     TabOrder = 4
   end
   object ComboBox1: TComboBox
-    Left = 344
-    Height = 23
-    Top = 192
+    Left = 334
+    Height = 27
+    Top = 224
     Width = 261
     Font.Height = -13
     Font.Name = 'Sans'
@@ -190,7 +190,7 @@ object Form1: TForm1
     Left = 924
     Height = 102
     Top = 238
-    Width = 16
+    Width = 15
     Kind = sbVertical
     LargeChange = 100
     PageSize = 0
@@ -201,7 +201,7 @@ object Form1: TForm1
     Left = 924
     Height = 128
     Top = 342
-    Width = 16
+    Width = 15
     Kind = sbVertical
     LargeChange = 100
     PageSize = 0
@@ -209,28 +209,28 @@ object Form1: TForm1
     OnChange = ScrollBar4Change
   end
   object RadioButton1: TRadioButton
-    Left = 344
-    Height = 21
-    Top = 256
-    Width = 88
+    Left = 334
+    Height = 22
+    Top = 288
+    Width = 89
     Caption = 'No smoke'
     TabOrder = 12
   end
   object RadioButton2: TRadioButton
-    Left = 344
-    Height = 21
-    Top = 280
-    Width = 164
+    Left = 334
+    Height = 22
+    Top = 312
+    Width = 165
     Caption = '20% chance of smoke'
     Checked = True
     TabOrder = 10
     TabStop = True
   end
   object RadioButton3: TRadioButton
-    Left = 344
-    Height = 21
-    Top = 304
-    Width = 176
+    Left = 334
+    Height = 22
+    Top = 336
+    Width = 177
     Caption = '100% smoke generated'
     Font.Height = -13
     Font.Name = 'Sans'
@@ -259,9 +259,9 @@ object Form1: TForm1
     TabOrder = 14
   end
   object Label2: TLabel
-    Left = 389
-    Height = 23
-    Top = 144
+    Left = 379
+    Height = 24
+    Top = 176
     Width = 224
     Caption = 'Map generation options:'
     Font.Height = -19
@@ -270,17 +270,17 @@ object Form1: TForm1
     ParentFont = False
   end
   object Label3: TLabel
-    Left = 344
-    Height = 16
-    Top = 176
+    Left = 334
+    Height = 18
+    Top = 208
     Width = 64
     Caption = 'Map type:'
     ParentColor = False
   end
   object Edit1: TEdit
-    Left = 400
-    Height = 23
-    Top = 352
+    Left = 390
+    Height = 27
+    Top = 384
     Width = 48
     OnChange = Edit4Change
     TabOrder = 15
@@ -288,7 +288,7 @@ object Form1: TForm1
   end
   object Label4: TLabel
     Left = 344
-    Height = 34
+    Height = 39
     Top = 359
     Width = 40
     Caption = 'BOTS:'#10'HP:'
@@ -296,8 +296,8 @@ object Form1: TForm1
   end
   object Button5: TButton
     Left = 296
-    Height = 56
-    Top = 560
+    Height = 32
+    Top = 608
     Width = 194
     Caption = 'Game help'
     Font.Height = -27
@@ -309,7 +309,7 @@ object Form1: TForm1
   object Button6: TButton
     Left = 296
     Height = 56
-    Top = 624
+    Top = 648
     Width = 401
     Caption = 'QUIT'
     Font.Height = -27
@@ -319,60 +319,60 @@ object Form1: TForm1
     TabOrder = 17
   end
   object Edit2: TEdit
-    Left = 576
-    Height = 23
-    Top = 223
+    Left = 566
+    Height = 27
+    Top = 255
     Width = 48
     OnChange = Edit4Change
     TabOrder = 18
     Text = '50'
   end
   object Label5: TLabel
-    Left = 346
-    Height = 16
-    Top = 232
+    Left = 336
+    Height = 18
+    Top = 264
     Width = 179
     Caption = 'Map size (min 30...max 50):'
     ParentColor = False
   end
   object Label6: TLabel
-    Left = 403
-    Height = 16
-    Top = 336
+    Left = 393
+    Height = 18
+    Top = 368
     Width = 45
     Caption = 'Enemy'
     ParentColor = False
   end
   object Edit3: TEdit
-    Left = 400
-    Height = 23
-    Top = 376
+    Left = 390
+    Height = 27
+    Top = 408
     Width = 48
     OnChange = Edit4Change
     TabOrder = 19
     Text = '45'
   end
   object Label7: TLabel
-    Left = 536
-    Height = 16
-    Top = 336
+    Left = 526
+    Height = 18
+    Top = 368
     Width = 27
     Caption = 'YOU'
     ParentColor = False
   end
   object Edit4: TEdit
-    Left = 528
-    Height = 23
-    Top = 376
+    Left = 518
+    Height = 27
+    Top = 408
     Width = 48
     OnChange = Edit4Change
     TabOrder = 20
     Text = '300'
   end
   object Label8: TLabel
-    Left = 600
-    Height = 16
-    Top = 456
+    Left = 590
+    Height = 18
+    Top = 488
     Width = 93
     Caption = 'Formal test ok'
     Color = clLime
@@ -400,61 +400,61 @@ object Form1: TForm1
   end
   object Label9: TLabel
     Left = 80
-    Height = 16
+    Height = 18
     Top = 26
     Width = 77
     Caption = 'Zoom level:'
     ParentColor = False
   end
   object Label10: TLabel
-    Left = 344
-    Height = 16
-    Top = 456
+    Left = 334
+    Height = 18
+    Top = 488
     Width = 149
     Caption = 'Difficulty estimate here'
     ParentColor = False
   end
   object Label11: TLabel
-    Left = 456
+    Left = 446
     Height = 16
-    Top = 360
+    Top = 392
     Width = 64
     AutoSize = False
     Caption = '(1..500)'
-    Font.Height = 12
+    Font.Height = 14
     ParentColor = False
     ParentFont = False
     OptimalFill = True
   end
   object Edit5: TEdit
-    Left = 528
-    Height = 23
-    Top = 353
+    Left = 518
+    Height = 27
+    Top = 385
     Width = 48
     OnChange = Edit4Change
     TabOrder = 22
     Text = '4'
   end
   object Label12: TLabel
-    Left = 586
-    Height = 16
-    Top = 359
+    Left = 576
+    Height = 18
+    Top = 391
     Width = 43
     Caption = '(1..16)'
     ParentColor = False
   end
   object CheckBox1: TCheckBox
-    Left = 338
-    Height = 21
-    Top = 408
-    Width = 117
+    Left = 328
+    Height = 22
+    Top = 440
+    Width = 118
     Caption = 'Defense mode'
     OnChange = Edit4Change
     TabOrder = 23
   end
   object Label13: TLabel
     Left = 142
-    Height = 16
+    Height = 18
     Top = 26
     Width = 17
     Caption = '30'
@@ -469,8 +469,8 @@ object Form1: TForm1
   end
   object Button7: TButton
     Left = 501
-    Height = 56
-    Top = 560
+    Height = 32
+    Top = 608
     Width = 196
     Caption = 'Menu help'
     Font.Height = -27
@@ -480,10 +480,10 @@ object Form1: TForm1
     TabOrder = 25
   end
   object CheckBox3: TCheckBox
-    Left = 501
-    Height = 21
-    Top = 408
-    Width = 115
+    Left = 491
+    Height = 22
+    Top = 440
+    Width = 116
     Caption = 'Bazooka party'
     TabOrder = 26
   end
@@ -497,5 +497,14 @@ object Form1: TForm1
     )
     ScrollBars = ssAutoVertical
     TabOrder = 27
+  end
+  object CheckBox4: TCheckBox
+    Left = 424
+    Height = 22
+    Top = 144
+    Width = 110
+    Caption = 'Tutorial mode'
+    Enabled = False
+    TabOrder = 28
   end
 end
