@@ -3867,8 +3867,8 @@ begin
       GLI1[map_wall_img].Color:=ShadeColor;
       GLI1[map_wall_img].draw(getx(ix),gety(iy));
       ShadeBright*= map_status^[ix,iy] / maxstatus;
-      cracks_img[(3*ix+4*iy) mod maxcracks+1].color:=Vector4Single( shadebright, shadebright , shadebright , 0.7);
-      cracks_img[(3*ix+4*iy) mod maxcracks+1].draw(getx(ix),gety(iy));
+      cracks_img[(ix+3*iy) mod maxcracks+1].color:=Vector4Single( shadebright, shadebright , shadebright , 0.7);
+      cracks_img[(ix+3*iy) mod maxcracks+1].draw(getx(ix),gety(iy));
     end else begin
       highlight:=0;
       if do_highlight then begin
@@ -3928,6 +3928,8 @@ begin
  form1.label1.caption:=inttostr(round((now-t)*24*60*60*1000));
 end;
 
+var MinimapRectangle:TGLImage;
+
 procedure TForm1.CastleControl2Render(Sender: TObject);
 var ix,iy:integer;
     ShadeColor: TVector4Single;
@@ -3935,8 +3937,15 @@ var ix,iy:integer;
     i:integer;
     mscale:single;
     sx,sy:integer;
+    xshift,yshift:single;
 begin
+ if MinimapRectangle=nil then MinimapRectangle:=TGLImage.create(datafolder+'png'+pathdelim + 'MinimapRectangle.png');
+
  if maxx>=maxy then mscale:=1/maxx*form1.castlecontrol2.width else mscale:=1/maxy*form1.castlecontrol2.height;
+ if maxx>maxy then yshift:=(maxx-maxy) / 2 else yshift:=0;
+ if maxx<maxy then xshift:=(maxy-maxx) / 2 else xshift:=0;
+
+
  for ix:=1 to maxx do
   for iy:=1 to maxy do if vis^[ix,iy]>0 then begin
     ShadeBright:=0.5+0.3*((vis^[ix,iy]-oldvisible)/(maxvisible-oldvisible));
@@ -3944,24 +3953,28 @@ begin
       shadecolor:=Vector4Single( ShadeBright*1, ShadeBright*0.7 , ShadeBright*0.7 , 1)
     else
       shadecolor:=Vector4Single( ShadeBright*0.7, ShadeBright , ShadeBright , 1);
-    sx:=Round((ix-1)*mscale);
-    sy:=Round((maxy-iy)*mscale);
-    DrawRectangle(Rectangle(sx, sy, Round(ix*mscale)-sx, Round((maxy-iy+1)*mscale)-sy), shadecolor);
+    sx:=Round((ix-1+xshift)*mscale);
+    sy:=Round((maxy-iy+yshift)*mscale);
+    DrawRectangle(Rectangle(sx, sy, Round((ix+xshift)*mscale)-sx, Round((maxy-iy+1+yshift)*mscale)-sy), shadecolor);
   end;
  shadecolor:=Vector4Single( 0.1, 0.7 , 1 , 1);
  for i:=1 to itemsn do if vis^[item[i].x,item[i].y]>0 then begin
-  sx:=Round((item[i].x-1)*mscale);
-  sy:=Round((maxy-item[i].y)*mscale);
-  DrawRectangle(Rectangle(sx, sy, Round(item[i].x*mscale)-sx, Round((maxy-item[i].y+1)*mscale)-sy), shadecolor);
+  sx:=Round((item[i].x-1+xshift)*mscale);
+  sy:=Round((maxy-item[i].y+yshift)*mscale);
+  DrawRectangle(Rectangle(sx, sy, Round((item[i].x+xshift)*mscale)-sx, Round((maxy-item[i].y+1+yshift)*mscale)-sy), shadecolor);
  end;
+
+// if (zoom<maxx) or (zoom<maxy) then
+   MinimapRectangle.Draw3x3(Round((viewx+xshift)*mscale),Round((maxy-viewy-zoom+yshift)*mscale),round(zoom*mscale),round(zoom*mscale),1,1,1,1);
+
  for i:=1 to nbot do if (bot[i].hp>0) and (vis^[bot[i].x,bot[i].y]>oldvisible) then begin
   if bot[i].owner=player then
      shadecolor:=Vector4Single( 0, 1 , 0 , 1)
   else
      shadecolor:=Vector4Single( 1, 0 , 0 , 1);
-  sx:=Round((bot[i].x-1)*mscale);
-  sy:=Round((maxy-bot[i].y)*mscale);
-  DrawRectangle(Rectangle(sx, sy, Round(bot[i].x*mscale)-sx, Round((maxy-bot[i].y+1)*mscale)-sy), shadecolor);
+  sx:=Round((bot[i].x-1+xshift)*mscale);
+  sy:=Round((maxy-bot[i].y+yshift)*mscale);
+  DrawRectangle(Rectangle(sx, sy, Round((bot[i].x+xshift)*mscale)-sx, Round((maxy-bot[i].y+1+yshift)*mscale)-sy), shadecolor);
  end;
 end;
 
