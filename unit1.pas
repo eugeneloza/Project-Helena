@@ -320,6 +320,7 @@ var
 
   map,map_status,vis,movement,distance,mapchanged:^map_array;
   mapg:^map_array;
+  map_parameter:array[0..8]of float;
   mapbuildings:array[1..maxbuildings]of string;
   nbuildings:integer;
   LOS_base:^map_array;
@@ -731,10 +732,8 @@ var ix,iy,cx,cy:integer;
 begin
   random_tiles:=false;
   form1.memo1.lines.add('COCON MAP * no');
-  if map_parameter1=-1 then map_parameter1:=(2+random)*maxx/5;
-  cx:=round(map_parameter1);
-  if map_parameter2=-1 then map_parameter2:=(2+random)*maxy/5;
-  cy:=round(map_parameter2);
+  if map_parameter[1]=-1 then cx:=round((2+random)*maxx/5) else cx:=round(map_parameter[1]);
+  if map_parameter[2]=-1 then cy:=round((2+random)*maxy/5) else cy:=round(map_parameter[2]);
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
        map_seed:=1.5*sqrt((sqr(ix-cx+0.0001)+sqr(iy-cy+0.0001)+1)/(sqr((maxx +0.0001)/ 2)+sqr((maxy+0.0001) / 2)+1));
@@ -783,8 +782,7 @@ procedure generate_map_random;
 var ix,iy:integer;
     map_seed:float;
 begin
-  if map_parameter1=-1 then map_parameter1:=0.4+0.3*random;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.4+0.3*random else map_seed:=map_parameter[1];
   form1.memo1.lines.add('RANDOM MAP * '+inttostr(round(map_seed*100)));
   for ix:=1 to maxx do
     for iy:= 1 to maxy do begin
@@ -801,8 +799,7 @@ var ix,iy,i:integer;
     cx,cy,r:array[1..maxcircles] of integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=sqr(sqr(random))*(max_max_value/10-1);
-  Ncircles:=round(map_parameter1)+1;
+  if map_parameter[1]=-1 then Ncircles:=round(sqr(sqr(random))*(max_max_value/10-1))+1 else Ncircles:=round(map_parameter[1]);
   if NCircles>maxcircles then NCircles:=maxcircles;
   form1.memo1.lines.add('RANDOM CIRCLES MAP * '+inttostr(Ncircles));
   for i:=1 to NCircles do begin
@@ -824,8 +821,7 @@ var ix,iy,i,dx,dy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.4+random/4;
-  map_seed:=map_parameter;
+  if map_parameter[1]=-1 then map_seed:=0.4+random/4 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('CIRCLES MAP * '+inttostr(round(map_seed*100)));
   repeat
     i:=round(sqr(sqr(random))*max_max_value/5)+4;
@@ -847,8 +843,7 @@ var ix,iy,i,dx,dy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_free);
-  if map_parameter1=-1 then map_parameter1:=0.3+random/3;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.3+random/3 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('ANTI-CIRCLES MAP * '+inttostr(round(map_seed*100)));
   repeat
     i:=round(sqr(sqr(random))*max_max_value/5)+1;
@@ -870,8 +865,7 @@ var ix,iy,i,dx,dy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.2+random*0.6;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.2+random*0.6 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('RECTAGONAL MAP * '+inttostr(round(map_seed*100)));
 
   repeat
@@ -904,15 +898,10 @@ var ix,iy,iix,iiy,dx,dy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.45+random/5;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.45+random/5 else map_seed:=map_parameter[1];
+  if map_parameter[2]=-1 then dx:=round(random*5)+1 else dx:=round(map_parameter[2]);
+  if map_parameter[3]=-1 then dy:=round(random*5)+1 else dy:=round(map_parameter[3]);
   form1.memo1.lines.add('BLOCK MAP * '+inttostr(round(map_seed*100)));
-
-
-  if map_parameter2=-1 then map_parameter2:=random*5;
-  dx:=round(map_parameter2)+1;
-  if map_parameter3=-1 then map_parameter3:=random*5;
-  dy:=round(map_parameter3)+1;
   if (dx=1) and (dy=1) then dx:=2;
   for ix:=1 to maxx div dx do
    for iy:=1 to maxy div dy do if random>map_seed then begin
@@ -928,13 +917,11 @@ var ix,iy,iix,iiy,dx,dy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.22+random/8;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.22+random/8 else map_seed:=map_parameter[1];
+  if map_parameter[2]=-1 then dx:=round(random*5+3) else dx:=round(map_parameter[2]);
+  dy:=dx;
   form1.memo1.lines.add('DIAMONDS MAP * '+inttostr(round(map_seed*100)));
 
-  if map_parameter2=-1 then map_parameter2:=random*5;
-  dx:=round(map_parameter2)+3;
-  dy:=dx;
 //      if (dx=1) and (dy=1) then dx:=2;
   for ix:=0 to maxx div dx do
   for iy:=0 to maxy div dy do if (random>map_seed) then begin
@@ -950,8 +937,7 @@ var ix,iy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.2+random/8;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.2+random/8 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('T MAP * '+inttostr(round(map_seed*100)));
 
   for ix:=0 to maxx div 4-1 do
@@ -990,8 +976,7 @@ var ix,iy,i:integer;
     maxlinearsinus:integer;
 begin
  maxlinearsinus:=max_max_value div 2;
- if map_parameter1=-1 then map_parameter1:=random*1.3+0.45;
- maptype:=round(map_parameter1);
+ if map_parameter[1]=-1 then maptype:=round(random*1.3+0.45) else maptype:=round(map_parameter[1]);
  form1.memo1.lines.add('LINEAR SINUS MAP * type'+inttostr(maptype));
  for i:=1 to maxlinearsinus do begin
    sum:=random;
@@ -1025,8 +1010,7 @@ begin
   generate_map_makewalls(map_generation_wall);
   room_min:=3;
   room_max:=min_max_value div 5;
-  if map_parameter1=-1 then map_parameter1:=sqr(sqr(random))*(sqrt(maxx*maxy/sqr(room_max+3)));
-  room_n:=round(map_parameter1)+3;
+  if map_parameter[1]=-1 then room_n:=round(sqr(sqr(random))*(sqrt(maxx*maxy/sqr(room_max+3))))+3 else room_n:=round(map_parameter[1]);
   pass_min:=min_max_value div 5;
   pass_max:=max_max_value div 2;
   form1.memo1.lines.add('ROOMS MAP * '+inttostr(room_n));
@@ -1108,8 +1092,7 @@ var ix,iy,iix,iiy,dx,dy:integer;
 begin
  // map_seed:=0.22+random/8;
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=sqr(random)*max_max_value/2;
-  dx:=round(map_parameter1)+3;
+  if map_parameter[1]=-1 then dx:=round(sqr(random)*max_max_value/2)+3 else dx:=round(map_parameter[1]);
  // if random>0.1 then dx:=round(max_max_value/2+random*max_max_value/2)+1;
 
   form1.memo1.lines.add('CONCENTRIC MAP * '+inttostr(dx));
@@ -1134,8 +1117,7 @@ var ix,iy:integer;
     map_seed:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.98+random*0.02;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.98+random*0.02 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('SLANT * '+inttostr(round(map_seed*100)));
 {  for ix:=1 to 14 do
    for iy:=1 to 14 do mapg^[ix,iy]:=map_generation_free;}
@@ -1208,8 +1190,7 @@ var ix,iy:integer;
     freespace,walls:integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.2+random/4;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.2+random/4 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('BOXES MAP * '+inttostr(round(map_seed*100)));
   repeat
     ax:=round(maxx/5*random)+4;
@@ -1246,14 +1227,15 @@ var ix,iy,j:integer;
     freespace,walls:integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=0.2+random/4;
-  map_seed:=map_parameter1;
+  if map_parameter[1]=-1 then map_seed:=0.2+random/4 else map_seed:=map_parameter[1];
   form1.memo1.lines.add('CONCENTRIC FULL MAP * '+inttostr(round(map_seed*100)));
-  if map_parameter2=-1 then begin
-    map_parameter2:=random*min_max_value+10;
-    if min_max_value<=max_max_value div 2 then map_parameter2:=random*min_max_value+5;
-  end;
-  maxr:=map_parameter2;
+
+  if map_parameter[2]=-1 then begin
+    maxr:=random*min_max_value+10;
+    if min_max_value<=max_max_value div 2 then maxr:=random*min_max_value+5;
+  end else
+    maxr:=map_parameter[2];
+
   repeat
     rx_out:=random*(maxr)+1;
     ry_out:=rx_out+random*4-2;if ry_out<1 then ry_out:=1;
@@ -1302,10 +1284,8 @@ var ix,iy,j:integer;
 begin
   random_tiles:=false;
   generate_map_makewalls(map_generation_wall);
-  if map_parameter1=-1 then map_parameter1:=(random-0.5)*(maxx/2)+maxx/2;
-  cx0:=map_parameter1;
-  if map_parameter2=-1 then map_parameter2:=(random-0.5)*(maxy/2)+maxy/2;
-  cy0:=map_parameter2;
+  if map_parameter[1]=-1 then cx0:=(random-0.5)*(maxx/2)+maxx/2 else cx0:=map_parameter[1];
+  if map_parameter[2]=-1 then cy0:=(random-0.5)*(maxy/2)+maxy/2 else cy0:=map_parameter[2];
   rout:=sqrt(sqr(maxx-cx0)+sqr(maxy-cy0));
   if rout<sqrt(sqr(cx0)+sqr(cy0)) then rout:=sqrt(sqr(cx0)+sqr(cy0));
   if rout<sqrt(sqr(maxx-cx0)+sqr(cy0)) then rout:=sqrt(sqr(maxx-cx0)+sqr(cy0));
@@ -1355,22 +1335,32 @@ var map_seed,map_stepx,map_stepy,phasex,phasey,map_irregularity,map_maxrange:flo
 begin
   generate_map_makewalls(map_generation_wall);
 
-  if map_parameter1=-1 then map_parameter1:=random/3;
-  map_seed:=map_parameter1;
-  tmp:=max_max_value/10;
-  if tmp>6 then tmp:=6;
-  map_stepx:=random*10 + tmp;
-  map_stepy:=random*10 + tmp;
-  tmp:=map_stepx;
-  map_stepx:=(2*tmp+map_stepy)/3;
-  map_stepy:=(2*map_stepy+tmp)/3;
+  if map_parameter[1]=-1 then map_seed:=random/3 else map_seed:=map_parameter[1];
+
+  if map_parameter[2]=-1 then begin
+    tmp:=max_max_value/10;
+    if tmp>6 then tmp:=6;
+    map_stepx:=random*10 + tmp;
+    map_stepy:=random*10 + tmp;
+    tmp:=map_stepx;
+    map_stepx:=(2*tmp+map_stepy)/3;
+    map_stepy:=(2*map_stepy+tmp)/3;
+  end else begin
+    map_stepx:=map_parameter[2];
+    map_stepy:=map_parameter[3];
+  end;
   phasex:=map_stepx*random;
   phasey:=map_stepy*random;
-  if random<0.33 then map_irregularity:=0 else     // rgular
-  if random>0.5 then
-    map_irregularity:=random*(map_stepx*0.4)      // 40% regular
-  else
-    map_irregularity:=random*(2*map_stepx-1);      // strongly irregular
+
+  if map_parameter[4]=-1 then begin
+    if random<0.33 then map_irregularity:=0 else     // rgular
+    if random>0.5 then
+      map_irregularity:=random*(map_stepx*0.4)      // 40% regular
+    else
+      map_irregularity:=random*(2*map_stepx-1);      // strongly irregular
+  end else
+    map_irregularity:=map_parameter[4];
+
 
   map_maxrange:=map_stepx+map_stepy{+random*map_irregularity};
   if map_irregularity<=2 then map_seed:=map_seed/2;
@@ -1440,18 +1430,23 @@ var h,w,h_phase,w_phase:integer;
     x1,y1:integer;
 begin
   generate_map_makewalls(map_generation_free);
-  map_seed:=0.6+random*0.4;
-  map_seed2:=random/4;
-  map_seed3:=random;
-  map_seed4:=0.75+random/4;
-  map_seed5:=random;
-  map_seed6:=0.8+random/4;
-  h:=4+round(random*maxy/4);
-  w:=4+round(random*maxy/4);
-  if (h>2*w) and (random>0.5) then h:=round(2*w);
-  if (w>2*h) and (random>0.5) then w:=round(2*h);
-  if h>21 then h:=21;
-  if w>21 then w:=21;
+  if map_parameter[1]=-1 then map_seed:=0.6+random*0.4 else map_seed:=map_parameter[1];
+  if map_parameter[2]=-1 then map_seed2:=random/4      else map_seed2:=map_parameter[2];
+  if map_parameter[3]=-1 then map_seed3:=random        else map_seed3:=map_parameter[3];
+  if map_parameter[4]=-1 then map_seed4:=0.75+random/4 else map_seed4:=map_parameter[4];
+  if map_parameter[5]=-1 then map_seed5:=random        else map_seed5:=map_parameter[5];
+  if map_parameter[6]=-1 then map_seed6:=0.8+random/4  else map_seed6:=map_parameter[6];
+  if map_parameter[7]=-1 then begin
+    h:=4+round(random*maxy/4);
+    w:=4+round(random*maxy/4);
+    if (h>2*w) and (random>0.5) then h:=round(2*w);
+    if (w>2*h) and (random>0.5) then w:=round(2*h);
+    if h>21 then h:=21;
+    if w>21 then w:=21;
+  end else begin
+    h:=round(map_parameter[7]);
+    w:=round(map_parameter[8])
+  end;
   h_phase:=round(random*h);
   w_phase:=round(random*w);
   form1.memo1.lines.add('PLUS MAP * '+inttostr(w)+'x'+inttostr(h));
@@ -1517,9 +1512,9 @@ var ix,iy,jx,jy,x1,y1:integer;
     flg:boolean;
 begin
   generate_map_makewalls(map_generation_free);
-  map_seed:=0.6+random*0.3;   //blockers
-  map_seed2:=random;
-  map_seed3:=random*0.40;
+  if map_parameter[1]=-1 then map_seed:=0.6+random*0.3 else map_seed:=map_parameter[1];   //blockers
+  if map_parameter[2]=-1 then map_seed2:=random else map_seed2:=map_parameter[2];
+  if map_parameter[3]=-1 then map_seed3:=random*0.40 else map_seed3:=map_parameter[3];
   xphase:=round(random*smalroomssize);
   yphase:=round(random*smalroomssize);
   form1.memo1.lines.add('SMALLROOMS MAP * '+inttostr(round(map_seed*100)));
@@ -1561,16 +1556,17 @@ const Ixsize=6;
       Iysize=8;
 procedure generate_map_Imap;
 var ix,iy,x1,y1:integer;
-    map_seed,map_seed2:float;
+    map_seed,map_seed2,map_seed3:float;
     xphase,yphase:integer;
 //    flg:boolean;
 begin
  generate_map_makewalls(map_generation_free);
- map_seed:=0.7+random*0.3;   //blockers
- map_seed2:=0.9+random*0.1;
+ if map_parameter[1]=-1 then map_seed:=0.7+random*0.3 else map_seed:=map_parameter[1];   //blockers
+ if map_parameter[2]=-1 then map_seed2:=0.9+random*0.1 else map_seed2:=map_parameter[2];
+ if map_parameter[3]=-1 then map_seed3:=random else map_seed3:=map_parameter[3];
  xphase:=round(random*Ixsize);
  yphase:=round(random*Iysize);
- if random>0.5 then begin
+ if map_seed3>0.5 then begin
   form1.memo1.lines.add('I-map Vertical MAP * '+inttostr(round(map_seed*100)));
   for ix:=0 to maxx div Ixsize+2 do
    for iy:=0 to maxy div Iysize+2 do begin
@@ -1674,7 +1670,7 @@ var ix,iy,x1,y1:integer;
     xphase,yphase:integer;
 begin
   generate_map_makewalls(map_generation_free);
-  map_seed:=0.5+random*0.2;   //blockers
+  if map_parameter[1]=-1 then map_seed:=0.5+random*0.2 else map_seed:=map_parameter[1];   //blockers
   xphase:=round(random*foursize);
   yphase:=round(random*foursize);
   form1.memo1.lines.add('FOUR MAP * '+inttostr(round(map_seed*100)));
@@ -1717,7 +1713,7 @@ var ix,iy,x1,y1:integer;
     xphase,yphase:integer;
 begin
   generate_map_makewalls(map_generation_free);
-  map_seed:=0.5+random*0.2;   //blockers
+  if map_parameter[1]=-1 then map_seed:=0.5+random*0.2 else map_seed:=map_parameter[1];   //blockers
   xphase:=round(random*fivesize);
   yphase:=round(random*fivesize);
   form1.memo1.lines.add('FIVE MAP * '+inttostr(round(map_seed*100)));
@@ -1751,17 +1747,20 @@ end;
 const dashsize=6;
 procedure generate_map_dash;
 var ix,iy,x1,y1,line:integer;
-    map_seed:float;
+    map_seed,map_kind,map_type:float;
     xphase,yphase:integer;
     kind:boolean;
 begin
   generate_map_makewalls(map_generation_free);
-  map_seed:=0.5+random*0.2;   //blockers
+  if map_parameter[1]=-1 then map_seed:=0.5+random*0.2 else map_seed:=map_parameter[1];   //blockers
   xphase:=round(random*dashsize);
   yphase:=round(random*dashsize);
-  if random>0.5 then kind:=true else kind:=false;
 
-  if random>0.5 then begin
+  if map_parameter[2]=-1 then map_kind:=random else map_kind:=map_parameter[2];
+  if map_kind>0.5 then kind:=true else kind:=false;
+
+  if map_parameter[3]=-1 then map_type:=random else map_type:=map_parameter[3];
+  if map_type>0.5 then begin
     form1.memo1.lines.add('DASH horizontal MAP * '+inttostr(round(map_seed*100)));
     if kind then form1.memo1.lines.add('top-left variant') else form1.memo1.lines.add('top-right variant');
     for ix:=0 to maxx div dashsize+2 do
@@ -1855,10 +1854,10 @@ var dx,dy,sx,sy,x1,y1,x2,y2:integer;
     freearea:integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_seed:=0.6+random*0.1+sqr(sqr(random))*0.3;
-  max_length:=max_max_value/10+3+max_max_value/2*random;
+  if map_parameter[1]=-1 then map_seed:=0.6+random*0.1+sqr(sqr(random))*0.3 else map_seed:=map_parameter[1];
+  if map_parameter[2]=-1 then max_length:=max_max_value/10+3+max_max_value/2*random else max_length:=map_parameter[2];
   maxrotorlength:=1.5+10*sqr(sqr(random));
-  max_angles:=2+round(random*3+sqr(sqr(sqr(random)))*32);
+  if map_parameter[3]=-1 then max_angles:=2+round(random*3+sqr(sqr(sqr(random)))*32) else max_angles:=round(map_parameter[3]);
   phase:=random*2*Pi;
   form1.memo1.lines.add('ROTOR MAP * '+inttostr(round(map_seed*100))+'/'+inttostr(max_angles)+'/'+inttostr(round(max_length)));
   freearea:=0;
@@ -1891,7 +1890,7 @@ var x1,y1,x2,y2,xx1,xx2,yy1,yy2:integer;
     //roomsize,rx,ry:integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_seed:=0.8+0.2*random;
+  if map_parameter[1]=-1 then map_seed:=0.8+0.2*random else map_seed:=map_parameter[1];
   form1.memo1.lines.add('EGGRE MAP * '+inttostr(round(100*map_seed)));
   x1:=2;
   y1:=2;
@@ -2047,7 +2046,8 @@ var snowflakes,maxsnowflakes:integer;
     phase_x,phase_y,snowflakesize,cx,cy:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  snowflakesize:=6+sqrt(random)*min_max_value/7;
+
+  if map_parameter[1]=-1 then snowflakesize:=6+sqrt(random)*min_max_value/7 else snowflakesize:=map_parameter[1];
   maxsnowflakes:=8;
   if snowflakesize<8 then maxsnowflakes:=1 else
   if snowflakesize<13 then maxsnowflakes:=3 else
@@ -2055,6 +2055,7 @@ begin
   if random>0.5+0.4*(max_max_value/maxmaxx) then snowflakes:=round(random*maxsnowflakes)+3 else snowflakes:=0;
   phase_x:=-(random) * snowflakesize;
   phase_y:=-(random) * snowflakesize;
+  if map_parameter[2]>=0 then snowflakes:=round(map_parameter[2]);
 
   if snowflakes=0 then
     form1.memo1.lines.add('SNOWFLAKE MAP * different /'+inttostr(round(snowflakesize)))
@@ -2090,8 +2091,8 @@ var areasize,thissize:integer;
 begin
   new(map_tmp);
   generate_map_makewalls(map_generation_wall);
-  areasize:=round(sqr(random)*maxx*maxy/13)+50;
-  entrance_x:=2; entrance_y:=2;
+  if map_parameter[1]=-1 then areasize:=round(sqr(random)*maxx*maxy/13)+50 else areasize:=round(map_parameter[1]);
+  entrance_x:=2; entrance_y:=2;//************************
   form1.memo1.lines.add('AREAS MAP * '+inttostr(areasize));
   for ix:=2 to maxx-1 do
    for iy:=2 to maxy-1 do mapg^[ix,iy]:=map_generation1; //diggable
@@ -2197,7 +2198,7 @@ var ix,iy,dx,dy,x1,y1:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   form1.memo1.lines.add('WORMHOLE MAP * no');
-  entrance_x:=6; entrance_y:=6;
+  entrance_x:=6; entrance_y:=6;//**************
   xx:=entrance_x; yy:=entrance_y;
   angle:=round(random*2*Pi);
   anglespeed:=0;
@@ -2296,13 +2297,16 @@ var map_seed,roomsize,thisroomsize:float;
     shape:byte;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_roomsn:=1+average_max_value div 7+round(average_max_value/7 * random);
-  map_seed:=sqr(1/map_roomsn)+0.2*random;
+  if map_parameter[1]=-1 then map_roomsn:=1+average_max_value div 7+round(average_max_value/7 * random) else map_roomsn:=round(map_parameter[1]);
+  if map_parameter[2]=-1 then map_seed:=sqr(1/map_roomsn)+0.2*random else map_seed:=map_parameter[2];
   if map_roomsn>maxmaxrooms then map_roomsn:=maxmaxrooms;
   form1.memo1.lines.add('UNTANGLE MAP * '+inttostr(round(map_seed*100))+'/rooms='+inttostr(map_roomsn));
-  if random>0.5 then roomsize:=0 else roomsize:=1+(random*min_max_value/10);
-  shape:=trunc(random*3);
-  radius:=min_max_value div 2-round(random*min_max_value/9);
+  if map_parameter[4]=-1 then begin
+    if random>0.5 then roomsize:=0 else roomsize:=1+(random*min_max_value/10);
+  end else
+    roomsize:=map_parameter[4];
+  if map_parameter[3]=-1 then shape:=trunc(random*3) else shape:=trunc(map_parameter[3]);
+  if map_parameter[5]=-1 then radius:=min_max_value div 2-round(random*min_max_value/9) else radius:=round(map_parameter[5]);
   case shape of
     0:form1.memo1.lines.add('random shape');
     1:form1.memo1.lines.add('circle shape '+inttostr(radius));
@@ -2352,9 +2356,9 @@ var ix,iy:integer;
     tmp:boolean;
     shiftx,shifty:float;
 begin
-  map_seed1:=(0.1+random/10);
-  map_seed2:=1-(0.1+random/10);
-  checkersize:=3+(sqr(sqr(random))*min_max_value/3);
+  if map_parameter[1]=-1 then map_seed1:=(0.1+random/10) else map_seed1:=map_parameter[1];
+  if map_parameter[2]=-1 then map_seed2:=1-(0.1+random/10) else map_seed2:=map_parameter[2];
+  if map_parameter[3]=-1 then checkersize:=3+(sqr(sqr(random))*min_max_value/3) else checkersize:=map_parameter[3];
   form1.memo1.lines.add('CHECKERS MAP * '+inttostr(round(checkersize)));
   shiftx:=(checkersize*random);
   shifty:=(checkersize*random);
@@ -2411,6 +2415,8 @@ end;
 
 {-----------------------------------------------------}
 
+var     bldg_area:integer;
+
 procedure create_box(limitsize:integer);
 var x1,y1,x2,y2:integer;
     ix,iy:integer;
@@ -2436,6 +2442,7 @@ begin
     if random>0.5 then y1:=y1+1 else y1:=y2-1;
     safemapwritefinal(x1+round(random*(x2-x1-4))+2,y1,map_generation_free);
   end;
+  inc(bldg_area,(x2-x1+1)*(y2-y1+1));
 
   form1.memo1.lines.add('Box building created.');
 end;
@@ -2455,8 +2462,13 @@ var f1:file of byte;
     value:byte;
     flg:boolean;
     seed1,seed2,seed3:float;
+
+    map_seed:float;
 begin
  if (form1.checkbox6.checked) then begin
+   if map_parameter[0]=-1 then map_seed:=random*0.3 else map_seed:=map_parameter[0];
+   bldg_area:=0;
+
    if (random<box_probability) then
      repeat create_box(min_max_value div 3) until random>box_probability;
 {   if (random<bunker_probability) then
@@ -2465,7 +2477,7 @@ begin
   for ix:=1 to maxx do
    for iy:=1 to maxy do vis^[ix,iy]:=0;
 
-  if (random<bldg_probability) and (nbuildings>0) then
+  if {(random<bldg_probability) and} (nbuildings>0) then
     repeat
       begin
       // memo1.lines.add(filename);
@@ -2518,7 +2530,7 @@ begin
        end;
        closefile(f1);
       end;
-    until random<bldg_probability;
+    until (bldg_area<(maxx-2)*(maxy-2)*map_seed) or (random<0.01);
  end;
 end;
 
@@ -2594,7 +2606,7 @@ until thismapfloor<>thismapwall;
    end;
 
 
- if {(nerrors/maxx/maxy<0.2) and (nerrors<nfree/3) and} (nfree/maxx/maxy>free_from/100) and (nfree/maxx/maxy<free_to/100) then test_map:=true else test_map:=false;
+
  form1.memo1.lines.add('Map error rate: '+inttostr(round(nerrors/maxx/maxy*100))+'%');
  form1.memo1.lines.add('Map free area: '+inttostr(round(nfree/maxx/maxy*100))+'%');
 
@@ -2613,9 +2625,9 @@ until thismapfloor<>thismapwall;
   end;
  mapinhomogenity:=sqrt(deviation)/(homogenity_x*homogenity_y);
  form1.memo1.lines.add('Map inhomogenity: '+inttostr(round(mapinhomogenity*100))+'%');
-
  form1.memo1.lines.add('...');
 
+if (nfree/maxx/maxy>free_from/100) and (nfree/maxx/maxy<free_to/100) and (mapinhomogenity<0.15) then test_map:=true else test_map:=false; {(nerrors/maxx/maxy<0.2) and (nerrors<nfree/3) and}
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -2721,16 +2733,16 @@ end;
 
 {--------------------------------------------------------------------------------------}
 
-function calculate_difficulty(players,playershp,enemies,enemieshp:integer):integer;
+function calculate_difficulty(players,playershp,enemies,enemieshp,maaxx,maaxy,mapfreex:integer):integer;
 var estimated_firepower:float;
     difficultybonus:integer;
     LOS_adjusted:float;
 begin
-  LOS_adjusted:=group_attack_range*Pi*mapfreespace/(maxx*maxy);
+  LOS_adjusted:=group_attack_range*Pi*mapfreex/(maaxx*maaxy);
   if averageLOS>LOS_adjusted then LOS_adjusted:=averageLOS;
 
   if form1.checkbox1.checked then difficultybonus:=defensedifficulty else difficultybonus:=1;
-  estimated_botstogether:=enemies*LOS_adjusted/mapfreespace;
+  estimated_botstogether:=enemies*LOS_adjusted/mapfreex;
   if estimated_botstogether<1 then estimated_botstogether:=1;
   estimated_firepower:=estimated_botstogether/players;
   estimated_firepower:=estimated_firepower*(1+enemies*0.25*5*standard_damage/playershp); {random damage}
@@ -2785,7 +2797,15 @@ var ix,iy,i_bot,j:integer;
     weapon_kind,ammo_type,weapon_type:integer;
     ammo_usable:boolean;
 begin
-
+  map_parameter[0]:=-1;
+  map_parameter[1]:=-1;
+  map_parameter[2]:=-1;
+  map_parameter[3]:=-1;
+  map_parameter[4]:=-1;
+  map_parameter[5]:=-1;
+  map_parameter[6]:=-1;
+  map_parameter[7]:=-1;
+  map_parameter[8]:=-1;
   new(mapg);
 
   randomize;
@@ -2822,7 +2842,7 @@ begin
 
   random_tiles:=true;
   if combobox1.itemIndex<1 then map_type:=trunc(random*20)+1 else map_type:=combobox1.ItemIndex;
- repeat
+// repeat
   case map_type of
         1: if random>0.6 then
              repeat generate_map_random         until test_map(20,70)
@@ -2870,7 +2890,7 @@ begin
        19:   repeat generate_map_areas          until test_map(20,90);
        20:   repeat generate_map_wormhole       until test_map(20,90);
   end;
- until mapinhomogenity<0.15;
+// until mapinhomogenity<0.15;
 
  dispose(mapg);
 
@@ -2965,8 +2985,7 @@ begin
     if bot[nbot].hp>15 then inc(total_bot_hp,bot[nbot].hp) else inc(total_bot_hp,15);
     //inc(total_bot_firepower,standard_damage);
 
-    estimated_difficulty:=calculate_difficulty(playersn,total_player_hp,nbot-playersn,total_bot_hp);
-
+    estimated_difficulty:=calculate_difficulty(playersn,total_player_hp,nbot-playersn,total_bot_hp,maxx,maxy,mapfreespace);
     if checkbox5.checked then
       i_flag:=estimated_difficulty>=needed_difficulty
     else
@@ -4038,14 +4057,15 @@ end;
 
 procedure TForm1.Edit4Change(Sender: TObject);
 var botsquantity,hpquantity,playerhp,playerquantity,i:integer;
-    difficulty,mapsize:integer;
+    difficulty,mapsizex,mapsizey:integer;
 begin
   val(edit5.text,playersn,i);
   if playersn<1 then playersn:=1;
   playerquantity:=playersn;
   val(edit4.text,playerhp,i);
   val(edit1.text,botsquantity,i);
-  val(edit2.text,mapsize,i);
+  val(edit2.text,mapsizex,i);
+  val(edit7.text,mapsizey,i);
   val(edit3.text,hpquantity,i);
   label8.caption:='Formal test ok';
   label8.color:=$AAFFAA;
@@ -4057,15 +4077,16 @@ begin
     label8.caption:='Enemies will not be able to kill you';
     label8.color:=$0000FF;
   end;
-  if botsquantity+playerquantity>mapsize*mapsize*0.2 then begin
+  if botsquantity+playerquantity>mapsizex*mapsizey*0.2 then begin
     label8.caption:='Not enough space on the map to place bots';
     label8.color:=$0000FF;
   end;
 
-  if (mapsize>2) and (playerhp>0) and (playerquantity>0) and (hpquantity>0) and (botsquantity>0) then begin
+  if (mapsizex>2) and (mapsizey>2) and (playerhp>0) and (playerquantity>0) and (hpquantity>0) and (botsquantity>0) then begin
     if checkbox5.checked then val(edit6.text,difficulty,i) else begin
       if hpquantity<15 then hpquantity:=15;
-      difficulty:=round(100*(hpquantity*botsquantity)/(playerhp*playerquantity) * botsquantity/playerquantity * 2 * average_los_value/sqr(mapsize)* 1/({random damage}1-botsquantity*0.25*5*standard_damage/(playerquantity*playerhp))/({persistent damage}1-botsquantity*standard_damage*((botsquantity*hpquantity)/botsquantity/(playerquantity*standard_damage*5))/(playerquantity*playerhp)));
+      difficulty:=calculate_difficulty(playerquantity,playerhp*playerquantity,botsquantity,hpquantity*botsquantity,mapsizex,mapsizey,mapsizex*mapsizey div 2);
+
       if checkbox1.checked then difficulty:=difficulty*defensedifficulty;
     end;
     label10.Caption:='Difficulty: '+saydifficulty(difficulty);
