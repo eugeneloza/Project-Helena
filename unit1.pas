@@ -2906,18 +2906,23 @@ begin
 end;
 
 function saydifficulty(difficulty:integer):string;
-var winchance:integer;
+//var winchance:integer;
 begin
   case difficulty of
-      0.. 75:saydifficulty:=txt[4]+' ('+inttostr(difficulty)+'%)';
+      0.. 49:saydifficulty:=txt[4]+' ('+inttostr(difficulty)+'%)';
+     50.. 99:saydifficulty:=txt[5]+' ('+inttostr(difficulty)+'%)';
+    100..149:saydifficulty:=txt[6]+' ('+inttostr(difficulty)+'%)';
+    150..199:saydifficulty:=txt[7]+' ('+inttostr(difficulty)+'%)';
+    ELSE   saydifficulty:=txt[8]+' ('+inttostr(difficulty)+'%)'
+{      0.. 75:saydifficulty:=txt[4]+' ('+inttostr(difficulty)+'%)';
      76..150:saydifficulty:=txt[5]+' ('+inttostr(difficulty)+'%)';
     151..225:saydifficulty:=txt[6]+' ('+inttostr(difficulty)+'%)';
     226..320:saydifficulty:=txt[7]+' ('+inttostr(difficulty)+'%)';
-    ELSE   saydifficulty:=txt[8]+' ('+inttostr(difficulty)+'%)'
+    ELSE   saydifficulty:=txt[8]+' ('+inttostr(difficulty)+'%)'}
   end;
-  winchance:=round(100*exp(-0.0135446*(difficulty-100)));
-  if winchance>100 then winchance:=100;
-  saydifficulty:=saydifficulty + ' '+txt[9]+' '+inttostr(winchance)+'%';
+{  winchance:=round(100*exp(-0.0135446*(difficulty-100)));
+  if winchance>100 then winchance:=100;}
+  saydifficulty:=saydifficulty + ' '{+txt[9]+' '+inttostr(winchance)+'%'};
 end;
 
 {-------------------------------------------------------------------}
@@ -3731,8 +3736,8 @@ begin
   maxx:=maxmaxx;
   maxy:=maxmaxy;
 
-  edit1.text:=inttostr(37);
-  edit2.text:=inttostr(40);
+  edit1.text:=inttostr(9);
+  edit2.text:=inttostr(30);
   edit5.text:=inttostr(4);
   readinifile;
 

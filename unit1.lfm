@@ -311,7 +311,7 @@ object Form1: TForm1
     Enabled = False
     OnChange = Edit4Change
     TabOrder = 15
-    Text = '45'
+    Text = '9'
   end
   object Label4: TLabel
     Left = 344
@@ -360,7 +360,7 @@ object Form1: TForm1
     OnChange = Edit4Change
     ParentFont = False
     TabOrder = 18
-    Text = '40'
+    Text = '30'
   end
   object Label5: TLabel
     Left = 336
@@ -391,7 +391,7 @@ object Form1: TForm1
     Width = 48
     OnChange = Edit4Change
     TabOrder = 19
-    Text = '45'
+    Text = '100'
   end
   object Label7: TLabel
     Left = 526
@@ -408,7 +408,7 @@ object Form1: TForm1
     Width = 48
     OnChange = Edit4Change
     TabOrder = 20
-    Text = '300'
+    Text = '200'
   end
   object Label8: TLabel
     Left = 584
@@ -594,7 +594,7 @@ object Form1: TForm1
     Width = 48
     OnChange = Edit4Change
     TabOrder = 29
-    Text = '150'
+    Text = '75'
   end
   object CheckBox5: TCheckBox
     Left = 328
@@ -630,7 +630,7 @@ object Form1: TForm1
     OnChange = Edit4Change
     ParentFont = False
     TabOrder = 31
-    Text = '40'
+    Text = '30'
   end
   object CheckBox6: TCheckBox
     Left = 544
