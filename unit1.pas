@@ -545,7 +545,7 @@ var dx,dy:integer;
     L,L1:integer;
 begin
  L:=-1;
- L1:=-1;
+// L1:=-1;
  if (x1>0) and (y1>0) and (x2>0) and (y2>0) and (x1<=maxx) and (y1<=maxy) and (x2<=maxx) and (y2<=maxy) then begin
   dx:=x2-x1;
   dy:=y2-y1;
@@ -564,25 +564,27 @@ begin
   until (range>=maxrange) or (L<1);
 
   //stupid bugfix for los(x1,x2)<>los(x2,x1)
-  dx:=x1-x2;
-  dy:=y1-y2;
-  maxrange:=round(visibleaccuracy*sqrt(sqr(dx)+sqr(dy)))+1;
-  L1:=visiblerange*visibleaccuracy;
-  range:=0;
-  repeat
-    inc(range);
-    xx1:=x2+round(dx*range / maxrange);
-    yy1:=y2+round(dy*range / maxrange);
-    if smoker=true then begin
-      if map^[xx1,yy1]<map_wall then dec(L1,map_status^[xx1,yy1])
-    end else
-      if map^[xx1,yy1]<map_wall then dec(L1,2);
-    if (map^[xx1,yy1]>=map_wall) and ((xx1<>x1) or (yy1<>y1)) then L1:=-1;
-  until (range>=maxrange) or (L1<1);
+  if L<1 then begin
+    dx:=x1-x2;
+    dy:=y1-y2;
+    maxrange:=round(visibleaccuracy*sqrt(sqr(dx)+sqr(dy)))+1;
+    L1:=visiblerange*visibleaccuracy;
+    range:=0;
+    repeat
+      inc(range);
+      xx1:=x2+round(dx*range / maxrange);
+      yy1:=y2+round(dy*range / maxrange);
+      if smoker=true then begin
+        if map^[xx1,yy1]<map_wall then dec(L1,map_status^[xx1,yy1])
+      end else
+        if map^[xx1,yy1]<map_wall then dec(L1,2);
+      if (map^[xx1,yy1]>=map_wall) and ((xx1<>x1) or (yy1<>y1)) then L1:=-1;
+    until (range>=maxrange) or (L1<1);
+    L:=L1;
+   end;
  end;
- if L>L1 then check_LOS:=L else check_LOS:=L1;
-
- end;
+ check_LOS:=L
+end;
 
 {================================================================================}
 {================================================================================}
@@ -2954,6 +2956,8 @@ var ix,iy,i_bot,j:integer;
     weapon_kind,ammo_type,weapon_type:integer;
     ammo_usable:boolean;
 begin
+  memo1.lines.add('[dbg] ver: '+copy(ExtractFileDir(application.ExeName),length(ExtractFileDir(application.ExeName))-7,8));
+
   map_parameter[0]:=-1;
   map_parameter[1]:=-1;
   map_parameter[2]:=-1;
