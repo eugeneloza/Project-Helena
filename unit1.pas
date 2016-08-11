@@ -5008,10 +5008,10 @@ begin
     if bot[i].tu=255 then inc(n2);
   end;
   if (n1=n2) and (n1>0) then begin
-    if MessageDlg(txt[46]+' '+txt[47],mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
+    if MessageDlg(txt[46],mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
   end else begin
      if (n2>0) and (checkbox2.checked) then begin
-       if MessageDlg(txt[46]+' '+inttostr(n2)+' '+txt[48],mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
+       if MessageDlg(txt[47]+' '+inttostr(n2)+' '+txt[48],mtCustom, [mbYes,mbCancel], 0)=MrYes then end_turn;
      end else end_turn;
   end;
 end;
@@ -5199,6 +5199,9 @@ if gamemode>200 then begin
             if (selectedenemy>0) then mapchanged^[bot[selectedenemy].x,bot[selectedenemy].y]:=255;
             selectedenemy:=found;
             mapchanged^[bot[selectedenemy].x,bot[selectedenemy].y]:=255;
+            do_highlight:=true;
+            highlight_x:=bot[selectedenemy].x;
+            highlight_y:=bot[selectedenemy].y;
             selectedx:=-1; selectedy:=-1;
           end;
         end else begin
