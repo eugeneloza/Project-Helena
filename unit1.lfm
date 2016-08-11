@@ -1,39 +1,50 @@
 object Form1: TForm1
-  Left = 57
-  Height = 715
-  Top = 0
-  Width = 941
+  Left = 81
+  Height = 697
+  Top = -15
+  Width = 937
   ActiveControl = Button4
-  BorderStyle = bsSingle
   Caption = 'Project Helena'
-  ClientHeight = 715
-  ClientWidth = 941
+  ClientHeight = 697
+  ClientWidth = 937
   DockSite = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '1.0.8.0'
   object Image3: TImage
+    AnchorSideTop.Control = Image2
+    AnchorSideTop.Side = asrBottom
     Left = 712
-    Height = 146
-    Top = 342
-    Width = 145
+    Height = 166
+    Top = 328
+    Width = 144
+    Anchors = [akTop]
     OnMouseDown = Image3MouseDown
     OnMouseWheel = Image3MouseWheel
   end
   object Image1: TImage
+    AnchorSideLeft.Control = Owner
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Image7
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
     Cursor = crUpArrow
-    Left = 8
-    Height = 700
-    Top = 8
-    Width = 700
+    Left = 0
+    Height = 697
+    Top = 0
+    Width = 711
+    Anchors = [akTop, akLeft, akRight, akBottom]
     OnMouseDown = Image1MouseDown
     OnMouseMove = Image1MouseMove
   end
   object Image2: TImage
+    AnchorSideTop.Control = Image7
+    AnchorSideTop.Side = asrBottom
     Left = 712
     Height = 102
-    Top = 238
+    Top = 226
     Width = 160
+    Anchors = [akTop]
     OnMouseDown = Image2MouseDown
   end
   object Label1: TLabel
@@ -48,34 +59,46 @@ object Form1: TForm1
     ParentFont = False
   end
   object Image4: TImage
-    Left = 712
+    AnchorSideTop.Control = Image3
+    AnchorSideTop.Side = asrBottom
+    Left = 711
     Height = 58
-    Top = 493
+    Top = 494
     Width = 145
+    Anchors = [akTop]
     OnMouseDown = Image4MouseDown
     OnMouseWheel = Image4MouseWheel
   end
   object Image5: TImage
-    Left = 877
+    AnchorSideTop.Control = Image7
+    AnchorSideTop.Side = asrBottom
+    Left = 873
     Height = 102
-    Top = 238
+    Top = 226
     Width = 46
+    Anchors = [akTop]
     OnMouseDown = Image5MouseDown
     OnMouseWheel = Image5MouseWheel
   end
   object Image6: TImage
-    Left = 877
+    AnchorSideTop.Control = Image5
+    AnchorSideTop.Side = asrBottom
+    Left = 873
     Height = 128
-    Top = 342
+    Top = 328
     Width = 46
+    Anchors = [akTop]
     OnMouseDown = Image6MouseDown
     OnMouseWheel = Image6MouseWheel
   end
   object ScrollBar2: TScrollBar
-    Left = 858
+    AnchorSideTop.Control = ScrollBar1
+    AnchorSideTop.Side = asrBottom
+    Left = 856
     Height = 57
-    Top = 494
+    Top = 496
     Width = 16
+    Anchors = [akTop]
     Enabled = False
     Kind = sbVertical
     LargeChange = 75
@@ -84,10 +107,13 @@ object Form1: TForm1
     OnChange = ScrollBar2Change
   end
   object ScrollBar1: TScrollBar
-    Left = 858
-    Height = 146
-    Top = 342
+    AnchorSideTop.Control = Image2
+    AnchorSideTop.Side = asrBottom
+    Left = 856
+    Height = 168
+    Top = 328
     Width = 16
+    Anchors = [akTop]
     Enabled = False
     Kind = sbVertical
     LargeChange = 100
@@ -96,19 +122,30 @@ object Form1: TForm1
     OnChange = ScrollBar1Change
   end
   object Button1: TButton
-    Left = 712
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 711
     Height = 60
-    Top = 636
+    Top = 637
     Width = 226
+    Anchors = [akRight, akBottom]
     Caption = 'NEXT TURN'
     OnClick = Button1Click
     TabOrder = 0
   end
   object Memo1: TMemo
+    AnchorSideTop.Control = Image4
+    AnchorSideTop.Side = asrBottom
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    AnchorSideBottom.Control = Button1
     Left = 712
-    Height = 78
-    Top = 555
-    Width = 227
+    Height = 85
+    Top = 552
+    Width = 225
+    Anchors = [akTop, akRight, akBottom]
     Font.Height = -9
     Font.Name = 'Sans'
     ParentFont = False
@@ -131,7 +168,7 @@ object Form1: TForm1
   object Button3: TButton
     Left = 296
     Height = 56
-    Top = 544
+    Top = 536
     Width = 401
     Caption = 'STOP THE GAME'
     Font.Height = -27
@@ -141,10 +178,13 @@ object Form1: TForm1
     TabOrder = 3
   end
   object CheckBox2: TCheckBox
-    Left = 874
-    Height = 17
-    Top = 472
-    Width = 59
+    AnchorSideTop.Control = Image6
+    AnchorSideTop.Side = asrBottom
+    Left = 872
+    Height = 23
+    Top = 456
+    Width = 65
+    Anchors = [akTop]
     Caption = 'Confirm?'
     Font.Height = -9
     Font.Name = 'Sans'
@@ -189,10 +229,13 @@ object Form1: TForm1
     Text = '* Any *'
   end
   object ScrollBar3: TScrollBar
-    Left = 924
+    AnchorSideTop.Control = Image7
+    AnchorSideTop.Side = asrBottom
+    Left = 920
     Height = 102
-    Top = 238
+    Top = 226
     Width = 16
+    Anchors = [akTop]
     Kind = sbVertical
     LargeChange = 100
     PageSize = 0
@@ -200,10 +243,13 @@ object Form1: TForm1
     OnChange = ScrollBar3Change
   end
   object ScrollBar4: TScrollBar
-    Left = 924
+    AnchorSideTop.Control = Image5
+    AnchorSideTop.Side = asrBottom
+    Left = 920
     Height = 128
-    Top = 342
+    Top = 328
     Width = 16
+    Anchors = [akTop]
     Kind = sbVertical
     LargeChange = 100
     PageSize = 0
@@ -212,9 +258,9 @@ object Form1: TForm1
   end
   object RadioButton1: TRadioButton
     Left = 334
-    Height = 20
+    Height = 23
     Top = 288
-    Width = 79
+    Width = 85
     Caption = 'No smoke'
     Checked = True
     Font.CharSet = RUSSIAN_CHARSET
@@ -229,9 +275,9 @@ object Form1: TForm1
   end
   object RadioButton2: TRadioButton
     Left = 334
-    Height = 20
+    Height = 23
     Top = 312
-    Width = 149
+    Width = 155
     Caption = '20% chance of smoke'
     Font.CharSet = RUSSIAN_CHARSET
     Font.Color = clBlack
@@ -244,9 +290,9 @@ object Form1: TForm1
   end
   object RadioButton3: TRadioButton
     Left = 334
-    Height = 20
+    Height = 23
     Top = 336
-    Width = 157
+    Width = 163
     Caption = '100% smoke generated'
     Font.Height = -13
     Font.Name = 'Sans'
@@ -254,9 +300,9 @@ object Form1: TForm1
     TabOrder = 11
   end
   object Togglebox1: TToggleBox
-    Left = 877
+    Left = 872
     Height = 49
-    Top = 504
+    Top = 503
     Width = 62
     Caption = 'MENU'
     OnChange = Togglebox1Change
@@ -287,15 +333,15 @@ object Form1: TForm1
   end
   object Label3: TLabel
     Left = 334
-    Height = 14
+    Height = 20
     Top = 208
-    Width = 50
+    Width = 71
     Caption = 'Map type:'
     ParentColor = False
   end
   object Edit1: TEdit
     Left = 390
-    Height = 21
+    Height = 27
     Top = 384
     Width = 48
     Enabled = False
@@ -305,16 +351,16 @@ object Form1: TForm1
   end
   object Label4: TLabel
     Left = 344
-    Height = 14
+    Height = 20
     Top = 391
-    Width = 31
+    Width = 47
     Caption = 'BOTS:'
     ParentColor = False
   end
   object Button5: TButton
-    Left = 296
+    Left = 295
     Height = 32
-    Top = 608
+    Top = 600
     Width = 194
     Caption = 'Game help'
     Font.Height = -27
@@ -326,7 +372,7 @@ object Form1: TForm1
   object Button6: TButton
     Left = 296
     Height = 56
-    Top = 648
+    Top = 641
     Width = 401
     Caption = 'QUIT'
     Font.Height = -27
@@ -368,15 +414,15 @@ object Form1: TForm1
   end
   object Label6: TLabel
     Left = 393
-    Height = 14
+    Height = 20
     Top = 368
-    Width = 33
+    Width = 49
     Caption = 'Enemy'
     ParentColor = False
   end
   object Edit3: TEdit
     Left = 390
-    Height = 21
+    Height = 27
     Top = 408
     Width = 48
     OnChange = Edit4Change
@@ -385,15 +431,15 @@ object Form1: TForm1
   end
   object Label7: TLabel
     Left = 526
-    Height = 14
+    Height = 20
     Top = 368
-    Width = 22
+    Width = 34
     Caption = 'YOU'
     ParentColor = False
   end
   object Edit4: TEdit
     Left = 518
-    Height = 21
+    Height = 27
     Top = 408
     Width = 48
     OnChange = Edit4Change
@@ -402,19 +448,23 @@ object Form1: TForm1
   end
   object Label8: TLabel
     Left = 584
-    Height = 14
+    Height = 20
     Top = 472
-    Width = 69
+    Width = 102
     Caption = 'Formal test ok'
     Color = clLime
     ParentColor = False
     Transparent = False
   end
   object Image7: TImage
-    Left = 712
+    AnchorSideTop.Control = Owner
+    AnchorSideRight.Control = Owner
+    AnchorSideRight.Side = asrBottom
+    Left = 711
     Height = 226
-    Top = 8
+    Top = 0
     Width = 226
+    Anchors = [akTop, akRight]
     OnMouseDown = Image7MouseDown
   end
   object TrackBar1: TTrackBar
@@ -431,17 +481,17 @@ object Form1: TForm1
   end
   object Label9: TLabel
     Left = 80
-    Height = 14
+    Height = 20
     Top = 26
-    Width = 56
+    Width = 85
     Caption = 'Zoom level:'
     ParentColor = False
   end
   object Label10: TLabel
     Left = 328
-    Height = 14
+    Height = 20
     Top = 472
-    Width = 112
+    Width = 163
     Caption = 'Difficulty estimate here'
     ParentColor = False
   end
@@ -464,7 +514,7 @@ object Form1: TForm1
   end
   object Edit5: TEdit
     Left = 518
-    Height = 21
+    Height = 27
     Top = 385
     Width = 48
     OnChange = Edit4Change
@@ -488,9 +538,9 @@ object Form1: TForm1
   end
   object CheckBox1: TCheckBox
     Left = 328
-    Height = 20
+    Height = 23
     Top = 440
-    Width = 103
+    Width = 109
     Caption = 'Defense mode'
     Font.CharSet = RUSSIAN_CHARSET
     Font.Color = clBlack
@@ -504,9 +554,9 @@ object Form1: TForm1
   end
   object Label13: TLabel
     Left = 142
-    Height = 14
+    Height = 20
     Top = 26
-    Width = 13
+    Width = 19
     Caption = '30'
     ParentColor = False
   end
@@ -520,7 +570,7 @@ object Form1: TForm1
   object Button7: TButton
     Left = 501
     Height = 32
-    Top = 608
+    Top = 601
     Width = 196
     Caption = 'Menu help'
     Font.Height = -27
@@ -531,9 +581,9 @@ object Form1: TForm1
   end
   object CheckBox3: TCheckBox
     Left = 491
-    Height = 20
+    Height = 23
     Top = 440
-    Width = 104
+    Width = 110
     Caption = 'Bazooka party'
     Font.CharSet = RUSSIAN_CHARSET
     Font.Color = clBlack
@@ -546,7 +596,7 @@ object Form1: TForm1
   end
   object Memo2: TMemo
     Left = 16
-    Height = 586
+    Height = 400
     Top = 112
     Width = 264
     Lines.Strings = (
@@ -557,24 +607,24 @@ object Form1: TForm1
   end
   object CheckBox4: TCheckBox
     Left = 424
-    Height = 17
+    Height = 23
     Top = 144
-    Width = 85
+    Width = 126
     Caption = 'Tutorial mode'
     Enabled = False
     TabOrder = 28
   end
   object Label14: TLabel
     Left = 344
-    Height = 14
+    Height = 20
     Top = 415
-    Width = 18
+    Width = 27
     Caption = 'HP:'
     ParentColor = False
   end
   object Edit6: TEdit
     Left = 480
-    Height = 21
+    Height = 27
     Top = 491
     Width = 80
     OnChange = Edit4Change
@@ -583,9 +633,9 @@ object Form1: TForm1
   end
   object CheckBox5: TCheckBox
     Left = 328
-    Height = 17
+    Height = 23
     Top = 496
-    Width = 103
+    Width = 150
     Caption = 'Demand difficulty'
     Checked = True
     OnChange = CheckBox5Change
