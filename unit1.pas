@@ -426,8 +426,8 @@ var
 
   shot_sound,falcon_sound,unload_sound,reload_sound,clip_sound,unclip_sound,item_sound,drop_sound: TSoundBuffer;
 
-  music:array[1..maxmusic] of TSoundBuffer;
-  music_duration:array[1..maxmusic] of TFloatTime;
+  music: TSoundBuffer;
+  music_duration: TFloatTime;
   oldmusic:integer;
 
 
@@ -4084,20 +4084,6 @@ begin
    item_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item.wav', Duration);
    drop_sound := SoundEngine.LoadBuffer(datafolder+'wav'+pathdelim+'Item_reverse.wav', Duration);
 
-   music[ 1]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.ogg',music_duration[1]);
-   music[ 2]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.ogg',music_duration[2]);
-   music[ 3]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.ogg',music_duration[3]);
-   music[ 4]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.ogg',music_duration[4]);
-   music[ 5]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.ogg',music_duration[5]);
-   music[ 6]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Alert_0.ogg',music_duration[6]);
-   music[ 7]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Dirt_City_0.ogg',music_duration[7]);
-   music[ 8]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Forgoten_tombs_1.ogg',music_duration[8]);
-   music[ 9]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Grey_land.ogg',music_duration[9]);
-   music[10]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Myst.ogg',music_duration[10]);
-   music[11]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Road.ogg',music_duration[11]);
-   music[12]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Trance_0.ogg',music_duration[12]);
-   music[13]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Vault_0.ogg',music_duration[13]);
-   music[14]:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Wind_0.ogg',music_duration[14]);
    timer1.enabled:=true;
    timer1.Interval:=1000;
    oldmusic:=-1;
@@ -4241,6 +4227,7 @@ begin
      selectedenemy:=-1;
      form1.generate_enemy_list(true);
    end;
+   movement_map_for:=-1;
    if (bot[thisbot].owner=player) and (this_turn<>player) then form1.clear_visible;       //and enemy turn!!!!
    //drop items//drop corpse
    for j:=1 to backpacksize do if ((bot[thisbot].items[j].w_id>0) or (bot[thisbot].items[j].ammo_id>0)) then begin
@@ -4393,6 +4380,7 @@ begin
            flg_x:=false;
            ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
            if ix>blastpush then begin
+           movement_map_for:=-1;
            mapchanged^[bot[i].x,bot[i].y]:=255;
            if map^[bot[i].x-sgn(direction_x^[dx,dy]),bot[i].y-sgn(direction_y^[dx,dy])]<map_wall then begin
              flg:=true;
@@ -5624,9 +5612,25 @@ begin
     if nextmusic=0 then nextmusic:=1;
     if nextmusic>maxmusic then nextmusic:=maxmusic;
   until nextmusic<>oldmusic;
+  case nextmusic of
+      1: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Socapex - Dark Ambiance - Mastered.ogg',music_duration);
+      2: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'gloom.ogg',music_duration);
+      3: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'dark_caves.ogg',music_duration);
+      4: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Caves of sorrow.ogg',music_duration);
+      5: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'ambientmain_0.ogg',music_duration);
+      6: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Alert_0.ogg',music_duration);
+      7: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Dirt_City_0.ogg',music_duration);
+      8: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Forgoten_tombs_1.ogg',music_duration);
+      9: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Grey_land.ogg',music_duration);
+     10: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Myst.ogg',music_duration);
+     11: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Road.ogg',music_duration);
+     12: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Trance_0.ogg',music_duration);
+     13: music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Vault_0.ogg',music_duration);
+     else music:=soundengine.loadbuffer(datafolder+'music'+pathdelim+'Wind_0.ogg',music_duration);
+  end;
 
-  SoundEngine.PlaySound(music[nextmusic], false, false, 0, 1, 0, 1, ZeroVector3Single);
-  timer1.interval:=round(music_duration[nextmusic]*1000)+200;
+  SoundEngine.PlaySound(music, false, false, 0, 1, 0, 1, ZeroVector3Single);
+  timer1.interval:=round(music_duration*1000)+200;
   oldmusic:=nextmusic;
 end;
 
