@@ -123,12 +123,14 @@ type
     CheckBox2: TCheckBox;
     CheckBox3: TCheckBox;
     CheckBox4: TCheckBox;
+    CheckBox5: TCheckBox;
     ComboBox1: TComboBox;
     Edit1: TEdit;
     Edit2: TEdit;
     Edit3: TEdit;
     Edit4: TEdit;
     Edit5: TEdit;
+    Edit6: TEdit;
     Image1: TImage;
     Image2: TImage;
     Image3: TImage;
@@ -169,7 +171,9 @@ type
     procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
+    procedure CheckBox5Change(Sender: TObject);
     procedure Edit4Change(Sender: TObject);
+    procedure Edit6Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Image1MouseDown(Sender: TObject; Button: TMouseButton;
@@ -2406,6 +2410,19 @@ begin
 end;
 
 {--------------------------------------------------------------------------------------}
+
+function calculate_difficulty(players,playershp,enemies,enemieshp:integer):integer;
+var estimated_firepower:float;
+    difficultybonus:integer;
+begin
+  if form1.checkbox1.checked then difficultybonus:=defensedifficulty else difficultybonus:=1;
+  estimated_firepower:=enemies/players*averageLOS/mapfreespace;
+  if estimated_firepower<1/players then estimated_firepower:=1/players;
+  estimated_firepower:=estimated_firepower/(1-enemies*0.25*5*standard_damage/playershp); {random damage}
+  estimated_firepower:=estimated_firepower/(1-enemies*standard_damage*(enemieshp/enemies/(players*standard_damage*5))/playershp); {persistent damage}
+  calculate_difficulty:=round(100 * enemieshp/playershp * difficultybonus * estimated_firepower);
+end;
+
 function saydifficulty(difficulty:integer):string;
 begin
   case difficulty of
@@ -2420,13 +2437,15 @@ end;
 {--------------------------------------------------------------------------------------}
 
 procedure TForm1.generate_map;
-var ix,iy:integer;
+var ix,iy,i_bot:integer;
     x1,y1,count:integer;
     map_type:byte;
     generatedbots:integer;
     bot_hp_const,player_hp_const:integer;
-    total_bot_hp,total_player_hp,total_bot_firepower,total_player_firepower:integer;
-    estimated_firepower:float;
+    total_bot_hp,total_player_hp{,total_bot_firepower,total_player_firepower}:integer;
+//    estimated_firepower:float;
+    i_flag:boolean;
+    estimated_difficulty,needed_difficulty:integer;
 begin
   randomize;
 
@@ -2505,6 +2524,9 @@ begin
      for iy:=maxy div 5+2 to maxy do if map^[ix,iy]<map_wall then map^[ix,iy]:=map^[ix,iy] and tilepattern + round(map_smoke*sqrt(random)); //tile
     for ix:=1 to 10 do grow_smoke;
   end;
+  memo1.lines.add('Calculating map strategy...');
+  generate_LOS_base_map{(true,1,1)};
+  memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
 
   memo1.lines.add('Map ready. Setting bots.');
 
@@ -2522,6 +2544,12 @@ begin
   if bot_hp_const<1 then bot_hp_const:=1;
   if bot_hp_const>maxbot_hp_const then bot_hp_const:=maxbot_hp_const;
   edit3.text:=inttostr(bot_hp_const);
+  val(edit6.text,needed_difficulty,ix);
+
+  total_bot_hp:=0;
+  total_player_hp:=0;
+//  total_bot_firepower:=0;
+//  total_player_firepower:=0;
 
   x1:=5;           //**bunker size!!!
   y1:=5;
@@ -2533,16 +2561,23 @@ begin
       dec(y1);
       x1:=5;
     end;
+    if bot[nbot].hp>15 then inc(total_player_hp,bot[nbot].hp) else inc(total_player_hp,15);
+//      inc(total_player_firepower,standard_damage);
   end;
-//  bot[1].items[1].w_id:=4;
-//  bot[1].items[1].ammo_id:=6;
+  //  bot[1].items[1].w_id:=4;
+  //  bot[1].items[1].ammo_id:=6;
 
   val(edit1.text,generatedbots,ix);
   inc(generatedbots,playersn);
   if generatedbots<playersn+1 then generatedbots:=playersn+1;
   if generatedbots>maxbots then generatedbots:=maxbots;
   edit1.text:=inttostr(generatedbots-playersn);
-  for ix:=playersn+1 to generatedbots do begin
+
+  memo1.lines.add('...');
+
+  i_bot:=playersn;
+  repeat
+    inc(i_bot);
     count:=0;
     repeat
       inc(count);
@@ -2551,14 +2586,32 @@ begin
     until ((((x1>12) or (y1>12)) or (random>0.999)) and createbot(computer,'d'+inttostr(round(random*99))+inttostr(ix),{round(random*30)+}bot_hp_const,x1,y1)) or (count>10000);
     if checkbox1.checked then bot[nbot].action:=action_attack else bot[nbot].action:=action_random;
     bot[nbot].target:=round(random*(playersn-1))+1;
-  end;
 
+    if bot[nbot].hp>15 then inc(total_bot_hp,bot[nbot].hp) else inc(total_bot_hp,15);
+    //inc(total_bot_firepower,standard_damage);
+
+    estimated_difficulty:=calculate_difficulty(playersn,total_player_hp,nbot-playersn,total_bot_hp);
+
+    if checkbox5.checked then
+      i_flag:=estimated_difficulty>=needed_difficulty
+    else
+      i_flag:=nbot>=generatedbots;
+
+  until (i_flag) or (nbot>maxbots);
+
+  memo1.lines.add('Player units = '+inttostr(playersn));
+  memo1.lines.add('Average Player HP = '+inttostr(total_player_hp div playersn));
+  memo1.lines.add('Enemy bots = '+inttostr(nbot-playersn));
+  memo1.lines.add('Average bot HP = '+inttostr(total_bot_hp div (nbot-playersn)));
+
+  memo1.lines.add('True difficulty = '+saydifficulty(estimated_difficulty));
+
+  //generate ground items
+  memo1.lines.add('Creating items...');
   iy:=0;
   for ix:=1 to nbot do {if bot[ix].owner=computer then} begin
     inc(iy,bot[ix].hp);
   end;
-
-  //generate ground items
   count:=0;
   While ((iy>(itemsn*10+nbot*20)*10) or (random<0.9) or (count<maxx/4)) and (itemsn<maxitems) do begin
       inc(count);
@@ -2589,42 +2642,6 @@ begin
       end;
       item[itemsn].item.n:=round((ammo_specifications[item[itemsn].item.ammo_id].quantity-1)*random)+1;
   end;
-
-  memo1.lines.add('...');
-  memo1.lines.add('Calculating map strategy...');
-  generate_LOS_base_map{(true,1,1)};
-  total_bot_hp:=0;
-  total_player_hp:=0;
-  total_bot_firepower:=0;
-  total_player_firepower:=0;
-  for ix:=1 to nbot do begin
-    if bot[ix].owner=player then begin
-      if bot[ix].hp>15 then inc(total_player_hp,bot[ix].hp) else inc(total_player_hp,15);
-      inc(total_player_firepower,standard_damage);
-    end else begin
-      if bot[ix].hp>15 then inc(total_bot_hp,bot[ix].hp) else inc(total_bot_hp,15);
-      inc(total_bot_firepower,standard_damage);
-    end;
-  end;
-
-
-  memo1.lines.add('Player units = '+inttostr(playersn));
-  memo1.lines.add('Average Player HP = '+inttostr(total_player_hp div playersn));
-  memo1.lines.add('Enemy bots = '+inttostr(nbot-playersn));
-  memo1.lines.add('Average bot HP = '+inttostr(total_bot_hp div (nbot-playersn)));
-
-  memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
-  if checkbox1.checked then ix:=defensedifficulty else ix:=1;
-
-  memo1.lines.add('HP ratio = '+inttostr(round(100*total_bot_hp/total_player_hp))+'%');
-
-  estimated_firepower:=total_bot_firepower/total_player_firepower*averageLOS/mapfreespace;
-  if estimated_firepower<standard_damage/(standard_damage*playersn) then estimated_firepower:=standard_damage/(standard_damage*playersn);
-  memo1.lines.add('Firepower ratio = '+inttostr(round(ix*100*estimated_firepower))+'%');
-  estimated_firepower:=estimated_firepower*1/({random damage}1-(nbot-playersn)*0.25*5*standard_damage/total_player_hp)/({persistent damage}1-(nbot-playersn)*standard_damage*(total_bot_hp/(nbot-playersn)/(playersn*standard_damage*5))/total_player_hp);
-  memo1.lines.add('Adjusted firepower ratio = '+inttostr(round(ix*100*estimated_firepower))+'%');
-  iy:=round(100*total_bot_hp/total_player_hp * ix*estimated_firepower);
-  memo1.lines.add('True difficulty = '+saydifficulty(iy));
 
   memo2.lines:=memo1.lines;
 
@@ -3523,8 +3540,6 @@ begin
   togglebox1.checked:=false;
   togglebox1.state:=cbUnchecked;
   gamemode:=gamemode_game;
-{  setcontrols_game(true);
-  setcontrols_menu(false);}
   togglebox1.enabled:=true;
  end;
 end;
@@ -3604,6 +3619,13 @@ begin
   MyImage.free;
 end;
 
+procedure TForm1.CheckBox5Change(Sender: TObject);
+begin
+  edit6.enabled:=checkbox5.checked;
+  edit1.enabled:=not checkbox5.checked;
+  Edit4Change(nil);
+end;
+
 
 procedure TForm1.Edit4Change(Sender: TObject);
 var botsquantity,hpquantity,playerhp,playerquantity,i:integer;
@@ -3632,12 +3654,20 @@ begin
   end;
 
   if (mapsize>2) and (playerhp>0) and (playerquantity>0) and (hpquantity>0) and (botsquantity>0) then begin
-    if hpquantity<15 then hpquantity:=15;
-    difficulty:=round(100*(hpquantity*botsquantity)/(playerhp*playerquantity) * botsquantity/playerquantity * 2 * average_los_value/sqr(mapsize)* 1/({random damage}1-botsquantity*0.25*5*standard_damage/(playerquantity*playerhp))/({persistent damage}1-botsquantity*standard_damage*((botsquantity*hpquantity)/botsquantity/(playerquantity*standard_damage*5))/(playerquantity*playerhp)));
-    if checkbox1.checked then difficulty:=difficulty*defensedifficulty;
+    if checkbox5.checked then val(edit6.text,difficulty,i) else begin
+      if hpquantity<15 then hpquantity:=15;
+      difficulty:=round(100*(hpquantity*botsquantity)/(playerhp*playerquantity) * botsquantity/playerquantity * 2 * average_los_value/sqr(mapsize)* 1/({random damage}1-botsquantity*0.25*5*standard_damage/(playerquantity*playerhp))/({persistent damage}1-botsquantity*standard_damage*((botsquantity*hpquantity)/botsquantity/(playerquantity*standard_damage*5))/(playerquantity*playerhp)));
+      if checkbox1.checked then difficulty:=difficulty*defensedifficulty;
+    end;
     label10.Caption:='Difficulty: '+saydifficulty(difficulty);
   end else label10.caption:='ERROR CALCULATING DIFFICULTY';
 end;
+
+procedure TForm1.Edit6Change(Sender: TObject);
+begin
+
+end;
+
 
 {--------------------------------------------------------------------------------------}
 
@@ -3754,8 +3784,6 @@ if gamemode>200 then begin
    gamemode:=previous_gamemode;
    draw_map_all:=true;
    if (previous_gamemode>100) and (mapgenerated) then draw_map;
-//   setcontrols_menu(true);
-//   setcontrols_game(false);
  end;
 end;
 
@@ -4180,7 +4208,8 @@ begin
  memo2.visible:=flg;
  checkbox4.visible:=flg;
  label14.visible:=flg;
-
+ edit6.Visible:=flg;
+ checkbox5.Visible:=flg;
  {$IFDEF UNIX}
  label13.visible:=false;
  {$ENDIF}
