@@ -250,6 +250,7 @@ type
     procedure set_progressbar(flg:boolean);
     procedure find_onfloor(x,y:integer);
     procedure grow_smoke;
+    procedure alert_other_bots(target,who:integer);
     procedure bot_shots(attacker,defender:integer);
     function spend_tu(thisbot:integer;tus:integer):boolean;
     procedure calculate_area(ax,ay,a,asmoke,ablast:integer);
@@ -521,6 +522,7 @@ begin
     if bot[i].action=action_random then begin
       bot[i].action:=action_attack;
       for j:=1 to nbot do if (bot[j].owner=player) and (bot[j].hp>0) then bot[i].target:=j;
+      alert_other_bots(bot[i].target,i);
     end;
   end;
   if enemyunits_new<>enemyunitsn then begin
@@ -2738,7 +2740,7 @@ var estimated_firepower:float;
     difficultybonus:integer;
     LOS_adjusted:float;
 begin
-  LOS_adjusted:=group_attack_range*Pi*mapfreex/(maaxx*maaxy);
+  LOS_adjusted:=group_attack_range*Pi*mapfreex/((maaxx-2)*(maaxy-2));
   if averageLOS>LOS_adjusted then LOS_adjusted:=averageLOS;
 
   if form1.checkbox1.checked then difficultybonus:=defensedifficulty else difficultybonus:=1;
@@ -3481,6 +3483,20 @@ begin
   dispose(direction_y);
 end;
 
+
+{-------------------------------------------------------------------}
+
+procedure tform1.alert_other_bots(target,who:integer);
+var j:integer;
+begin
+  for j:=1 to nbot do if (bot[j].owner=computer) and (bot[j].hp>0) then
+    if sqr(bot[j].x-bot[who].x)+sqr(bot[j].y-bot[who].y)<group_attack_range then begin
+      bot[j].target:=target;
+      bot[j].action:=action_attack;
+  end;
+
+end;
+
 {--------------------------------------------------------------------------------}
 
 procedure tform1.bot_shots(attacker,defender:integer);
@@ -3527,11 +3543,7 @@ begin
 
 
        if bot[defender].owner=computer then begin
-         for dx:=1 to nbot do if (bot[dx].owner=computer) and (bot[dx].hp>0) then
-           if sqr(bot[dx].x-bot[defender].x)+sqr(bot[dx].y-bot[defender].y)<group_attack_range then begin
-             bot[dx].target:=attacker;
-             bot[dx].action:=action_attack;
-         end;
+         alert_other_bots(attacker,defender);
        end;
 
        hit_bot(defender,damage);
@@ -3758,6 +3770,7 @@ begin
       end;
       bot[thisbot].action:=action_attack;
       bot[thisbot].target:=aim;
+      alert_other_bots(aim,thisbot);
       bot_shots(thisbot,bot[thisbot].target);
     end;
 
