@@ -15,6 +15,11 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       maxbots=500;
       maxzoom=50;
 
+      maxbuildings=100;
+      maxbldgx=20;
+      maxbldgy=20;
+      randomaccuracy=100;
+
       maxplayers=16;          // max 16 fit in bunker
 
       backpacksize=12;
@@ -235,6 +240,7 @@ type
     procedure draw_stats;
     procedure look_around(thisbot:integer);
     procedure clear_visible;
+    procedure read_buildings;
     function generate_enemy_list(messageflag:boolean):boolean;
     procedure generatemovement(thisbot,target_x,target_y:integer);
     procedure move_bot(thisbot,to_x,to_y,use_waypoints:integer);
@@ -313,6 +319,8 @@ var
 {  MapDrawing: TDrawMap;     }
 
   map,vis,movement,distance,mapchanged:^map_array;
+  mapbuildings:array[1..maxbuildings]of string;
+  nbuildings:integer;
   LOS_base:^map_array;
   mapfreespace:integer;
   mapinhomogenity:float;
@@ -2404,15 +2412,83 @@ end;
 
 {----------------------------------------------------------------}
 
-const box_probability=0.6;
-      bunker_probability=0.4;
+const box_probability=0.3;
+//      bunker_probabioity=0.4;
+      bldg_probability=0.5;
 procedure generate_map_buildings;
+var f1:file of byte;
+    ix,iy,jx,jy,tmp:integer;
+    x1,y1:integer;
+    bldgx,bldgy:byte;
+    tmpmap,tmprnd:array[1..maxbldgx,1..maxbldgy] of byte;
+    s1:string;
+    value:byte;
+    flg:boolean;
+    seed1,seed2,seed3:float;
 begin
  if (form1.checkbox6.checked) then begin
    if (random<box_probability) then
      repeat create_box(min_max_value div 3) until random>box_probability;
-   if (random<bunker_probability) then
-     repeat create_bunker(round(random*(maxx-8)),round(random*(maxy-8)),round(random*4)+1,round(random*4)+1) until random>bunker_probability;
+{   if (random<bunker_probability) then
+     repeat create_bunker(round(random*(maxx-8)),round(random*(maxy-8)),round(random*4)+1,round(random*4)+1) until random>bunker_probability;}
+
+  for ix:=1 to maxx do
+   for iy:=1 to maxy do vis^[ix,iy]:=0;
+
+  if (random<bldg_probability) and (nbuildings>0) then
+    repeat
+      begin
+      // memo1.lines.add(filename);
+       s1:=mapbuildings[1+round(random*(nbuildings-1))];
+       Assignfile(f1,ExtractFilePath(application.ExeName)+datafolder+'BLDG'+pathdelim+s1);
+       Reset(f1);
+
+       Read(f1,bldgx);
+       Read(f1,bldgy);
+//       form1.memo1.lines.add(inttostr(bldgx)+' x '+inttostr(bldgy) + ' / ' + inttostr(min_max_value));
+       if (min_max_value>bldgx+2) and (min_max_value>bldgy+2) then begin
+         seed1:=random;
+         seed2:=random;
+         seed3:=random;
+
+         for ix:=1 to bldgx do
+          for iy:=1 to bldgy do Read(f1,tmpmap[ix,iy]);
+         for ix:=1 to bldgx do
+          for iy:=1 to bldgy do Read(f1,tmprnd[ix,iy]);
+
+         value:=0;
+         repeat
+           inc(value);
+           x1:=round(random*(maxx-bldgx-4)+2);
+           y1:=round(random*(maxy-bldgy-4)+2);
+           flg:=true;
+           for ix:=x1 to x1+bldgx do
+            for iy:=y1 to y1+bldgy do if vis^[ix,iy]>0 then flg:=false;
+         until (flg) or (value>50);
+
+         if flg then begin
+           form1.memo1.lines.add('Adding building '+s1);
+           for ix:=1 to bldgx do
+            for iy:=1 to bldgy do if tmpmap[ix,iy]>0 then begin
+              if seed1<0.5 then jx:=ix else jx:=bldgx-ix+1;
+              if seed2<0.5 then jy:=iy else jy:=bldgy-iy+1;
+              if seed3<0.5 then begin
+                tmp:=jy;
+                jy:=jx;
+                jx:=tmp;
+             end;
+             jx:=jx+x1-1;
+             jy:=jy+y1-1;
+             if random<tmprnd[ix,iy]/randomaccuracy then map^[jx,jy]:=map_generation_wall else map^[jx,jy]:=map_generation_free;
+             vis^[jx,jy]:=1;
+         end;
+       end;
+      // Read(f1,0);  //entrance_x
+      // Read(f1,0);  //entrance_y
+       end;
+       closefile(f1);
+      end;
+    until random<bldg_probability;
  end;
 end;
 
@@ -2640,6 +2716,27 @@ begin
   end
 end;
 
+{-------------------------------------------------------------------}
+
+Procedure Tform1.read_buildings;
+var Path:string;
+    Rec : TSearchRec;
+begin
+    nbuildings:=0;
+    Path:=ExtractFilePath(application.ExeName)+datafolder+'BLDG'+pathdelim;
+    if FindFirst (Path + '*.HMP', faAnyFile - faDirectory, Rec) = 0 then begin
+      try
+      repeat
+        inc(nbuildings);
+        mapbuildings[nbuildings]:=Rec.Name;
+        memo2.lines.add(mapbuildings[nbuildings]);
+      until FindNext(Rec) <> 0;
+      finally
+        FindClose(Rec) ;
+      end;
+    end;
+end;
+
 {--------------------------------------------------------------------------------------}
 
 procedure TForm1.generate_map;
@@ -2686,11 +2783,6 @@ begin
 
   memo1.lines.add('Generating map...');
   memo1.lines.add('Map size: '+inttostr(maxx)+'x'+inttostr(maxy));
-  for ix:=1 to maxx do
-    for iy:= 1 to maxy do begin
-       vis^[ix,iy]:=0;
-       mapchanged^[ix,iy]:=255;
-    end;
 
   random_tiles:=true;
   if combobox1.itemIndex<1 then map_type:=trunc(random*20)+1 else map_type:=combobox1.ItemIndex;
@@ -2745,6 +2837,11 @@ begin
  until mapinhomogenity<0.15;
 
 
+ for ix:=1 to maxx do
+   for iy:= 1 to maxy do begin
+      vis^[ix,iy]:=0;
+      mapchanged^[ix,iy]:=255;
+   end;
 
   if (form1.radiobutton3.checked) or ((form1.radiobutton2.checked) and (random>0.8)) then begin
     memo1.lines.add('Generating smoke...');
@@ -3059,6 +3156,8 @@ begin
   gamemode:=gamemode_none;
   form1.DoubleBuffered:=true;
   generate_items_types;
+
+  read_buildings;
 
   //generate_map;
   mapgenerated:=false;
