@@ -32,6 +32,8 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       enemybotmovedelay=300;      {ms}
       shotdelay=200;              {ms}
 
+      defensedifficulty=5;
+
 const itemdamagerate=0.4;           //40% damage taken by armed wearpon
 
 const maxbot_hp_const=65535;
@@ -241,6 +243,8 @@ var
 {  MapDrawing: TDrawMap;     }
 
   map,vis,movement,mapchanged:^map_array;
+  LOS_base:^map_array;
+  averageLOS:float;
   maxx,maxy:integer;
   playersn:integer;
   viewx,viewy,viewsizex,viewsizey:integer;
@@ -471,12 +475,40 @@ end;
 {=================================================================}
 
 const maxwaypoints=1000;
-procedure Tform1.move_bot(thisbot,to_x,to_y,use_waypoints:integer);
-var xx1,yy1,i:integer;
-    oldx,oldy:integer;
-    waypointx,waypointy:array[1..maxwaypoints]of integer;
+var waypointx,waypointy:array[1..maxwaypoints]of integer;
     waypointn:integer;
     waypoint_count:integer;
+    waypoint_distance:integer;
+procedure Generatewaypoints(thisbot,to_x,to_y:integer);
+var xx1,yy1:integer;
+begin
+  waypointn:=0;
+  xx1:=to_x;
+  yy1:=to_y;
+  waypoint_distance:=0;
+  repeat
+    inc(waypointn);
+    waypointx[waypointn]:=xx1;
+    waypointy[waypointn]:=yy1;
+
+    case movement^[xx1,yy1] of
+      5: begin inc(xx1); dec(yy1) end;
+      6: begin           dec(yy1) end;
+      7: begin dec(xx1); dec(yy1) end;
+      8: begin dec(xx1)           end;
+      1: begin dec(xx1); inc(yy1) end;
+      2: begin           inc(yy1) end;
+      3: begin inc(xx1); inc(yy1) end;
+      4: begin inc(xx1);          end;
+    end;
+
+    inc(waypoint_distance,round(bot[thisbot].speed*sqrt(sqr(xx1-waypointx[waypointn])+sqr(yy1-waypointy[waypointn]))));
+  until (xx1=bot[thisbot].x) and (yy1=bot[thisbot].y);
+end;
+
+procedure Tform1.move_bot(thisbot,to_x,to_y,use_waypoints:integer);
+var i:integer;
+    oldx,oldy:integer;
     step_tu:byte;
     dx:integer;
     flg:boolean;
@@ -488,26 +520,7 @@ begin
  oldy:=bot[thisbot].y;
  if (to_x>0) and (to_y>0) and (to_x<=maxx) and (to_y<=maxy) then
   if movement^[to_x,to_y]<10 then begin
-    waypointn:=0;
-    xx1:=to_x;
-    yy1:=to_y;
-    repeat
-      inc(waypointn);
-      waypointx[waypointn]:=xx1;
-      waypointy[waypointn]:=yy1;
-
-      case movement^[xx1,yy1] of
-        5: begin inc(xx1); dec(yy1) end;
-        6: begin           dec(yy1) end;
-        7: begin dec(xx1); dec(yy1) end;
-        8: begin dec(xx1)           end;
-        1: begin dec(xx1); inc(yy1) end;
-        2: begin           inc(yy1) end;
-        3: begin inc(xx1); inc(yy1) end;
-        4: begin inc(xx1);          end;
-      end;
-
-    until (xx1=bot[thisbot].x) and (yy1=bot[thisbot].y);
+   generatewaypoints(thisbot,to_x,to_y);
 
    waypoint_count:=0;
    repeat
@@ -579,6 +592,21 @@ begin
 end;
 
 {--------------------------------------------------------------------------------------}
+procedure generate_map_cocon; //???
+var ix,iy,cx,cy:integer;
+    map_seed:float;
+begin
+  form1.memo1.lines.add('COCON MAP * no');
+  cx:=round((2+random)*maxx/5);
+  cy:=round((2+random)*maxy/5);
+  for ix:=1 to maxx do
+    for iy:= 1 to maxy do begin
+       map_seed:=1.5*sqrt((sqr(ix-cx+0.0001)+sqr(iy-cy+0.0001)+1)/(sqr((maxx +0.0001)/ 2)+sqr((maxy+0.0001) / 2)+1));
+       if (random>map_seed) or (random<0.3) then map^[ix,iy]:=map_wall else map^[ix,iy]:=255;
+     end;
+end;
+
+{----------------------------------------------------------------------------------}
 
 procedure generate_map_random;
 var ix,iy:integer;
@@ -1967,8 +1995,8 @@ end;
 
 {-------------------------------------------------------------------------------------------}
 
-const homogenity_x=7;
-      homogenity_y=7;
+const homogenity_x=3;
+      homogenity_y=3;
 function test_map(free_from,free_to:byte):boolean;
 var ix,iy,dx,dy:integer;
     nerrors,nfree:integer;
@@ -2079,6 +2107,30 @@ begin
   createbot:=flg;
 end;
 
+{-----------------------------------------------------------------------------------------------}
+
+procedure generate_LOS_base_map;
+var ix,iy,dx,dy,count:integer;
+begin
+  for ix:=1 to maxx do
+    for iy:=1 to maxy do if map^[ix,iy]<map_wall then begin
+      count:=0;
+      for dx:=ix-visiblerange to ix+visiblerange do
+        for dy:=iy-visiblerange to iy+visiblerange do
+          if check_LOS(ix,iy,dx,dy)>0 then inc(count);
+      if count<255 then LOS_base^[ix,iy]:=count else LOS_base^[ix,iy]:=255;
+    end else LOS_base^[ix,iy]:=0;
+
+  dx:=0;
+  dy:=0;
+  for ix:=1 to maxx do
+    for iy:=1 to maxy do if map^[ix,iy]<map_wall then begin
+       inc(dx,LOS_base^[ix,iy]);
+       inc(dy);
+    end;
+  averageLOS:=dx/dy;
+end;
+
 {--------------------------------------------------------------------------------------}
 
 procedure TForm1.generate_map;
@@ -2087,12 +2139,16 @@ var ix,iy:integer;
     map_type:byte;
     generatedbots:integer;
     bot_hp_const,player_hp_const:integer;
+    total_bot_hp,total_player_hp,total_bot_firepower,total_player_firepower:integer;
 begin
   randomize;
 
   val(edit2.text,maxx,ix);
   if maxx<minmaxx then maxx:=minmaxx;
   if maxx>maxmaxx then maxx:=maxmaxx;
+  if (maxx>maxmaxx div 2) and (maxx<maxmaxx) then begin
+    if maxx<3*maxmaxx div 4 then maxx:=maxmaxx div 2 else maxx:=maxmaxx;
+  end;
   maxy:=maxx;
   edit2.text:=inttostr(maxx);
 
@@ -2118,8 +2174,10 @@ begin
              repeat generate_map_random         until test_map(20,70)
            else if random>0.6 then
              repeat generate_map_block          until test_map(20,70)
+           else if random>0.6 then
+             repeat generate_map_random_circles until test_map(20,70)
            else
-             repeat generate_map_random_circles until test_map(20,70);
+             repeat generate_map_cocon          until test_map(20,80);
         2:   repeat generate_map_circles        until test_map(20,70);       //problems at 140x140
         3:   repeat generate_map_anticircles    until test_map(20,70);
         4:   repeat generate_map_diamonds       until test_map(20,70);
@@ -2218,6 +2276,27 @@ begin
       end else item[itemsn].item.ammo_id:=5;
       item[itemsn].item.n:=round((ammo_specifications[item[itemsn].item.ammo_id].quantity-1)*random)+1;
   end;
+
+  generate_LOS_base_map;
+  total_bot_hp:=0;
+  total_player_hp:=0;
+  total_bot_firepower:=0;
+  total_player_firepower:=0;
+  for ix:=1 to nbot do begin
+    if bot[ix].owner=player then begin
+      if bot[ix].hp>15 then inc(total_player_hp,bot[ix].hp) else inc(total_player_hp,15);
+      inc(total_player_firepower,10);
+    end else begin
+      if bot[ix].hp>15 then inc(total_bot_hp,bot[ix].hp) else inc(total_bot_hp,15);
+      inc(total_bot_firepower,10);
+    end;
+  end;
+  memo1.lines.add('Calculating true map difficulty values');
+  memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
+  if checkbox1.checked then ix:=defensedifficulty else ix:=1;
+  memo1.lines.add('HP ratio = '+inttostr(round(100*total_bot_hp/total_player_hp))+'%');
+  memo1.lines.add('Firepower ratio = '+inttostr(round(ix*100*total_bot_firepower/total_player_firepower*averageLOS/maxx/maxy))+'%');
+  memo1.lines.add('True difficulty = '+ inttostr(round(100*total_bot_hp/total_player_hp * ix*total_bot_firepower/total_player_firepower * averageLOS/maxx/maxy))+'%');
 
   mapgenerated:=true;
 
@@ -2319,9 +2398,9 @@ begin
  end;
 with AMMO_specifications[4] do begin
    NAME        := 'Acc. wasp clip';
-   ACC         :=200;
+   ACC         := 80;
    DAM         := 16;
-   QUANTITY    := 14;
+   QUANTITY    := 12;
    EXPLOSION   :=  0;
    AREA        :=  0;
    SMOKE       :=  0;
@@ -2379,6 +2458,7 @@ begin
   new(vis);
   new(mapchanged);
   new(movement);
+  new(LOS_base);
   gamemode:=gamemode_none;
   form1.DoubleBuffered:=true;
   generate_items_types;
@@ -2589,12 +2669,11 @@ var i,j,k,j2:integer;
     lastrange,aim:integer;
     flg:boolean;
 begin
-// bot[5].owner:=computer;
-
   grow_smoke;
   selectedenemy:=-1;
   memo1.clear;
   clear_visible;
+  //LOS - is "current" map_visible;
   for i:=1 to nbot do if bot[i].owner<>player then begin
     spend_tu(i,bot[i].tu);
     bot[i].tu:=255;
@@ -2849,13 +2928,15 @@ begin
   end;
 
   if (mapsize>2) and (playerhp>0) and (playerquantity>0) and (hpquantity>0) and (botsquantity>0) then begin
-    difficulty:=round(10000*((hpquantity*botsquantity)/(playerhp*playerquantity))*sqrt(botsquantity/playerquantity)/(mapsize+100));
+    if hpquantity<15 then hpquantity:=15;
+    difficulty:=round(100*(hpquantity*botsquantity)/(playerhp*playerquantity) * botsquantity/playerquantity * 50/sqr(mapsize));
+    if checkbox1.checked then difficulty:=difficulty*defensedifficulty;
     case difficulty of
-         0.. 299:label10.Caption:='Difficulty: EASY'+' ('+inttostr(difficulty)+')';
-       300.. 799:label10.Caption:='Difficulty: NORMAL'+' ('+inttostr(difficulty)+')';
-       800..1499:label10.Caption:='Difficulty: HARD'+' ('+inttostr(difficulty)+')';
-      1500..2500:label10.Caption:='Difficulty: ULTRA HARD'+' ('+inttostr(difficulty)+')';
-      ELSE   label10.caption:='Difficulty: INSANE?'+' ('+inttostr(difficulty)+')'
+        0.. 33:label10.Caption:='Difficulty: EASY'+' ('+inttostr(difficulty)+'%)';
+       34.. 66:label10.Caption:='Difficulty: NORMAL'+' ('+inttostr(difficulty)+'%)';
+       67.. 99:label10.Caption:='Difficulty: HARD'+' ('+inttostr(difficulty)+'%)';
+      100..150:label10.Caption:='Difficulty: ULTRA HARD'+' ('+inttostr(difficulty)+'%)';
+      ELSE   label10.caption:='Difficulty: INSANE?'+' ('+inttostr(difficulty)+'%)'
     end
   end else label10.caption:='ERROR CALCULATING DIFFICULTY';
 end;
@@ -2889,6 +2970,7 @@ begin
   dispose(vis);
   dispose(movement);
   dispose(mapchanged);
+  dispose(LOS_base);
 end;
 
 {================================================================================}

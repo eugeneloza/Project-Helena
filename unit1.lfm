@@ -159,7 +159,7 @@ object Form1: TForm1
     ItemIndex = 0
     Items.Strings = (
       '* Any *'
-      'Rnd / Block / RC'
+      'Rnd / Block / RC / Cocon'
       'Circles'
       'Anticircles'
       'Diamonds'
@@ -430,6 +430,7 @@ object Form1: TForm1
     Height = 23
     Top = 353
     Width = 48
+    OnChange = Edit4Change
     TabOrder = 22
     Text = '4'
   end
@@ -446,7 +447,8 @@ object Form1: TForm1
     Height = 21
     Top = 408
     Width = 117
-    Caption = 'Defence mode'
+    Caption = 'Defense mode'
+    OnChange = Edit4Change
     TabOrder = 23
   end
 end
