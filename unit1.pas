@@ -44,7 +44,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
       defensedifficulty=5;
       standard_damage=10;
-      average_los_value=42.34;   ////////////////////////////// corrected LOS
+      average_los_value=43.11;   ////////////////////////////// corrected LOS
 
 const itemdamagerate=0.4;           //40% damage taken by armed weapon
 
@@ -316,6 +316,7 @@ var
   LOS_base:^map_array;
   mapfreespace:integer;
   mapinhomogenity:float;
+  estimated_botstogether:float;
 
   averageLOS:float;
   maxx,maxy:integer;
@@ -2592,10 +2593,11 @@ begin
   if averageLOS>LOS_adjusted then LOS_adjusted:=averageLOS;
 
   if form1.checkbox1.checked then difficultybonus:=defensedifficulty else difficultybonus:=1;
-  estimated_firepower:=enemies/players*LOS_adjusted/mapfreespace;
-  if estimated_firepower<1/players then estimated_firepower:=1/players;
-  estimated_firepower:=estimated_firepower/(1-enemies*0.25*5*standard_damage/playershp); {random damage}
-  estimated_firepower:=estimated_firepower/(1-enemies*standard_damage*(enemieshp/enemies/(players*standard_damage*5))/playershp); {persistent damage}
+  estimated_botstogether:=enemies*LOS_adjusted/mapfreespace;
+  if estimated_botstogether<1 then estimated_botstogether:=1;
+  estimated_firepower:=estimated_botstogether/players;
+  estimated_firepower:=estimated_firepower*(1+enemies*0.25*5*standard_damage/playershp); {random damage}
+  estimated_firepower:=estimated_firepower*(1+enemies*standard_damage*(enemieshp/enemies/(players*standard_damage*5))/playershp); {persistent damage}
   calculate_difficulty:=round(100 * enemieshp/playershp * difficultybonus * estimated_firepower);
 end;
 
@@ -2809,6 +2811,7 @@ begin
   memo1.lines.add('Average Player HP = '+inttostr(total_player_hp div playersn));
   memo1.lines.add('Enemy bots = '+inttostr(nbot-playersn));
   memo1.lines.add('Average bot HP = '+inttostr(total_bot_hp div (nbot-playersn)));
+  memo1.lines.add('Bots together = '+floattostr(round(estimated_botstogether*10)/10));
 
   memo1.lines.add('True difficulty = '+saydifficulty(estimated_difficulty));
 
@@ -4944,10 +4947,10 @@ begin
     brush.color:=clgray;
     if minimapx0>0 then begin
       fillrect(0,0,minimapx0,image7.height);
-      fillrect(image7.width-minimapx0+1,0,image7.width,image7.height);
+      fillrect(minimapx0+round(maxx*scaleminimapx),0,image7.width,image7.height);
     end else begin
       fillrect(0,0,image7.width,minimapy0);
-      fillrect(0,image7.height-minimapy0+1,image7.width,image7.height);
+      fillrect(0,minimapy0+round(maxy*scaleminimapy),image7.width,image7.height);
     end;
   end;
 
