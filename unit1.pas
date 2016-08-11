@@ -11,6 +11,7 @@ uses
 const maxmaxx={113}226;  //max 'reasonable' 50x50
       minmaxx=20;
       maxmaxy=maxmaxx;
+      minmaxy=minmaxx;
       maxbots=500;
       maxzoom=50;
 
@@ -139,6 +140,7 @@ type
     CheckBox3: TCheckBox;
     CheckBox4: TCheckBox;
     CheckBox5: TCheckBox;
+    CheckBox6: TCheckBox;
     ComboBox1: TComboBox;
     Edit1: TEdit;
     Edit2: TEdit;
@@ -146,6 +148,7 @@ type
     Edit4: TEdit;
     Edit5: TEdit;
     Edit6: TEdit;
+    Edit7: TEdit;
     Image1: TImage;
     Image2: TImage;
     Image3: TImage;
@@ -159,6 +162,7 @@ type
     Label12: TLabel;
     Label13: TLabel;
     Label14: TLabel;
+    Label15: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
@@ -311,8 +315,11 @@ var
   map,vis,movement,distance,mapchanged:^map_array;
   LOS_base:^map_array;
   mapfreespace:integer;
+  mapinhomogenity:float;
+
   averageLOS:float;
   maxx,maxy:integer;
+  max_max_value,min_max_value,average_max_value:integer;
   playersn:integer;
   viewx,viewy,viewsizex,viewsizey:integer;
   draw_map_all,show_los:boolean;
@@ -750,8 +757,8 @@ begin
     iy:=round(random*(maxy-3))+2;
   until (map^[ix,iy]>=map_generation_free);
 
-  for dx:=0 to maxx do
-    map^[cx+round((ix-cx)*dx/maxx),cy+round((iy-cy)*dx/maxx)]:=map_generation1;
+  for dx:=0 to max_max_value do
+    map^[cx+round((ix-cx)*dx/max_max_value),cy+round((iy-cy)*dx/max_max_value)]:=map_generation1;
 
   for ix:=2 to maxx-1 do
     for iy:=2 to maxy-1 do
@@ -781,11 +788,11 @@ var ix,iy,i:integer;
     cx,cy,r:array[1..maxcircles] of integer;
 begin
   generate_map_makewalls(map_generation_wall);
-  Ncircles:=round(sqr(sqr(random))*(maxx/10-1))+1;
+  Ncircles:=round(sqr(sqr(random))*(max_max_value/10-1))+1;
   if NCircles>maxcircles then NCircles:=maxcircles;
   form1.memo1.lines.add('RANDOM CIRCLES MAP * '+inttostr(Ncircles));
   for i:=1 to NCircles do begin
-    r[i]:=round(maxx/(Ncircles+1)*sqr(random))+5;
+    r[i]:=round(max_max_value/(Ncircles+1)*sqr(random))+5;
     cx[i]:=round((maxx/2)*random)+maxx div 4;
     cy[i]:=round((maxy/2)*random)+maxy div 4;
   end;
@@ -806,7 +813,7 @@ begin
   map_seed:=0.4+random/4;
   form1.memo1.lines.add('CIRCLES MAP * '+inttostr(round(map_seed*100)));
   repeat
-    i:=round(sqr(sqr(random))*maxx/5)+4;
+    i:=round(sqr(sqr(random))*max_max_value/5)+4;
     ix:=round(random*(maxx-1)+1);
     iy:=round(random*(maxy-1)+1);
     for dx:=-i to i do
@@ -828,7 +835,7 @@ begin
   generate_map_makewalls(map_generation_free);
   form1.memo1.lines.add('ANTI-CIRCLES MAP * '+inttostr(round(map_seed*100)));
   repeat
-    i:=round(sqr(sqr(random))*maxx/5)+1;
+    i:=round(sqr(sqr(random))*max_max_value/5)+1;
     ix:=round(random*(maxx-1)+1);
     iy:=round(random*(maxy-1)+1);
     for dx:=-i to i do
@@ -851,7 +858,7 @@ begin
   generate_map_makewalls(map_generation_wall);
 
   repeat
-    i:=round(random*maxx/3);
+    i:=round(random*max_max_value/3);
     ix:=round(random*(maxx-1))+1;
     iy:=round(random*(maxy-1))+1;
     if random>0.5 then begin
@@ -959,17 +966,17 @@ var ix,iy,i:integer;
     maptype:byte;
     maxlinearsinus:integer;
 begin
- maxlinearsinus:=maxx div 2;
+ maxlinearsinus:=max_max_value div 2;
  maptype:=round(random*1.3+0.45);
  form1.memo1.lines.add('LINEAR SINUS MAP * type'+inttostr(maptype));
  for i:=1 to maxlinearsinus do begin
    sum:=random;
    if maptype=0 then sum:=(2*random-1);
-   frqx[i]:=Pi*maxx/2*sum;
+   frqx[i]:=Pi*max_max_value/2*sum;
    sum:=random;
    if maptype=0 then sum:=(2*random-1);
    if maptype=2 then sum:=-random;
-   frqy[i]:=Pi*maxx/2*sum;
+   frqy[i]:=Pi*max_max_value/2*sum;
    phase[i]:=random*2*pi;
    amp[i]:=sqrt(sqrt(random));
  end;
@@ -993,10 +1000,10 @@ var room_max,room_min,room_n,roomx,roomy,sx,sy:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   room_min:=3;
-  room_max:=maxx div 5;
+  room_max:=min_max_value div 5;
   room_n:=round(sqr(sqr(random))*(sqrt(maxx*maxy/sqr(room_max+3))))+3;
-  pass_min:=maxx div 5;
-  pass_max:=maxx div 2;
+  pass_min:=min_max_value div 5;
+  pass_max:=max_max_value div 2;
   form1.memo1.lines.add('ROOMS MAP * '+inttostr(room_n));
   //make rooms
   for i:=1 to room_n do begin
@@ -1076,8 +1083,8 @@ var ix,iy,iix,iiy,dx,dy:integer;
 begin
  // map_seed:=0.22+random/8;
   generate_map_makewalls(map_generation_wall);
-  dx:=round(sqr(random)*maxx/2)+3;
- // if random>0.1 then dx:=round(maxx/2+random*maxx/2)+1;
+  dx:=round(sqr(random)*max_max_value/2)+3;
+ // if random>0.1 then dx:=round(max_max_value/2+random*max_max_value/2)+1;
 
   form1.memo1.lines.add('CONCENTRIC MAP * '+inttostr(dx));
 
@@ -1213,7 +1220,8 @@ begin
   generate_map_makewalls(map_generation_wall);
   map_seed:=0.2+random/4;
   form1.memo1.lines.add('CONCENTRIC FULL MAP * '+inttostr(round(map_seed*100)));
-  maxr:=random*maxx+10;
+  maxr:=random*min_max_value+10;
+  if min_max_value<=max_max_value div 2 then  maxr:=random*min_max_value+5;
   repeat
     rx_out:=random*(maxr)+1;
     ry_out:=rx_out+random*4-2;if ry_out<1 then ry_out:=1;
@@ -1262,8 +1270,8 @@ var ix,iy,j:integer;
 begin
   random_tiles:=false;
   generate_map_makewalls(map_generation_wall);
-  cx0:=random*(maxx/2)+maxx/4;
-  cy0:=random*(maxy/2)+maxy/4;
+  cx0:=(random-0.5)*(maxx/2)+maxx/2;
+  cy0:=(random-0.5)*(maxy/2)+maxy/2;
   rout:=sqrt(sqr(maxx-cx0)+sqr(maxy-cy0));
   if rout<sqrt(sqr(cx0)+sqr(cy0)) then rout:=sqrt(sqr(cx0)+sqr(cy0));
   if rout<sqrt(sqr(maxx-cx0)+sqr(cy0)) then rout:=sqrt(sqr(maxx-cx0)+sqr(cy0));
@@ -1273,10 +1281,10 @@ begin
   form1.memo1.lines.add('EGG MAP * no');
   repeat
     cx:=cx0+random*2-1;
-    cy:=cx0+random*2-1;
-    if rout>3* maxx div 4 then tile:=0 else
-    if rout>2* maxx div 4 then tile:=1 else
-    if rout>   maxx div 4 then tile:=2 else
+    cy:=cy0+random*2-1;
+    if rout>3* max_max_value div 4 then tile:=0 else
+    if rout>2* max_max_value div 4 then tile:=1 else
+    if rout>   max_max_value div 4 then tile:=2 else
                             tile:=3;
 
     for ix:=1 to maxx do
@@ -1314,7 +1322,7 @@ begin
   generate_map_makewalls(map_generation_wall);
 
   map_seed:=random/3;
-  tmp:=maxx/10;
+  tmp:=max_max_value/10;
   if tmp>6 then tmp:=6;
   map_stepx:=random*10 + tmp;
   map_stepy:=random*10 + tmp;
@@ -1809,7 +1817,7 @@ var dx,dy,sx,sy,x1,y1,x2,y2:integer;
 begin
   generate_map_makewalls(map_generation_wall);
   map_seed:=0.6+random*0.1+sqr(sqr(random))*0.3;
-  max_length:=maxx/10+3+maxx/2*random;
+  max_length:=max_max_value/10+3+max_max_value/2*random;
   maxrotorlength:=1.5+10*sqr(sqr(random));
   max_angles:=2+round(random*3+sqr(sqr(sqr(random)))*32);
   phase:=random*2*Pi;
@@ -1850,7 +1858,7 @@ begin
   y1:=2;
   x2:=maxx-1;
   y2:=maxy-1;
-  maxwallwidth:=4+round(sqr(random)*maxx/4);
+  maxwallwidth:=4+round(sqr(random)*min_max_value/4);
   maxpasswidth:=1+round(sqr(sqr(random))*6);
   repeat
     for dx:=x1 to x2 do
@@ -2000,12 +2008,12 @@ var snowflakes,maxsnowflakes:integer;
     phase_x,phase_y,snowflakesize,cx,cy:float;
 begin
   generate_map_makewalls(map_generation_wall);
-  snowflakesize:=6+sqrt(random)*maxx/7;
+  snowflakesize:=6+sqrt(random)*min_max_value/7;
   maxsnowflakes:=8;
   if snowflakesize<8 then maxsnowflakes:=1 else
   if snowflakesize<13 then maxsnowflakes:=3 else
   if snowflakesize<19 then maxsnowflakes:=5;
-  if random>0.5+0.4*(maxx/maxmaxx) then snowflakes:=round(random*maxsnowflakes)+3 else snowflakes:=0;
+  if random>0.5+0.4*(max_max_value/maxmaxx) then snowflakes:=round(random*maxsnowflakes)+3 else snowflakes:=0;
   phase_x:=-(random) * snowflakesize;
   phase_y:=-(random) * snowflakesize;
 
@@ -2249,13 +2257,13 @@ var map_seed,roomsize,thisroomsize:float;
     shape:byte;
 begin
   generate_map_makewalls(map_generation_wall);
-  map_roomsn:=1+maxx div 7+round(maxx/7 * random);
+  map_roomsn:=1+average_max_value div 7+round(average_max_value/7 * random);
   map_seed:=sqr(1/map_roomsn)+0.2*random;
   if map_roomsn>maxmaxrooms then map_roomsn:=maxmaxrooms;
   form1.memo1.lines.add('UNTANGLE MAP * '+inttostr(round(map_seed*100))+'/rooms='+inttostr(map_roomsn));
-  if random>0.5 then roomsize:=0 else roomsize:=1+(random*maxx/10);
+  if random>0.5 then roomsize:=0 else roomsize:=1+(random*min_max_value/10);
   shape:=trunc(random*3);
-  radius:=maxx div 2-round(random*maxx/9);
+  radius:=min_max_value div 2-round(random*min_max_value/9);
   case shape of
     0:form1.memo1.lines.add('random shape');
     1:form1.memo1.lines.add('circle shape '+inttostr(radius));
@@ -2331,7 +2339,55 @@ begin
   safemapwrite(bx+bsizex+2,by+bsizey div 2-1,map_generation_wall);
   safemapwrite(bx+bsizex+2,by+bsizey div 2  ,map_generation_wall);
 
+  form1.memo1.lines.add('Bunker building created.');
 end;
+
+{-----------------------------------------------------}
+
+procedure create_box(limitsize:integer);
+var x1,y1,x2,y2:integer;
+    ix,iy:integer;
+begin
+  x1:=round(random*(maxx - 8))+1;
+  x2:=x1 + round(sqr(sqr(random))*((maxx-x1)))+4;
+  if x2>=maxx then x2:=maxx-1;
+  if x2-x1>limitsize then x2:=x1+limitsize;
+  y1:=round(random*(maxy - 8))+1;
+  y2:=y1 + round(sqr(sqr(random))*((maxy-y1)))+4;
+  if y2>=maxy then y2:=maxy-1;
+  if y2-y1>limitsize then y2:=y1+limitsize;
+  for ix:=x1 to x2 do
+   for iy:=y1 to y2 do safemapwrite(ix,iy,map_generation_free);
+  for ix:=x1+1 to x2-1 do
+   for iy:=y1+1 to y2-1 do safemapwrite(ix,iy,map_generation_wall);
+  for ix:=x1+2 to x2-2 do
+   for iy:=y1+2 to y2-2 do safemapwrite(ix,iy,map_generation_free);
+  if random>0.5 then begin
+    if random>0.5 then x1:=x1+1 else x1:=x2-1;
+    safemapwrite(x1,y1+round(random*(y2-y1-4))+2,map_generation_free);
+  end else begin
+    if random>0.5 then y1:=y1+1 else y1:=y2-1;
+    safemapwrite(x1+round(random*(x2-x1-4))+2,y1,map_generation_free);
+  end;
+
+  form1.memo1.lines.add('Box building created.');
+end;
+
+{----------------------------------------------------------------}
+
+const box_probability=0.6;
+      bunker_probability=0.4;
+procedure generate_map_buildings;
+begin
+ if (form1.checkbox6.checked) then begin
+   if (random<box_probability) then
+     repeat create_box(min_max_value div 3) until random>box_probability;
+   if (random<bunker_probability) then
+     repeat create_bunker(round(random*(maxx-8)),round(random*(maxy-8)),round(random*4)+1,round(random*4)+1) until random>bunker_probability;
+ end;
+end;
+
+{----------------------------------------------------------------}
 
 const enter_x=2;
       enter_y=2;
@@ -2343,10 +2399,9 @@ var ix,iy,dx,dy:integer;
     nerrors,nfree:integer;
     all_count,free_count:integer;
     deviation:float;
-
     thismapfloor,thismapwall:byte;
 begin
-
+ generate_map_buildings;
 
  create_bunker(enter_x,enter_y,4,4);
 
@@ -2418,7 +2473,8 @@ until thismapfloor<>thismapwall;
      end;
      deviation:=deviation+sqr((free_count/all_count)/(nfree/maxx/maxy)-1);
   end;
- form1.memo1.lines.add('Map inhomogenity: '+inttostr(round(sqrt(deviation)/(homogenity_x*homogenity_y)*100))+'%');
+ mapinhomogenity:=sqrt(deviation)/(homogenity_x*homogenity_y);
+ form1.memo1.lines.add('Map inhomogenity: '+inttostr(round(mapinhomogenity*100))+'%');
 
  form1.memo1.lines.add('...');
 
@@ -2577,15 +2633,25 @@ begin
   if (maxx>maxmaxx div 2) and (maxx<maxmaxx) then begin
     if maxx<3*maxmaxx div 4 then maxx:=maxmaxx div 2 else maxx:=maxmaxx;
   end;
-  maxy:=maxx;
   edit2.text:=inttostr(maxx);
+  val(edit7.text,maxy,ix);
+  if maxy<minmaxy then maxy:=minmaxy;
+  if maxy>maxmaxy then maxy:=maxmaxy;
+  if (maxy>maxmaxy div 2) and (maxy<maxmaxy) then begin
+    if maxy<3*maxmaxy div 4 then maxy:=maxmaxy div 2 else maxy:=maxmaxy;
+  end;
+  edit7.text:=inttostr(maxy);
 
-  if maxx>trackbar1.max then trackbar1.max:=maxzoom;
-  if trackbar1.max>maxx then trackbar1.max:=maxx;
-  if (viewsizex>maxx) or (viewsizey>maxy) then begin
-    viewsizex:=maxx;
-    viewsizey:=maxy;
-    trackbar1.position:=maxx;
+  if maxx>maxy then begin max_max_value:=maxx; min_max_value:=maxy; end else
+                    begin max_max_value:=maxy; min_max_value:=maxx; end;
+  average_max_value:=(maxx+maxy) div 2;
+
+  if min_max_value>trackbar1.max then trackbar1.max:=maxzoom;
+  if min_max_value<trackbar1.max then trackbar1.max:=min_max_value;
+  if (viewsizex>min_max_value) or (viewsizey>min_max_value) then begin
+    viewsizex:=min_max_value;
+    viewsizey:=min_max_value;
+    trackbar1.position:=min_max_value;
   end;
 
   memo1.lines.add('Generating map...');
@@ -2598,6 +2664,7 @@ begin
 
   random_tiles:=true;
   if combobox1.itemIndex<1 then map_type:=trunc(random*20)+1 else map_type:=combobox1.ItemIndex;
+ repeat
   case map_type of
         1: if random>0.6 then
              repeat generate_map_random         until test_map(20,70)
@@ -2642,7 +2709,7 @@ begin
        19:   repeat generate_map_areas          until test_map(20,90);
        20:   repeat generate_map_wormhole       until test_map(20,90);
   end;
-
+ until mapinhomogenity<0.15;
 
 
 
@@ -3701,7 +3768,7 @@ end;
 procedure TForm1.Button2Click(Sender: TObject);
 var buttonpressed:boolean;
 begin
- if (mapgenerated) and (gamemode=gamemode_game) then buttonpressed:=(MessageDlg('Are you sure? Current map will be lost.',mtCustom, [mbYes,mbCancel], 0)=MrYes) else buttonpressed:=true;
+ if (mapgenerated) and ((gamemode=gamemode_game) or (gamemode=gamemode_iteminfo)) then buttonpressed:=(MessageDlg('Are you sure? Current map will be lost.',mtCustom, [mbYes,mbCancel], 0)=MrYes) else buttonpressed:=true;
  if buttonpressed then begin
   memo1.clear;
   generate_map;
@@ -4005,7 +4072,7 @@ begin
      if load_weapon(selected,selecteditem) then begin
        selectedonfloor:=-1;
        selecteditem:=-1;
-       draw_stats
+       if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
      end;
  end else {button=mbright} begin
    if selected>0 then display_item_info(bot[selected].items[1]);
@@ -4101,7 +4168,8 @@ begin
            selecteditem:=-1;
         end;
       end;
-      draw_map;
+         if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+      //draw_map;
    end else {button=mbright} begin
      display_item_info(bot[selected].items[selectednew]);
    end;
@@ -4192,7 +4260,8 @@ begin
       selectedonfloor:=selectednew;
       selecteditem:=-1;
     end;
-    draw_map;
+     if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+    //draw_map;
    end else {button=mbright} begin
      display_item_info(item[onfloor[selectednew]].item);
    end;
@@ -4216,6 +4285,7 @@ begin
     selected:=playerunits[selectednew];
     if (bot[selected].x<=viewx) or (bot[selected].y<=viewy) or (bot[selected].x>viewx+viewsizey) or (bot[selected].y>viewy+viewsizey) then center_map(bot[selected].x,bot[selected].y);
     mapchanged^[bot[selected].x,bot[selected].y]:=255;
+    if gamemode=gamemode_iteminfo then begin draw_map_all:=true;  gamemode:=previous_gamemode; end;
     draw_map;
   end;
 end;
@@ -4244,6 +4314,7 @@ begin
           center_map(bot[selectedenemy].x,bot[selectedenemy].y);
     end;
     mapchanged^[bot[selectedenemy].x,bot[selectedenemy].y]:=255;
+    if gamemode=gamemode_iteminfo then begin draw_map_all:=true;  gamemode:=previous_gamemode; end;
     draw_map;
   end;
 end;
@@ -4372,6 +4443,8 @@ begin
  button6.visible:=flg;
  label5.visible:=flg;
  edit2.visible:=flg;
+ edit7.visible:=flg;
+ label15.visible:=flg;
  label6.visible:=flg;
  edit3.visible:=flg;
  label7.visible:=flg;
@@ -4392,6 +4465,7 @@ begin
  label14.visible:=flg;
  edit6.Visible:=flg;
  checkbox5.Visible:=flg;
+ checkbox6.visible:=flg;
  {$IFDEF UNIX}
  label13.visible:=false;
  {$ENDIF}
@@ -4841,6 +4915,7 @@ var mx,my,i:integer;
     sx,sy:integer;
     scalex,scaley,fx1,fy1,fx2,fy2:float;
     scaleminimapx,scaleminimapy:float;
+    minimapx0,minimapy0:integer;
     x1,y1,x2,y2:integer;
     xx1,yy1:integer;
     thistime:TDatetime;
@@ -4853,13 +4928,27 @@ begin
   sy:=image1.height;
   scalex:=sx / viewsizex;
   scaley:=sy / viewsizey;
-  scaleminimapx:=image7.Width / maxx;
-  scaleminimapy:=image7.height / maxy;
+  scaleminimapx:=image7.Width / max_max_value;
+  scaleminimapy:=image7.height / max_max_value;
+  if maxx>=maxy then minimapx0:=0 else minimapx0:=round(scaleminimapx * (maxy-maxx) / 2);
+  if maxy>=maxx then minimapy0:=0 else minimapy0:=round(scaleminimapy * (maxx-maxy) / 2);
+
   image7.canvas.brush.style:=bssolid;
 
   if (show_los) and (selectedenemy>0) then begin
    for mx:=2 to maxx-1 do
      for my:=2 to maxy-1 do if (check_los(mx,my,bot[selectedenemy].x,bot[selectedenemy].y,true)>0) and (vis^[mx,my]>0) and (map^[mx,my]<map_wall) then mapchanged^[mx,my]:=2;
+  end;
+
+  if {(draw_map_all) and }(maxx<>maxy) then with image7.canvas do begin
+    brush.color:=clgray;
+    if minimapx0>0 then begin
+      fillrect(0,0,minimapx0,image7.height);
+      fillrect(image7.width-minimapx0+1,0,image7.width,image7.height);
+    end else begin
+      fillrect(0,0,image7.width,minimapy0);
+      fillrect(0,image7.height-minimapy0+1,image7.width,image7.height);
+    end;
   end;
 
   with image1.canvas do begin
@@ -4897,7 +4986,7 @@ begin
 
         if mapchanged^[mx,my]=255 then begin
           image7.canvas.brush.color:=brush.color;
-          image7.canvas.fillrect(round((mx-1)*scaleminimapx), round((my-1)*scaleminimapy), round(mx*scaleminimapx), round(my*scaleminimapy));
+          image7.canvas.fillrect(round((mx-1)*scaleminimapx)+minimapx0, round((my-1)*scaleminimapy)+minimapy0, round(mx*scaleminimapx)+minimapx0, round(my*scaleminimapy)+minimapy0);
         end;
 
         if (mx>viewx) and (my>viewy) and (mx<=viewx+viewsizex) and (my<=viewy+viewsizey) then begin
@@ -4981,7 +5070,7 @@ begin
           rectangle(round(fx1+scalex / 3),round(fy1+scaley / 3), round(fx1+(2*scalex) /3), round(fy1 + (2*scaley) / 3));
         end;
         image7.canvas.brush.color:=$FF9999;
-        image7.canvas.fillrect(round((item[i].x-1)*scaleminimapx), round((item[i].y-1)*scaleminimapy), round(item[i].x*scaleminimapx), round(item[i].y*scaleminimapy));
+        image7.canvas.fillrect(round((item[i].x-1)*scaleminimapx)+minimapx0, round((item[i].y-1)*scaleminimapy)+minimapy0, round(item[i].x*scaleminimapx)+minimapx0, round(item[i].y*scaleminimapy)+minimapy0);
        end;
      {draw_bots}
      for mx:=1 to nbot do if bot[mx].hp>0 then begin
@@ -5009,7 +5098,7 @@ begin
                              end;
 
          image7.canvas.brush.color:=pen.color;
-         image7.canvas.fillrect(round((bot[mx].x-1)*scaleminimapx), round((bot[mx].y-1)*scaleminimapy), round(bot[mx].x*scaleminimapx), round(bot[mx].y*scaleminimapy));
+         image7.canvas.fillrect(round((bot[mx].x-1)*scaleminimapx)+minimapx0, round((bot[mx].y-1)*scaleminimapy)+minimapy0, round(bot[mx].x*scaleminimapx)+minimapx0, round(bot[mx].y*scaleminimapy)+minimapy0);
 
          if (bot[mx].x-viewx>0) and (bot[mx].y-viewy>0) and (bot[mx].x-viewx<=viewsizex) and (bot[mx].y-viewy<=viewsizey) then begin
            ellipse(round(fx1+scalex / 6), round(fy1+scaley / 6), round(fx2-scalex / 6), round(fy2-scaley / 6));
@@ -5049,7 +5138,7 @@ begin
 
      image7.canvas.brush.style:=bsclear;
      image7.canvas.pen.color:=$FFFFFF;
-     image7.canvas.rectangle(round((viewx+0.3)*scaleminimapx), round((viewy+0.3)*scaleminimapy), round((viewx+viewsizex-0.3)*scaleminimapx), round((viewy+viewsizey-0.3)*scaleminimapy));
+     image7.canvas.rectangle(round((viewx+0.3)*scaleminimapx)+minimapx0, round((viewy+0.3)*scaleminimapy)+minimapy0, round((viewx+viewsizex-0.3)*scaleminimapx)+minimapx0, round((viewy+viewsizey-0.3)*scaleminimapy)+minimapy0);
 
      {draw movement path}
      if (selectedx>0) and (selected>0) and (checkbox2.checked) then begin
