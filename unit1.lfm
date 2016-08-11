@@ -815,4 +815,9 @@ object Form1: TForm1
     OnMouseDown = Image7MouseDown
     TabOrder = 38
   end
+  object Timer1: TTimer
+    OnTimer = Timer1Timer
+    left = 658
+    top = 170
+  end
 end

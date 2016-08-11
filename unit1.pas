@@ -9,8 +9,9 @@ uses
   StdCtrls, ComCtrls, types,
 
   CastleControl,CastleVectors, CastleGLUtils, castleRectangles, CastleUIControls,
-  CastleGLImages,
-  castlecontrols;
+  CastleGLImages, castlecontrols,
+
+  CastleOpenAL, CastleSoundEngine, CastleTimeUtils;
 
 const debugmode=false;
 
@@ -18,6 +19,7 @@ const bottypes=3;
       maxcracks=11;
       maxpass=18;
       maxwall=21;
+      maxmusic=5;
 
 const maxmaxx={113}226;  //max 'reasonable' 50x50
       minmaxx=35;
@@ -219,6 +221,7 @@ type
     ScrollBar2: TScrollBar;
     ScrollBar3: TScrollBar;
     ScrollBar4: TScrollBar;
+    Timer1: TTimer;
     Togglebox1: TToggleBox;
     TrackBar2: TTrackBar;
     TrackBar3: TTrackBar;
@@ -260,6 +263,7 @@ type
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure Image7MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure Timer1Timer(Sender: TObject);
     procedure Togglebox1Change(Sender: TObject);
     procedure ScrollBar1Change(Sender: TObject);
     procedure ScrollBar2Change(Sender: TObject);
@@ -434,6 +438,12 @@ var
   txt_out:TStringList;
   txt_x,txt_y:integer;
   do_txt:boolean;
+
+  shot_sound,reload_sound: TSoundBuffer;
+
+  music:array[1..maxmusic] of TSoundBuffer;
+  music_duration:array[1..maxmusic] of TFloatTime;
+  oldmusic:integer;
 
 
 //  sintable,costable: array[0..maxangle] of float;
@@ -3969,11 +3979,27 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var ix,iy:integer;
+    Duration: TFloatTime;
 begin
    txt_out:=TStringList.create;
    CastleControl1.OnRender:=@Render;
    CastleControl2.OnRender:=@Render_minimap;
    animationtimer:=0;
+   shot_sound := SoundEngine.LoadBuffer('wav'+pathdelim+'Shotgun.wav', Duration);
+   reload_sound := SoundEngine.LoadBuffer('wav'+pathdelim+'Reload.wav', Duration);
+
+   music[1]:=soundengine.loadbuffer('music'+pathdelim+'Socapex - Dark Ambiance - Mastered.wav',music_duration[1]);
+   music[2]:=soundengine.loadbuffer('music'+pathdelim+'gloom.wav',music_duration[2]);
+   music[3]:=soundengine.loadbuffer('music'+pathdelim+'dark_caves.wav',music_duration[3]);
+   music[4]:=soundengine.loadbuffer('music'+pathdelim+'Caves of sorrow.wav',music_duration[4]);
+   music[5]:=soundengine.loadbuffer('music'+pathdelim+'ambientmain_0.wav',music_duration[5]);
+   timer1.enabled:=true;
+   timer1.Interval:=1000;
+   oldmusic:=-1;
+
+   SoundEngine.ParseParameters;
+   SoundEngine.MinAllocatedSources := 1;
+
 //   castlecontrol1.DoubleBuffered:=true;
 {$IFDEF WINDOWS}
   form1.color:=cldefault;
@@ -4400,6 +4426,7 @@ begin
             (bot[defender].x<=viewx-1+2) or (bot[defender].y<=viewy-1+2) or (bot[defender].x>=viewx+viewsizex-2) or (bot[defender].y>=viewy+viewsizey-2) then
                center_map((bot[attacker].x+bot[defender].x) div 2,(bot[attacker].y+bot[defender].y) div 2);
 
+         SoundEngine.PlaySound(shot_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
          do_txt:=true;
          txt_out.clear;
          txt_out.append(inttostr(damage));
@@ -5290,6 +5317,7 @@ begin
     bot[thisbot].items[1]:=bot[thisbot].items[thisitem];
     bot[thisbot].items[thisitem]:=tmpitem;
     bot[thisbot].items[1].rechargestate:=weapon_specifications[bot[thisbot].items[1].w_id].recharge;
+    if bot[thisbot].owner=player then SoundEngine.PlaySound(reload_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
     loadw:=true;
   end
  end
@@ -5303,6 +5331,7 @@ begin
        bot[thisbot].items[thisitem].ammo_id:=0;
        bot[thisbot].items[1].n:= bot[thisbot].items[thisitem].n;
        bot[thisbot].items[1].rechargestate:=weapon_specifications[bot[thisbot].items[1].w_id].recharge;
+       if bot[thisbot].owner=player then SoundEngine.PlaySound(reload_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
        loadw:=true;
      end
    end else showmessage(txt[57]);
@@ -5587,6 +5616,20 @@ procedure TForm1.Image7MouseDown(Sender: TObject; Button: TMouseButton;
 //var mousex,mousey:integer;
 begin
   center_map(round(x / (CastleControl2.width / maxx)+0.5),round(y / (CastleControl2.height/ maxy)+0.5));
+end;
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+var nextmusic:integer;
+begin
+  repeat
+    nextmusic:=trunc(random*maxmusic)+1;
+    if nextmusic=0 then nextmusic:=1;
+    if nextmusic>maxmusic then nextmusic:=maxmusic;
+  until nextmusic<>oldmusic;
+
+  SoundEngine.PlaySound(music[nextmusic], false, false, 0, 1, 0, 1, ZeroVector3Single);
+  timer1.interval:=round(music_duration[nextmusic]*1000)+200;
+  oldmusic:=nextmusic;
 end;
 
 procedure Tform1.set_progressbar(flg:boolean);
