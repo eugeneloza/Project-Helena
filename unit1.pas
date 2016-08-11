@@ -3774,6 +3774,56 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 //var i:integer;
 begin
+ {$IFDEF WINDOWS}
+  form1.color:=cldefault;
+  label1.font.color:=cldefault;
+  label2.font.color:=cldefault;
+  label3.font.color:=cldefault;
+  label4.font.color:=cldefault;
+  label5.font.color:=cldefault;
+  label6.font.color:=cldefault;
+  label7.font.color:=cldefault;
+  label8.font.color:=cldefault;
+  label9.font.color:=cldefault;
+  label10.font.color:=cldefault;
+  label11.font.color:=cldefault;
+  label12.font.color:=cldefault;
+  label13.font.color:=cldefault;
+  label14.font.color:=cldefault;
+  label15.font.color:=cldefault;
+  label16.font.color:=cldefault;
+  label17.font.color:=cldefault;
+  label18.font.color:=cldefault;
+  label19.font.color:=cldefault;
+  label20.font.color:=cldefault;
+  label21.font.color:=cldefault;
+  checkbox1.Font.color:=cldefault;
+  checkbox2.Font.color:=cldefault;
+  checkbox3.Font.color:=cldefault;
+  checkbox4.Font.color:=cldefault;
+  checkbox5.Font.color:=cldefault;
+  checkbox6.Font.color:=cldefault;
+  checkbox7.Font.color:=cldefault;
+  checkbox8.Font.color:=cldefault;
+  radiobutton1.font.color:=cldefault;
+  radiobutton2.font.color:=cldefault;
+  radiobutton3.font.color:=cldefault;
+  edit1.color:=cldefault;
+  edit2.color:=cldefault;
+  edit3.color:=cldefault;
+  edit4.color:=cldefault;
+  edit5.color:=cldefault;
+  edit6.color:=cldefault;
+  edit7.color:=cldefault;
+  edit1.font.color:=cldefault;
+  edit2.font.color:=cldefault;
+  edit3.font.color:=cldefault;
+  edit4.font.color:=cldefault;
+  edit5.font.color:=cldefault;
+  edit6.font.color:=cldefault;
+  edit7.font.color:=cldefault;
+{$ENDIF}
+
   maxx:=maxmaxx;
   maxy:=maxmaxy;
 
@@ -4692,6 +4742,7 @@ begin
   togglebox1.state:=cbUnchecked;
   gamemode:=gamemode_game;
   togglebox1.enabled:=true;
+  togglebox1.visible:=true;
  end;
 end;
 
@@ -5417,13 +5468,17 @@ begin
   combobox2.visible:=flg;
 
  if mapgenerated then begin
-   if gamemode>200 then button4.enabled:=true else button4.enabled:=false;
-   if gamemode>200 then button3.enabled:=true else button3.enabled:=false;
+   if gamemode>200 then button4.enabled:=true else begin button4.enabled:=false; button4.visible:=false; end;
+   if gamemode>200 then button3.enabled:=true else begin button3.enabled:=false; button3.visible:=false; end;
    togglebox1.enabled:=true;
+   togglebox1.visible:=true;
  end else begin
    button4.enabled:=false;
+   button4.visible:=false;
    button3.enabled:=false;
+   button3.visible:=false;
    togglebox1.enabled:=false;
+   togglebox1.visible:=false;
  end;
 
 end;
