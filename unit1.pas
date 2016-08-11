@@ -3168,7 +3168,8 @@ begin
       for ix:=1 to playersn do begin
         if (check_LOS(x1,y1,bot[ix].x,bot[ix].y,true)>0) and (random<0.99) then flg:=false;
         if (sqr(x1-bot[ix].x)+sqr(y1-bot[ix].y)<sqr(visiblerange/3)) and
-           (sqr(x1-bot[ix].x)+sqr(y1-bot[ix].y)<sqr(maxx/4)) and (random<0.95) then flg:=false
+           (sqr(x1-bot[ix].x)+sqr(y1-bot[ix].y)<sqr(maxx/4)) and (random<0.95) then flg:=false;
+        if (random>sqrt((sqr(x1-bot[ix].x)+sqr(y1-bot[ix].y))/sqr(3/2*visiblerange))) and (random<0.5) then flg:=false;
       end;
     until (((flg) or (random>0.999)) and createbot(computer,'d'+inttostr(round(random*999)),{round(random*30)+}bot_hp_const,x1,y1)) or (count>10000);
     if checkbox1.checked then bot[nbot].action:=action_attack else bot[nbot].action:=action_random;
