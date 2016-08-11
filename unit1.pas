@@ -2305,6 +2305,34 @@ begin
 
 end;
 
+{------------------------------------------------}
+
+procedure generate_map_checkers;
+var ix,iy:integer;
+    map_seed1,map_seed2:float;
+    checkersize:float;
+    tmp:boolean;
+    shiftx,shifty:float;
+begin
+  map_seed1:=(0.1+random/10);
+  map_seed2:=1-(0.1+random/10);
+  checkersize:=3+(sqr(sqr(random))*min_max_value/3);
+  form1.memo1.lines.add('CHECKERS MAP * '+inttostr(round(checkersize)));
+  shiftx:=(checkersize*random);
+  shifty:=(checkersize*random);
+  for ix:=1 to maxx do
+   for iy:=1 to maxy do begin
+     if ((    odd(round((ix+shiftx) / checkersize))) and (    odd(round((iy+shifty) / checkersize)))) or
+        ((not odd(round((ix+shiftx) / checkersize))) and (not odd(round((iy+shifty) / checkersize)))) then tmp:=true else tmp:=false;
+     if (tmp) then begin
+       if random<map_seed1 then map^[ix,iy]:=map_generation_free else map^[ix,iy]:=map_generation_wall;
+     end else begin
+       if random<map_seed2 then map^[ix,iy]:=map_generation_free else map^[ix,iy]:=map_generation_wall;
+     end;
+
+   end;
+end;
+
 {-------------------------------------------------------------------------------------------}
 
 procedure create_bunker(bx,by,bsizex,bsizey:integer);
@@ -2678,7 +2706,10 @@ begin
              repeat generate_map_cocon          until test_map(20,80);
         2:   repeat generate_map_circles        until test_map(20,70);       //problems at 140x140
         3:   repeat generate_map_anticircles    until test_map(20,70);
-        4:   repeat generate_map_diamonds       until test_map(20,70);
+        4: if random>0.6 then
+             repeat generate_map_diamonds       until test_map(20,70)
+           else
+             repeat generate_map_checkers           until test_map(20,70);
         5:   repeat generate_map_Tmap           until test_map(20,70);
         6:   repeat generate_map_linearsinus    until test_map(20,70);       //slow generation
         7: if random>0.6 then

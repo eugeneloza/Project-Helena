@@ -165,7 +165,7 @@ object Form1: TForm1
       'Rnd / Block / RC / Cocon'
       'Circles'
       'Anticircles'
-      'Diamonds'
+      'Diamonds / Checkers'
       'Tmap'
       'Linearsinus'
       'Rooms/Rectagonal'
