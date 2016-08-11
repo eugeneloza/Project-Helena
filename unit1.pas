@@ -5098,6 +5098,10 @@ begin
   val(edit2.text,mapsizex,i);
   val(edit7.text,mapsizey,i);
   val(edit3.text,hpquantity,i);
+
+  val(edit6.text,difficulty,i); //non-optimal bugfix
+  if checkbox5.checked then botsquantity:=(difficulty div 25)*playersn*playerhp div hpquantity;
+
   label8.visible:=true;
   label8.caption:=txt[51];
   label8.color:=$AAFFAA;

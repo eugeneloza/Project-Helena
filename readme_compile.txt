@@ -13,6 +13,8 @@ zlib1g
 zlib1g-dev
 libvorbis
 libvorbis-dev
+libfreetype6
+libfreetype6-dev
 Or Castle Game Engine DLLs (32 bit / 64 bit) in case of Windows. These may be downloaded here: http://castle-engine.sourceforge.net/engine.php
 The DLLs must be placed in the exe folder.
 

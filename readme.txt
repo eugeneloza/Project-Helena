@@ -7,6 +7,7 @@ libopenal1
 libpng
 zlib1g
 libvorbis
+libfreetype6
 
 See ProjectHelenaHelp.pdf in DAT folder for more information.
 
