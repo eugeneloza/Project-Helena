@@ -33,6 +33,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       playerbotmovedelay=100;     {ms}
       enemybotmovedelay=300;      {ms}
       shotdelay=200;              {ms}
+      blastdelay=500;              {ms}
 
       defensedifficulty=5;
 
@@ -1579,6 +1580,144 @@ begin
 end;
 
 {--------------------------------------------------------------------------------------}
+
+const fivesize=5;
+procedure generate_map_five;
+var ix,iy,x1,y1:integer;
+    map_seed:float;
+    xphase,yphase:integer;
+begin
+  generate_map_makewalls(255);
+  map_seed:=0.5+random*0.2;   //blockers
+  xphase:=round(random*fivesize);
+  yphase:=round(random*fivesize);
+  form1.memo1.lines.add('FIVE MAP * '+inttostr(round(map_seed*100)));
+  for ix:=0 to maxx div fivesize+2 do
+   for iy:=0 to maxy div fivesize+2 do begin
+     x1:=ix*fivesize-xphase;
+     y1:=iy*fivesize-yphase;
+     //permament walls
+     safemapwrite(x1  ,y1  ,map_wall);
+     safemapwrite(x1+2,y1  ,map_wall);
+     safemapwrite(x1+3,y1  ,map_wall);
+     safemapwrite(x1  ,y1+2,map_wall);
+     safemapwrite(x1+2,y1+2,map_wall);
+     safemapwrite(x1+3,y1+2,map_wall);
+     safemapwrite(x1  ,y1+3,map_wall);
+     safemapwrite(x1+2,y1+3,map_wall);
+     safemapwrite(x1+3,y1+3,map_wall);
+     //blockings
+     if random>map_seed then safemapwrite(x1+1,y1  ,map_wall);
+     if random>map_seed then safemapwrite(x1+4,y1  ,map_wall);
+     if random>map_seed then safemapwrite(x1  ,y1+1,map_wall);
+     if random>map_seed then safemapwrite(x1+2,y1+1,map_wall);
+     if random>map_seed then safemapwrite(x1+4,y1+2,map_wall);
+     if random>map_seed then safemapwrite(x1+1,y1+3,map_wall);
+     if random>map_seed then safemapwrite(x1  ,y1+4,map_wall);
+     if random>map_seed then safemapwrite(x1+3,y1+4,map_wall);
+   end;
+end;
+
+{--------------------------------------------------------------------------------------}
+const dashsize=6;
+procedure generate_map_dash;
+var ix,iy,x1,y1,line:integer;
+    map_seed:float;
+    xphase,yphase:integer;
+    kind:boolean;
+begin
+  generate_map_makewalls(255);
+  map_seed:=0.5+random*0.2;   //blockers
+  xphase:=round(random*dashsize);
+  yphase:=round(random*dashsize);
+  if random>0.5 then kind:=true else kind:=false;
+
+  if random>0.5 then begin
+    form1.memo1.lines.add('DASH horizontal MAP * '+inttostr(round(map_seed*100)));
+    if kind then form1.memo1.lines.add('top-left variant') else form1.memo1.lines.add('top-right variant');
+    for ix:=0 to maxx div dashsize+2 do
+     for iy:=0 to maxy div dashsize+2 do begin
+       x1:=ix*dashsize-xphase;
+       y1:=iy*dashsize-yphase;
+       //permament walls
+       safemapwrite(x1  ,y1  ,map_wall); //first line
+       safemapwrite(x1+1,y1  ,map_wall);
+       safemapwrite(x1+3,y1  ,map_wall);
+       safemapwrite(x1+4,y1  ,map_wall);
+       if kind then line:=y1+2 else line:=y1+4;
+       safemapwrite(x1+1,line,map_wall); //third line
+       safemapwrite(x1+2,line,map_wall);
+       safemapwrite(x1+4,line,map_wall);
+       safemapwrite(x1+5,line,map_wall);
+       if kind then line:=y1+4 else line:=y1+2;
+       safemapwrite(x1  ,line,map_wall);  //fifth line
+       safemapwrite(x1+2,line,map_wall);
+       safemapwrite(x1+3,line,map_wall);
+       safemapwrite(x1+5,line,map_wall);
+       //blockings
+       if random>map_seed then safemapwrite(x1+2,y1  ,map_wall); //first line
+       if random>map_seed then safemapwrite(x1+5,y1  ,map_wall);
+       if kind then line:=y1+1 else line:=y1+5;
+       if random>map_seed then safemapwrite(x1+1,line,map_wall); //second line
+       if random>map_seed then safemapwrite(x1+4,line,map_wall);
+       if kind then line:=y1+2 else line:=y1+4;
+       if random>map_seed then safemapwrite(x1  ,line,map_wall); //third line
+       if random>map_seed then safemapwrite(x1+3,line,map_wall);
+       if random>map_seed then safemapwrite(x1+2,y1+3,map_wall); //fourth line
+       if random>map_seed then safemapwrite(x1+5,y1+3,map_wall);
+       if kind then line:=y1+4 else line:=y1+2;
+       if random>map_seed then safemapwrite(x1+1,line,map_wall); //fifth line
+       if random>map_seed then safemapwrite(x1+4,line,map_wall);
+       if kind then line:=y1+5 else line:=y1+1;
+       if random>map_seed then safemapwrite(x1  ,line,map_wall); //sixth line
+       if random>map_seed then safemapwrite(x1+3,line,map_wall);
+     end;
+  end
+  else begin
+    form1.memo1.lines.add('DASH vertical MAP * '+inttostr(round(map_seed*100)));
+    if kind then form1.memo1.lines.add('top-left variant') else form1.memo1.lines.add('top-right variant');
+    for ix:=0 to maxx div dashsize+2 do
+     for iy:=0 to maxy div dashsize+2 do begin
+       x1:=ix*dashsize-xphase;
+       y1:=iy*dashsize-yphase;
+       //permament walls
+       safemapwrite(x1  ,y1  ,map_wall); //first line
+       safemapwrite(x1  ,y1+1,map_wall);
+       safemapwrite(x1  ,y1+3,map_wall);
+       safemapwrite(x1  ,y1+4,map_wall);
+       if kind then line:=x1+2 else line:=x1+4;
+       safemapwrite(line,y1+1,map_wall); //third line
+       safemapwrite(line,y1+2,map_wall);
+       safemapwrite(line,y1+4,map_wall);
+       safemapwrite(line,y1+5,map_wall);
+       if kind then line:=x1+4 else line:=x1+2;
+       safemapwrite(line,y1  ,map_wall);  //fifth line
+       safemapwrite(line,y1+2,map_wall);
+       safemapwrite(line,y1+3,map_wall);
+       safemapwrite(line,y1+5,map_wall);
+       //blockings
+       if random>map_seed then safemapwrite(x1  ,y1+2,map_wall); //first line
+       if random>map_seed then safemapwrite(x1  ,y1+5,map_wall);
+       if kind then line:=x1+1 else line:=x1+5;
+       if random>map_seed then safemapwrite(line,y1+1,map_wall); //second line
+       if random>map_seed then safemapwrite(line,y1+4,map_wall);
+       if kind then line:=x1+2 else line:=x1+4;
+       if random>map_seed then safemapwrite(line,y1  ,map_wall); //third line
+       if random>map_seed then safemapwrite(line,y1+3,map_wall);
+       if random>map_seed then safemapwrite(x1+3,y1+2,map_wall); //fourth line
+       if random>map_seed then safemapwrite(x1+3,y1+5,map_wall);
+       if kind then line:=x1+4 else line:=x1+2;
+       if random>map_seed then safemapwrite(line,y1+1,map_wall); //fifth line
+       if random>map_seed then safemapwrite(line,y1+4,map_wall);
+       if kind then line:=x1+5 else line:=x1+1;
+       if random>map_seed then safemapwrite(line,y1  ,map_wall); //sixth line
+       if random>map_seed then safemapwrite(line,y1+3,map_wall);
+     end;
+  end;
+end;
+
+{--------------------------------------------------------------------------------------}
+
 procedure generate_map_rotor;        //buggy, but I liked it :)
 var dx,dy,sx,sy,x1,y1,x2,y2:integer;
     map_seed,max_length,phase,maxrotorlength:float;
@@ -2104,7 +2243,7 @@ begin
   weaponhp:=0;
   repeat
     inc(i);
-    bot[nbot].items[i].w_id:=1; //****
+    bot[nbot].items[i].w_id:=1; //**** =1
     if bot[nbot].owner<>player then begin
       if (random<0.05) and (i=1) then bot[nbot].items[i].w_id:=4;
       if random<0.05 then bot[nbot].items[i].w_id:=2;
@@ -2240,12 +2379,16 @@ begin
        12:   repeat generate_map_egg            until test_map(20,70);
        13:   repeat generate_map_net            until test_map(20,70);       //problems at 700x700
        14:   repeat generate_map_plus           until test_map(20,70);
-       15: if random>0.7 then
+       15:      if random<1/5 then
              repeat generate_map_smallrooms     until test_map(20,70)
-           else if random>0.6 then
+           else if random<1/4 then
              repeat generate_map_Imap           until test_map(20,70)
+           else if random<1/3 then
+             repeat generate_map_four           until test_map(20,70)
+           else if random<1/2 then
+             repeat generate_map_five           until test_map(20,70)
            else
-             repeat generate_map_four           until test_map(20,70);
+             repeat generate_map_dash          until test_map(20,70);
        16:   repeat generate_map_rotor          until test_map(20,70);
        17:   repeat generate_map_eggre          until test_map(20,70);
        18:   repeat generate_map_snowflake      until test_map(20,70);
@@ -2280,8 +2423,8 @@ begin
       x1:=5;
     end;
   end;
-{  bot[1].items[1].w_id:=4;    //*******************
-  bot[1].items[1].ammo_id:=6; }
+//  bot[1].items[1].w_id:=4;
+//  bot[1].items[1].ammo_id:=6;
 
   val(edit1.text,generatedbots,ix);
   inc(generatedbots,playersn);
@@ -2605,6 +2748,8 @@ procedure calculate_area(ax,ay,a,asmoke,ablast:integer);
 var ix,iy,dx,dy,count,generation,i,j:integer;
     flg,flg_x:boolean;
     direction_x,direction_y:^blastarea;
+    mytimer:tdate;
+    x2,y2:integer;
     //tmp_area:^blastarea;
 begin
   new(area);
@@ -2647,8 +2792,28 @@ begin
   for ix:=-generation to generation do
    for iy:=-generation to generation do if area^[ix,iy]>maxgeneration then area^[ix,iy]:=0 else begin
      //if area^[ix,iy]>1 then dec(area^[ix,iy]);
-     generationsum:=generationsum+1/sqrt(area^[ix,iy])
+     generationsum:=generationsum+1/sqrt(area^[ix,iy]);
    end;
+
+  for dx:=-generation to generation do
+   for dy:=-generation to generation do if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]>0) then
+    if vis^[ax+dx,ay+dy]>=oldvisible then
+     with form1.image1.canvas do begin
+       //mapchanged^[ax+dx,ay+dy]:=0;
+       //brush.style:=bsclear;
+       x2:=round((dx+ax-viewx-0.5)*form1.image1.width / viewsizex);
+       y2:=round((dy+ay-viewy-0.5)*form1.image1.height / viewsizey);
+       pen.color:=RGB(255,255,180,0);
+       ix:=round(sqr((ablast/10/generationsum)/sqrt(area^[dx,dy])))+5;
+       if ix>(form1.image1.width / viewsizex-2) then  pen.width:=round((form1.image1.width / viewsizex-1))
+         else pen.width:=ix;
+       moveto(x2,y2);
+       lineto(x2,y2);
+     end;
+//  form1.image1.update;
+  mytimer:=now;
+  repeat  form1.image1.update; until (now-mytimer)*24*60*60*1000>blastdelay;
+{  form1.draw_map;                                     }
 
    //damage tagets
    for dx:=-generation to generation do
@@ -2660,11 +2825,30 @@ begin
            map^[ax+dx,ay+dy]:=map^[ax+dx,ay+dy]+ix;
            if map^[ax+dx,ay+dy]>map_smoke then map^[ax+dx,ay+dy]:=map_smoke;
            mapchanged^[ax+dx,ay+dy]:=255;
+
            for i:=1 to nbot do if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (bot[i].hp>0) then begin
              ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
              if ix<1 then ix:=1;
              form1.memo1.lines.add(bot[i].name+' is hit for '+inttostr(ix)+' by explosion');
              hit_bot(i,ix);
+             if vis^[bot[i].x,bot[i].y]>oldvisible then
+             with form1.image1.canvas do begin
+               brush.style:=bsclear;
+               iy:=255;
+               mytimer:=now;
+               repeat
+                 x2:=round((bot[i].x-viewx-0.5)*form1.image1.width / viewsizex);
+                 y2:=round((bot[i].y-viewy-0.5)*form1.image1.height / viewsizey);
+                 font.color:=RGB(iy,255,10,10);
+                 font.size:=17;
+                 textout(x2-10,y2-15,inttostr(ix));
+                 form1.image1.update;
+                 iy:=255-round(100*(now-mytimer)*24*60*60*1000/blastdelay);
+               until iy<=155;
+             end;
+             for ix:=-1 to 1 do
+               for iy:=-1 to 1 do mapchanged^[bot[i].x+ix,bot[i].y+iy]:=255;
+             form1.draw_map;
            end;
          end;
        end;
@@ -2677,18 +2861,20 @@ begin
        if (bot[i].x=ax+dx) and (bot[i].y=ay+dy) and (area^[dx,dy]>0) then begin
            flg_x:=false;
            ix:=round((ablast/generationsum)/sqrt(area^[dx,dy]));
-           if ix>blastpush then
+           if ix>blastpush then begin
+           mapchanged^[bot[i].x,bot[i].y]:=255;
            if map^[bot[i].x-sgn(direction_x^[dx,dy]),bot[i].y-sgn(direction_y^[dx,dy])]<map_wall then begin
              flg:=true;
              for j:=1 to nbot do
                if (bot[j].x=bot[i].x-sgn(direction_x^[dx,dy])) and (bot[j].y=bot[i].y-sgn(direction_y^[dx,dy])) and (bot[j].hp>0) then flg:=false;
              if flg then begin
-               form1.memo1.lines.add('push '+bot[i].name);
+               form1.memo1.lines.add('[dbg] push '+bot[i].name);
                dec(bot[i].x,sgn(direction_x^[dx,dy]));
                dec(bot[i].y,sgn(direction_y^[dx,dy]));
                mapchanged^[bot[i].x,bot[i].y]:=255;
                if (bot[i].owner=player) then form1.look_around(i);
              end;
+           end;
            end;
          end;
     end;
@@ -2754,17 +2940,9 @@ begin
        end;
 
        hit_bot(defender,damage);
-       if ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE>0 then calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
 
        spend_tu(attacker,timetoattack);
 
-       if bot[attacker].hp>0 then begin
-         dec(bot[attacker].items[1].n);
-         dec(bot[attacker].items[1].state);
-         if bot[attacker].items[1].n>0 then
-           bot[attacker].items[1].rechargestate:= weapon_specifications[bot[attacker].items[1].w_id].recharge
-         else
-           bot[attacker].items[1].ammo_id:=0;
        //modifiers;
 
          if bot[attacker].y-bot[defender].y<>0 then begin
@@ -2775,9 +2953,9 @@ begin
          else begin
            if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=100 else bot[attacker].angle:=0
          end;
-       end;
 
-       draw_map;
+//       draw_map;
+//       if bot[defender].hp>0 then
        with image1.canvas do begin
          mapchanged^[bot[attacker].x,bot[attacker].y]:=255;
          brush.style:=bsclear;
@@ -2798,7 +2976,7 @@ begin
            lineto(x2,y2);
            font.color:=RGB(i,255,10,10);
            font.size:=17;
-           if damage>=10 then dx:=dx-7;
+//           if damage>=10 then dx:=dx-7;
            textout(x2-10,y2-15,inttostr(damage));
            image1.update;
            i:=255-round(100*(now-mytimer)*24*60*60*1000/shotdelay);
@@ -2808,7 +2986,20 @@ begin
          for dx:=-1 to 1 do
            for dy:=-1 to 1 do mapchanged^[bot[defender].x+dx,bot[defender].y+dy]:=255;
       end;
-      draw_map;
+       draw_map;
+
+       if ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE>0 then begin
+         calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
+         draw_map;
+       end;
+       if bot[attacker].hp>0 then begin
+         dec(bot[attacker].items[1].n);
+         if bot[attacker].items[1].state>0 then dec(bot[attacker].items[1].state);
+         if bot[attacker].items[1].n>0 then
+           bot[attacker].items[1].rechargestate:= weapon_specifications[bot[attacker].items[1].w_id].recharge
+         else
+           bot[attacker].items[1].ammo_id:=0;
+       end;
 
      end;
    end;

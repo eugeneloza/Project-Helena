@@ -7,6 +7,7 @@ object Form1: TForm1
   Caption = 'Project Helena'
   ClientHeight = 715
   ClientWidth = 941
+  DockSite = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '1.0.8.0'
@@ -173,7 +174,7 @@ object Form1: TForm1
       'Egg'
       'Net'
       'Plus'
-      'SR / I / Four'
+      'SR / I / Four / Five / Dash'
       'Rotor'
       'EggRe'
       'Snowflake'
