@@ -7,7 +7,7 @@ uses
   cthreads, cmem,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, Unit1;
+  Forms, Unit1, castle_components;
 
 {$R *.res}
 

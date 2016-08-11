@@ -1,18 +1,27 @@
 object Form1: TForm1
   Left = 294
-  Height = 700
+  Height = 697
   Top = 0
   Width = 933
   ActiveControl = Button4
   BorderStyle = bsSingle
   Caption = 'Project Helena'
-  ClientHeight = 700
+  ClientHeight = 697
   ClientWidth = 933
   Color = 5586237
   DockSite = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '1.4.0.1'
+  object CastleControl1: TCastleControl
+    Left = 0
+    Height = 700
+    Top = 0
+    Width = 700
+    OnMouseDown = CastleControl1MouseDown
+    OnMouseMove = CastleControl1MouseMove
+    TabOrder = 37
+  end
   object Image3: TImage
     Left = 704
     Height = 146
@@ -20,15 +29,6 @@ object Form1: TForm1
     Width = 145
     OnMouseDown = Image3MouseDown
     OnMouseWheel = Image3MouseWheel
-  end
-  object Image1: TImage
-    Cursor = crUpArrow
-    Left = 0
-    Height = 700
-    Top = 0
-    Width = 700
-    OnMouseDown = Image1MouseDown
-    OnMouseMove = Image1MouseMove
   end
   object Image2: TImage
     Left = 704
@@ -459,35 +459,6 @@ object Form1: TForm1
     ParentFont = False
     Transparent = False
   end
-  object Image7: TImage
-    Left = 704
-    Height = 226
-    Top = 0
-    Width = 226
-    OnMouseDown = Image7MouseDown
-  end
-  object TrackBar1: TTrackBar
-    Left = 32
-    Height = 70
-    Top = 48
-    Width = 174
-    Max = 50
-    Min = 20
-    OnChange = TrackBar1Change
-    Position = 30
-    ShowSelRange = False
-    TabOrder = 21
-  end
-  object Label9: TLabel
-    Left = 80
-    Height = 13
-    Top = 26
-    Width = 55
-    Caption = 'Zoom level:'
-    Font.Color = clWhite
-    ParentColor = False
-    ParentFont = False
-  end
   object Label10: TLabel
     Left = 328
     Height = 13
@@ -524,7 +495,7 @@ object Form1: TForm1
     Font.Color = clWhite
     OnChange = Edit4Change
     ParentFont = False
-    TabOrder = 22
+    TabOrder = 21
     Text = '4'
   end
   object Label12: TLabel
@@ -558,24 +529,14 @@ object Form1: TForm1
     OnChange = Edit4Change
     ParentColor = False
     ParentFont = False
-    TabOrder = 23
-  end
-  object Label13: TLabel
-    Left = 160
-    Height = 13
-    Top = 26
-    Width = 12
-    Caption = '30'
-    Font.Color = clWhite
-    ParentColor = False
-    ParentFont = False
+    TabOrder = 22
   end
   object ProgressBar1: TProgressBar
     Left = 705
     Height = 10
     Top = 690
     Width = 226
-    TabOrder = 24
+    TabOrder = 23
   end
   object Button7: TButton
     Left = 501
@@ -589,7 +550,7 @@ object Form1: TForm1
     Font.Name = 'Sans'
     OnClick = Button7Click
     ParentFont = False
-    TabOrder = 25
+    TabOrder = 24
   end
   object CheckBox3: TCheckBox
     Left = 491
@@ -606,7 +567,7 @@ object Form1: TForm1
     Font.Quality = fqDraft
     ParentColor = False
     ParentFont = False
-    TabOrder = 26
+    TabOrder = 25
   end
   object Memo2: TMemo
     Left = 16
@@ -621,7 +582,7 @@ object Form1: TForm1
     ParentFont = False
     ReadOnly = True
     ScrollBars = ssAutoVertical
-    TabOrder = 27
+    TabOrder = 26
   end
   object CheckBox4: TCheckBox
     Left = 320
@@ -634,7 +595,7 @@ object Form1: TForm1
     Font.Color = clWhite
     ParentColor = False
     ParentFont = False
-    TabOrder = 28
+    TabOrder = 27
   end
   object Label14: TLabel
     Left = 344
@@ -655,7 +616,7 @@ object Form1: TForm1
     Font.Color = clWhite
     OnChange = Edit4Change
     ParentFont = False
-    TabOrder = 29
+    TabOrder = 28
     Text = '50'
   end
   object CheckBox5: TCheckBox
@@ -671,7 +632,7 @@ object Form1: TForm1
     ParentColor = False
     ParentFont = False
     State = cbChecked
-    TabOrder = 30
+    TabOrder = 29
   end
   object Label15: TLabel
     Left = 608
@@ -695,7 +656,7 @@ object Form1: TForm1
     Font.Quality = fqDraft
     OnChange = Edit4Change
     ParentFont = False
-    TabOrder = 31
+    TabOrder = 30
     Text = '30'
   end
   object CheckBox6: TCheckBox
@@ -708,7 +669,7 @@ object Form1: TForm1
     Font.Color = clWhite
     ParentFont = False
     State = cbChecked
-    TabOrder = 32
+    TabOrder = 31
   end
   object Label16: TLabel
     Left = 76
@@ -735,7 +696,7 @@ object Form1: TForm1
     PageSize = 50
     Position = 90
     ParentShowHint = False
-    TabOrder = 33
+    TabOrder = 32
   end
   object Label17: TLabel
     Left = 20
@@ -769,7 +730,7 @@ object Form1: TForm1
     Max = 200
     Position = 100
     ParentShowHint = False
-    TabOrder = 34
+    TabOrder = 33
   end
   object Label19: TLabel
     Left = 18
@@ -807,7 +768,7 @@ object Form1: TForm1
     ParentColor = False
     ParentFont = False
     State = cbChecked
-    TabOrder = 35
+    TabOrder = 34
   end
   object Label21: TLabel
     Left = 16
@@ -833,7 +794,7 @@ object Form1: TForm1
     )
     OnChange = ComboBox2Change
     Style = csDropDownList
-    TabOrder = 36
+    TabOrder = 35
     Text = 'English'
   end
   object CheckBox8: TCheckBox
@@ -844,6 +805,14 @@ object Form1: TForm1
     Caption = 'Generate battle info'
     Font.Color = clWhite
     ParentFont = False
-    TabOrder = 37
+    TabOrder = 36
+  end
+  object CastleControl2: TCastleControl
+    Left = 704
+    Height = 226
+    Top = 0
+    Width = 226
+    OnMouseDown = Image7MouseDown
+    TabOrder = 38
   end
 end

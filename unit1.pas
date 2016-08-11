@@ -6,16 +6,30 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, ComCtrls, types;
+  StdCtrls, ComCtrls, types,
+
+  CastleControl,CastleVectors, CastleGLUtils, castleRectangles,
+
+  {OpenGLContext,} CastleUIControls, CastleGLImages {CastleFilesUtils, CastleImages,
+  CastleControls, CastleWindowModes};
 
 const debugmode=false;
 
+const bottypes=3;
+      maxcracks=11;
+      maxpass=18;
+      maxwall=21;
+
 const maxmaxx={113}226;  //max 'reasonable' 50x50
-      minmaxx=20;
+      minmaxx=35;
       maxmaxy=maxmaxx;
       minmaxy=minmaxx;
       maxbots=500;
-      maxzoom=50;
+
+      zoom=35;
+      viewsizex=zoom;
+      viewsizey=zoom;
+      zoomscale=700 div 35;
 
       maxbuildings=1000;
       maxbldgx=20;
@@ -70,7 +84,7 @@ const visiblerange=32;
       oldvisible=1;
       maxvisible=100;
 
-      maxangle=200;
+      maxangle=8;
 
 const playermovementdelay=0;
 
@@ -80,7 +94,7 @@ const player=1;
 const map_free=0;
       map_smoke=15;
       maxstatus=31;
-      maxstatusdivision=9; //number of cracks
+//      maxstatusdivision=9; //number of cracks
       map_wall=128;
       map_wall_smoke=map_smoke div 2;
       die_smoke=map_smoke div 3;
@@ -153,6 +167,8 @@ type
     Button5: TButton;
     Button6: TButton;
     Button7: TButton;
+    CastleControl1: TCastleControl;
+    CastleControl2: TCastleControl;
     CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
     CheckBox3: TCheckBox;
@@ -170,18 +186,15 @@ type
     Edit5: TEdit;
     Edit6: TEdit;
     Edit7: TEdit;
-    Image1: TImage;
     Image2: TImage;
     Image3: TImage;
     Image4: TImage;
     Image5: TImage;
     Image6: TImage;
-    Image7: TImage;
     Label1: TLabel;
     Label10: TLabel;
     Label11: TLabel;
     Label12: TLabel;
-    Label13: TLabel;
     Label14: TLabel;
     Label15: TLabel;
     Label16: TLabel;
@@ -197,7 +210,6 @@ type
     Label6: TLabel;
     Label7: TLabel;
     Label8: TLabel;
-    Label9: TLabel;
     Memo1: TMemo;
     Memo2: TMemo;
     ProgressBar1: TProgressBar;
@@ -209,7 +221,6 @@ type
     ScrollBar3: TScrollBar;
     ScrollBar4: TScrollBar;
     Togglebox1: TToggleBox;
-    TrackBar1: TTrackBar;
     TrackBar2: TTrackBar;
     TrackBar3: TTrackBar;
     procedure Button1Click(Sender: TObject);
@@ -226,9 +237,9 @@ type
     procedure Edit6Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure Image1MouseDown(Sender: TObject; Button: TMouseButton;
+    procedure CastleControl1MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer
+    procedure CastleControl1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer
       );
     procedure Image2MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -255,7 +266,6 @@ type
     procedure ScrollBar2Change(Sender: TObject);
     procedure ScrollBar3Change(Sender: TObject);
     procedure ScrollBar4Change(Sender: TObject);
-    procedure TrackBar1Change(Sender: TObject);
 
   private
     { private declarations }
@@ -329,6 +339,7 @@ end;
 type bottype=record
   name:string[30];
   action:byte;
+  btype:byte;
   caution:byte;
   bottype:byte;
   target:integer;
@@ -356,7 +367,6 @@ type map_array = array[1..maxmaxx,1..maxmaxy] of byte;
 
 var
   Form1: TForm1;
-{  MapDrawing: TDrawMap;     }
 
   map,map_status,vis,movement,distance,mapchanged:^map_array;
   mapg:^map_array;
@@ -373,7 +383,7 @@ var
   maxx,maxy:integer;
   max_max_value,min_max_value,average_max_value:integer;
   playersn:integer;
-  viewx,viewy,viewsizex,viewsizey:integer;
+  viewx,viewy{,viewsizex,viewsizey}:integer;
   draw_map_all,show_los:boolean;
   mapgenerated:boolean;
   mapgenerationtext,mapfreetext:string;
@@ -412,6 +422,15 @@ var
   firstrun:boolean;
   infohash:integer;
   playerid:integer;
+
+  map_wall_img,map_pass_img:byte;
+  map_shade:array[1..2,1..3] of single;
+
+  do_explosion:boolean;
+  explosion_area:^map_array;
+  do_highlight:boolean;
+  highlight_area:^map_array;
+  animationtimer:TDatetime;
 
 //  sintable,costable: array[0..maxangle] of float;
 
@@ -562,7 +581,7 @@ begin
     xx1:=x1+round(dx*range / maxrange);
     yy1:=y1+round(dy*range / maxrange);
     if smoker=true then begin
-      if map^[xx1,yy1]<map_wall then dec(L,map_status^[xx1,yy1])
+      if map^[xx1,yy1]<map_wall then dec(L,map_status^[xx1,yy1]+1)
     end else
       if map^[xx1,yy1]<map_wall then dec(L,2);
     if (map^[xx1,yy1]>=map_wall) and ((xx1<>x2) or (yy1<>y2)) then L:=-1;
@@ -580,7 +599,7 @@ begin
       xx1:=x2+round(dx*range / maxrange);
       yy1:=y2+round(dy*range / maxrange);
       if smoker=true then begin
-        if map^[xx1,yy1]<map_wall then dec(L1,map_status^[xx1,yy1])
+        if map^[xx1,yy1]<map_wall then dec(L1,map_status^[xx1,yy1]+1)
       end else
         if map^[xx1,yy1]<map_wall then dec(L1,2);
       if (map^[xx1,yy1]>=map_wall) and ((xx1<>x1) or (yy1<>y1)) then L1:=-1;
@@ -790,11 +809,11 @@ begin
 
        if bot[thisbot].y-waypointy[waypointn]<>0 then begin
          dx:=round(maxangle*arctan((bot[thisbot].x-waypointx[waypointn])/(bot[thisbot].y-waypointy[waypointn]))/2/Pi);
-         if bot[thisbot].y-waypointy[waypointn]>0 then dx:=150-dx else dx:=50-dx;
+         if bot[thisbot].y-waypointy[waypointn]>0 then dx:=maxangle*3 div 4-dx else dx:=maxangle div 4-dx;
          bot[thisbot].angle:=dx;
       end
        else begin
-         if bot[thisbot].x-waypointx[waypointn]>0 then bot[thisbot].angle:=100 else bot[thisbot].angle:=0
+         if bot[thisbot].x-waypointx[waypointn]>0 then bot[thisbot].angle:=maxangle div 2 else bot[thisbot].angle:=0
        end;
 
      bot[thisbot].x:=waypointx[waypointn];
@@ -2795,11 +2814,13 @@ begin
   repeat
     inc(i);
     weapon_kind:=1;
+    bot[nbot].btype:=0;
     if bot[nbot].owner<>player then begin
       if random<0.3 then weapon_kind:=2;
       if random<0.05 then weapon_kind:=3;
       bot[nbot].caution:=round((random)*2*bot[nbot].speed*strategy_caution);
       bot[nbot].bottype:=2;
+      bot[nbot].btype:=2;
       if random<0.1 then begin
         bot[nbot].bottype:=3;
         bot[nbot].maxhp:=bot[nbot].maxhp*2;
@@ -2807,6 +2828,7 @@ begin
         bot[nbot].speed:=40;
         bot[nbot].caution:=round(sqr(random)*bot[nbot].speed*strategy_caution);
         bot[nbot].name:=name+'(H)';
+        bot[nbot].btype:=3;
       end else
       if random<0.1 then begin
         bot[nbot].bottype:=4;
@@ -2815,6 +2837,7 @@ begin
         bot[nbot].speed:=20;
         bot[nbot].caution:=round((3*bot[nbot].speed+(sqrt(random)*3*bot[nbot].speed))*strategy_caution);
         bot[nbot].name:=name+'(Q)';
+        bot[nbot].btype:=1;
       end;
 
     end else begin
@@ -3005,14 +3028,6 @@ begin
                     begin max_max_value:=maxy; min_max_value:=maxx; end;
   average_max_value:=(maxx+maxy) div 2;
 
-  if min_max_value>trackbar1.max then trackbar1.max:=maxzoom;
-  if min_max_value<trackbar1.max then trackbar1.max:=min_max_value;
-  if (viewsizex>min_max_value) or (viewsizey>min_max_value) then begin
-    viewsizex:=min_max_value;
-    viewsizey:=min_max_value;
-    trackbar1.position:=min_max_value;
-  end;
-
   if debugmode then memo1.lines.add(txt[10]);
   memo1.lines.add(txt[11]+': '+inttostr(maxx)+'x'+inttostr(maxy));
 
@@ -3074,6 +3089,15 @@ begin
     memo1.lines.add(mapfreetext);
     //memo1.lines.add('...');
   end;
+
+  map_pass_img:=round(random*(maxpass-1))+1;
+  map_wall_img:=round(random*(maxwall-1))+1;
+  map_shade[1,1]:=1;
+  map_shade[1,2]:=0.8+0.2*(random);
+  map_shade[1,3]:=0.8+0.2*(random);
+  map_shade[2,1]:=0.8+0.2*(random);
+  map_shade[2,2]:=1;
+  map_shade[2,3]:=0.8+0.2*random;
 
  for ix:=1 to maxx do
    for iy:= 1 to maxy do begin
@@ -3581,11 +3605,11 @@ begin
                      label8.hint:=hint_text;
                      label8.visible:=false;
                    end;
-      '-label09': begin
+{      '-label09': begin
                      label9.caption:=caption_text;
                      label9.showhint:=doshowhint;
                      label9.hint:=hint_text;
-                   end;
+                   end;}
       '-label10': begin
                      //label10.caption:=caption_text;
                      label10.showhint:=doshowhint;
@@ -3602,11 +3626,11 @@ begin
                      label12.showhint:=doshowhint;
                      label12.hint:=hint_text;
                    end;
-      '-label13': begin
+{      '-label13': begin
                      label13.caption:=caption_text;
                      label13.showhint:=doshowhint;
                      label13.hint:=hint_text;
-                   end;
+                   end;}
       '-label14': begin
                      label14.caption:=caption_text;
                      label14.showhint:=doshowhint;
@@ -3647,11 +3671,11 @@ begin
                      label21.showhint:=doshowhint;
                      label21.hint:=hint_text;
                    end;
-      '-trackbar01': begin
+{      '-trackbar01': begin
                      //trackbar1.caption:=caption_text;
                      trackbar1.showhint:=doshowhint;
                      trackbar1.hint:=hint_text;
-                   end;
+                   end;}
       '-trackbar02': begin
                      //trackbar2.caption:=caption_text;
                      trackbar2.showhint:=doshowhint;
@@ -3772,10 +3796,174 @@ end;
 
 {--------------------------------------------------------------------------------------}
 
-procedure TForm1.FormCreate(Sender: TObject);
-//var i:integer;
+var GLI1:array[1..maxwall] of TGLImage;
+    GLI2:array[1..maxpass] of TGLImage;
+    Bot_IMG:array [0..bottypes,0..maxangle] of TGLImage;
+    cracks_img:array[1..maxcracks] of TGLImage;
+    item_img,img_selected,img_enemyselected:TGLImage;
+    expl_img:array[1..10] of TGLImage;
+
+function getx(mapx:byte):integer;
 begin
- {$IFDEF WINDOWS}
+ getx:=(mapx-1-viewx)*zoomscale
+end;
+function gety(mapy:byte):integer;
+begin
+ gety:=(zoom-mapy+viewy)*zoomscale
+end;
+
+procedure Render(Container: TUIContainer);
+var ix,iy:integer;
+    ShadeColor: TVector4Single;
+    Shadebright: single;
+    i:integer;
+    t:TDAtetime;
+//    srect:TRectangle;
+    sx,sy:integer;
+begin
+ //initialize routines buggy-wooggy
+ if img_selected=nil then img_selected:=TGLImage.create('png'+pathdelim + 'selected.png');
+ if img_enemyselected=nil then img_enemyselected:=TGLImage.create('png'+pathdelim + 'enemyselected.png');
+ for i:=1 to 10 do
+   if expl_img[i]=nil then expl_img[i]:=TGLImage.create('png'+pathdelim + 'expl'+inttostr(i)+'.png');
+ for i:=1 to maxwall do
+   if GLI1[i]=nil then GLI1[i]:=TGLImage.create('png'+pathdelim + 'wall'+inttostr(i)+'.png');
+ for i:=1 to maxpass do
+   if GLI2[i]=nil then GLI2[i]:=TGLImage.create('png'+pathdelim + 'pass'+inttostr(i)+'.png');
+ if Item_Img=nil then Item_img:=TGLImage.create('png'+pathdelim + 'Item.png');
+ for ix:=0 to bottypes do
+  for iy:=0 to maxangle do if Bot_img[ix,iy]=nil then begin
+     if iy<maxangle then
+       case ix of
+         0:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'T'+inttostr(iy)+'.png');
+         1:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'Q'+inttostr(iy)+'.png');
+         2:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'N'+inttostr(iy)+'.png');
+         3:Bot_img[ix,iy]:=TGLImage.create('png'+pathdelim + 'H'+inttostr(iy)+'.png');
+       end
+     else Bot_img[ix,maxangle]:=Bot_img[ix,0];
+   end;
+ for ix:=1 to maxcracks do if cracks_img[ix]=nil then cracks_img[ix]:=TGLImage.create('png'+pathdelim + 'cracks'+inttostr(ix)+'.png');
+
+ t:=now;
+ //drawing the map
+ for ix:=1 to maxx do if (ix>viewx) and (ix<=viewx+viewsizex) then
+  for iy:=1 to maxy do if (iy>viewy) and (iy<=viewy+viewsizey) then
+    if ((mapchanged^[ix,iy]>0) or (draw_map_all)) and (vis^[ix,iy]>0) then begin
+   //mapchanged^[ix,iy]:=0;
+   if vis^[ix,iy]>oldvisible then begin
+      ShadeBright:= ((vis^[ix,iy]-oldvisible)/(maxvisible-oldvisible));
+      ShadeColor:= Vector4Single( shadebright, shadebright , shadebright , 1);
+    end else if vis^[ix,iy]=oldvisible then begin
+      ShadeBright:= 0.3;
+      ShadeColor:= Vector4Single( shadebright/2, shadebright/2 , shadebright , 1);
+    end;
+//    ShadeColor:= Vector4Single( 1, 1 , 1 , shadebright);
+//    GLI2.alpha:=acFullRange;
+    if map^[ix,iy]>=Map_wall then begin
+      shadecolor[0]:=shadecolor[0]*map_shade[1,1];
+      shadecolor[1]:=shadecolor[1]*map_shade[1,2];
+      shadecolor[2]:=shadecolor[2]*map_shade[1,3];
+      GLI1[map_wall_img].Color:=ShadeColor;
+      GLI1[map_wall_img].draw(getx(ix),gety(iy));
+      ShadeBright*= map_status^[ix,iy] / maxstatus;
+      cracks_img[(3*ix+4*iy) mod maxcracks+1].color:=Vector4Single( shadebright, shadebright , shadebright , 0.7);
+      cracks_img[(3*ix+4*iy) mod maxcracks+1].draw(getx(ix),gety(iy));
+    end else begin
+      shadecolor[0]:=shadecolor[0]*map_shade[2,1];
+      shadecolor[1]:=shadecolor[1]*map_shade[2,2];
+      shadecolor[2]:=shadecolor[2]*map_shade[2,3];
+      GLI2[map_pass_img].Color:=ShadeColor;
+      GLI2[map_pass_img].draw(getx(ix),gety(iy));
+      if (vis^[ix,iy]>oldvisible) and (map_status^[ix,iy]>0) then begin
+         for i:=1 to 1+round(2*(0.01+0.3*(map_status^[ix,iy]-1)/(map_smoke-1))*sqr(zoomscale)) do begin
+           ShadeBright:= random;
+           DrawRectangle(Rectangle(Round(zoomscale*random)+getx(ix), Round(zoomscale*random)+gety(iy), 1, 1), Vector4Single( shadebright, shadebright , shadebright , 0.7));
+         end;
+      end;
+    end;
+  end;
+  for i:=1 to itemsn do if (vis^[item[i].x,item[i].y]>=oldvisible) then
+   if (item[i].x>viewx) and (item[i].x<=viewx+viewsizex) and (item[i].y>viewy) and (item[i].y<=viewy+viewsizey) then begin
+     ShadeBright:= 0.3+0.7*((vis^[item[i].x,item[i].y]-oldvisible)/(maxvisible-oldvisible));
+     item_img.color:= Vector4Single( shadebright, shadebright , shadebright , 1);
+     item_img.draw(getx(item[i].x),gety(item[i].y));
+   end;
+
+  for i:=1 to nbot do if (bot[i].hp>0) and (vis^[bot[i].x,bot[i].y]>oldvisible) then
+   if (bot[i].x>viewx) and (bot[i].x<=viewx+viewsizex) and (bot[i].y>viewy) and (bot[i].y<=viewy+viewsizey) then begin
+    ShadeBright:= 0.3+0.7*((vis^[bot[i].x,bot[i].y]-oldvisible)/(maxvisible-oldvisible));
+    bot_img[bot[i].btype,bot[i].angle].color:= Vector4Single( shadebright, shadebright , shadebright , 1);
+    Bot_img[bot[i].btype,bot[i].angle].draw(getx(bot[i].x),gety(bot[i].y));
+    if i=selected then img_selected.draw(getx(bot[i].x),gety(bot[i].y)) else
+    if i=selectedenemy then img_enemyselected.draw(getx(bot[i].x),gety(bot[i].y)) else
+  end;
+
+  if do_explosion then begin
+    i:=trunc(9*(now-animationtimer)*24*60*60*1000/blastdelay)+1;
+    if i<1 then i:=1;
+    if i>10 then i:=10;
+    for ix:=1 to maxx do
+     for iy:=1 to maxy do if explosion_area^[ix,iy]>0 then begin
+//       expl_img[i].draw(getx(ix),gety(iy));
+       sx:=getx(ix)+zoomscale div 2 - explosion_area^[ix,iy] div 2;
+       sy:=gety(iy)+zoomscale div 2 - explosion_area^[ix,iy] div 2;
+       expl_img[i].draw(sx,sy,explosion_area^[ix,iy],explosion_area^[ix,iy],  {} 0,0,zoomscale-1,zoomscale-1);
+     end;
+    //animationtimer-=form1.castlecontrol1.fps.UpdateSecondsPassed;
+  end;
+{do_highlight:boolean;
+  highlight_area:^map_array;}
+
+ form1.label1.caption:=inttostr(round((now-t)*24*60*60*1000));
+end;
+
+procedure Render_minimap(Container: TUIContainer);
+var ix,iy:integer;
+    ShadeColor: TVector4Single;
+    shadebright:single;
+    i:integer;
+    mscale:single;
+    sx,sy:integer;
+begin
+ if maxx>=maxy then mscale:=1/maxx*form1.castlecontrol2.width else mscale:=1/maxy*form1.castlecontrol2.height;
+ for ix:=1 to maxx do
+  for iy:=1 to maxy do if vis^[ix,iy]>0 then begin
+    ShadeBright:=0.5+0.3*((vis^[ix,iy]-oldvisible)/(maxvisible-oldvisible));
+    if map^[ix,iy]>=map_wall then
+      shadecolor:=Vector4Single( ShadeBright*1, ShadeBright*0.7 , ShadeBright*0.7 , 1)
+    else
+      shadecolor:=Vector4Single( ShadeBright*0.7, ShadeBright , ShadeBright , 1);
+    sx:=Round((ix-1)*mscale);
+    sy:=Round((maxy-iy)*mscale);
+    DrawRectangle(Rectangle(sx, sy, Round(ix*mscale)-sx, Round((maxy-iy+1)*mscale)-sy), shadecolor);
+  end;
+ shadecolor:=Vector4Single( 0.1, 0.7 , 1 , 1);
+ for i:=1 to itemsn do if vis^[item[i].x,item[i].y]>0 then begin
+  sx:=Round((item[i].x-1)*mscale);
+  sy:=Round((maxy-item[i].y)*mscale);
+  DrawRectangle(Rectangle(sx, sy, Round(item[i].x*mscale)-sx, Round((maxy-item[i].y+1)*mscale)-sy), shadecolor);
+ end;
+ for i:=1 to nbot do if (bot[i].hp>0) and (vis^[bot[i].x,bot[i].y]>oldvisible) then begin
+  if bot[i].owner=player then
+     shadecolor:=Vector4Single( 0, 1 , 0 , 1)
+  else
+     shadecolor:=Vector4Single( 1, 0 , 0 , 1);
+  sx:=Round((bot[i].x-1)*mscale);
+  sy:=Round((maxy-bot[i].y)*mscale);
+  DrawRectangle(Rectangle(sx, sy, Round(bot[i].x*mscale)-sx, Round((maxy-bot[i].y+1)*mscale)-sy), shadecolor);
+ end;
+end;
+
+{==============================}
+
+procedure TForm1.FormCreate(Sender: TObject);
+var ix,iy:integer;
+begin
+   CastleControl1.OnRender:=@Render;
+   CastleControl2.OnRender:=@Render_minimap;
+   animationtimer:=0;
+//   castlecontrol1.DoubleBuffered:=true;
+{$IFDEF WINDOWS}
   form1.color:=cldefault;
   label1.font.color:=cldefault;
   label2.font.color:=cldefault;
@@ -3785,11 +3973,9 @@ begin
   label6.font.color:=cldefault;
   label7.font.color:=cldefault;
   label8.font.color:=cldefault;
-  label9.font.color:=cldefault;
   label10.font.color:=cldefault;
   label11.font.color:=cldefault;
   label12.font.color:=cldefault;
-  label13.font.color:=cldefault;
   label14.font.color:=cldefault;
   label15.font.color:=cldefault;
   label16.font.color:=cldefault;
@@ -3833,8 +4019,8 @@ begin
   edit5.text:=inttostr(4);
   readinifile;
 
-  viewsizex:=30;
-  viewsizey:=30;
+//  viewsizex:=30;
+//  viewsizey:=30;
 
   create_language_interface;
 
@@ -3850,6 +4036,11 @@ begin
   new(distance);
   new(LOS_base);
   new(botvis);
+  do_explosion:=false;
+  new(explosion_area);
+  do_highlight:=false;
+  new(highlight_area);
+
   gamemode:=gamemode_none;
   form1.DoubleBuffered:=true;
   generate_items_types;
@@ -3862,13 +4053,6 @@ begin
   togglebox1.state:=cbChecked;
   set_progressbar(false);
 
-//  togglebox1.enabled:=false;
-
- {  MapDrawing:=TDrawMap.Create(true);
-   {Threadx.onterminate:=@TFinish;}
-   MapDrawing.freeonterminate:=false;
-   MapDrawing.Priority:=tpLower;
-   MapDrawing.resume; }
 end;
 
 {================================================================================}
@@ -3980,25 +4164,25 @@ begin
      generationsum:=generationsum+1/sqrt(area^[ix,iy]);
 
   //draw explosion
-  for dx:=-generation to generation do
-   for dy:=-generation to generation do if (ax+dx>1) and (ax+dx<maxx) and (ay+dy>1) and (ay+dy<maxy) and (area^[dx,dy]<=maxgeneration) then
-    if vis^[ax+dx,ay+dy]>=oldvisible then
-     with image1.canvas do begin
-       //mapchanged^[ax+dx,ay+dy]:=0;
-       //brush.style:=bsclear;
-       x2:=round((dx+ax-viewx-0.5)*image1.width / viewsizex);
-       y2:=round((dy+ay-viewy-0.5)*image1.height / viewsizey);
-       pen.color:=RGB(255,255,180,0);
-       ix:=round(sqr((ablast/10/generationsum)/sqrt(area^[dx,dy])))+5;
-       if ix>(image1.width / viewsizex-2) then  pen.width:=round((image1.width / viewsizex-1))
-         else pen.width:=ix;
-       moveto(x2,y2);
-       lineto(x2,y2);
-     end;
-//  image1.update;
-  mytimer:=now;
-  repeat  image1.update; until (now-mytimer)*24*60*60*1000>blastdelay;
-{  draw_map;                                     }
+  //prepare drawing matrix
+  for ix:=1 to maxx do
+   for iy:=1 to maxy do if vis^[ix,iy]>=oldvisible then begin
+    dx:=ix-ax;
+    dy:=iy-ay;
+    explosion_area^[ix,iy]:=0;
+    if (abs(dx)<generation) and (abs(dy)<generation) then
+      if (area^[dx,dy]<=maxgeneration) then begin
+        i:=round((sqr((ablast/10/generationsum)/sqrt(area^[dx,dy]))+zoomscale/4));
+        if i>zoomscale then i:=zoomscale;
+        explosion_area^[ix,iy]:=i;
+      end;
+  end;
+
+  do_explosion:=true;
+  animationtimer:=now;
+  repeat castlecontrol1.paint; until (now-animationtimer)*24*60*60*1000>blastdelay;
+  do_explosion:=false;
+  castlecontrol1.paint;
 
    //damage tagets //make smoke // destroy walls
 //   regenerate_los:=false;
@@ -4020,24 +4204,26 @@ begin
              if ix<1 then ix:=1;
              memo1.lines.add(bot[i].name+' '+txt[31]+' '+inttostr(ix)+' '+txt[32]);
              hit_bot(i,ix);
-             if vis^[bot[i].x,bot[i].y]>oldvisible then
-             with image1.canvas do begin
+ {            if vis^[bot[i].x,bot[i].y]>oldvisible then
+{zzzzzzzzzzzzzzzzzzzzz}
+              with CastleControl1.canvas do begin
                brush.style:=bsclear;
                iy:=255;
                mytimer:=now;
                repeat
-                 x2:=round((bot[i].x-viewx-0.5)*image1.width / viewsizex);
-                 y2:=round((bot[i].y-viewy-0.5)*image1.height / viewsizey);
+                 x2:=round((bot[i].x-viewx-0.5)*CastleControl1.width / viewsizex);
+                 y2:=round((bot[i].y-viewy-0.5)*CastleControl1.height / viewsizey);
                  font.color:=RGB(iy,255,10,10);
                  font.size:=17;
                  textout(x2-10,y2-15,inttostr(ix));
-                 image1.update;
+                 CastleControl1.update;
                  iy:=255-round(100*(now-mytimer)*24*60*60*1000/blastdelay);
                until iy<=155;
              end;
              for ix:=-1 to 1 do
                for iy:=-1 to 1 do mapchanged^[bot[i].x+ix,bot[i].y+iy]:=255;
              draw_map;
+             }
            end;
          end else begin
            ix:=map_status^[ax+dx,ay+dy] - round((ablast/generationsum)/sqrt(area^[dx,dy]-60)/wallhardness);
@@ -4190,16 +4376,17 @@ begin
 
          if bot[attacker].y-bot[defender].y<>0 then begin
            dx:=round(maxangle*arctan((bot[attacker].x-bot[defender].x)/(bot[attacker].y-bot[defender].y))/2/Pi);
-           if bot[attacker].y-bot[defender].y>0 then dx:=150-dx else dx:=50-dx;
+           if bot[attacker].y-bot[defender].y>0 then dx:=maxangle*3 div 4-dx else dx:=maxangle div 4-dx;
            bot[attacker].angle:=dx;
         end
          else begin
-           if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=100 else bot[attacker].angle:=0
+           if bot[attacker].x-bot[defender].x>0 then bot[attacker].angle:=maxangle div 2 else bot[attacker].angle:=0
          end;
 
 //       draw_map;
 //       if bot[defender].hp>0 then
-       with image1.canvas do begin
+{zzzzzzzzzzzzzzzzzzzzzzzzzzzz}
+ {        with CastleControl1.canvas do begin
          mapchanged^[bot[attacker].x,bot[attacker].y]:=255;
          brush.style:=bsclear;
          i:=255;
@@ -4211,17 +4398,17 @@ begin
          repeat
            pen.color:=RGB(i,255,255,200);
            pen.width:=1;
-           x1:=round((bot[attacker].x-viewx-0.5)*image1.width / viewsizex);
-           y1:=round((bot[attacker].y-viewy-0.5)*image1.height / viewsizey);
-           x2:=round((bot[defender].x-viewx-0.5)*image1.width / viewsizex);
-           y2:=round((bot[defender].y-viewy-0.5)*image1.height / viewsizey);
+           x1:=round((bot[attacker].x-viewx-0.5)*CastleControl1.width / viewsizex);
+           y1:=round((bot[attacker].y-viewy-0.5)*CastleControl1.height / viewsizey);
+           x2:=round((bot[defender].x-viewx-0.5)*CastleControl1.width / viewsizex);
+           y2:=round((bot[defender].y-viewy-0.5)*CastleControl1.height / viewsizey);
            moveto(x1,y1);
            lineto(x2,y2);
            font.color:=RGB(i,255,10,10);
            font.size:=17;
 //           if damage>=10 then dx:=dx-7;
            textout(x2-10,y2-15,inttostr(damage));
-           image1.update;
+           CastleControl1.update;
            i:=255-round(100*(now-mytimer)*24*60*60*1000/shotdelay);
          until i<=155;
          range:=(visibleaccuracy*sqrt(sqr(bot[defender].x-bot[attacker].x)+sqr(bot[defender].y-bot[attacker].y)));
@@ -4229,7 +4416,7 @@ begin
          for dx:=-1 to 1 do
            for dy:=-1 to 1 do mapchanged^[bot[defender].x+dx,bot[defender].y+dy]:=255;
       end;
-       draw_map;
+       draw_map;  }
 
        if ammo_specifications[bot[attacker].items[1].ammo_id].area>0 then begin
          calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
@@ -4787,12 +4974,13 @@ begin
   setcontrols_menu(false);
   gamemode:=gamemode_help;
   MyImage:=TJPEGImage.create;
-//  MyImage.canvas.height:=image1.height;
-//  MyImage.canvas.width:=image1.width;
+//  MyImage.canvas.height:=CastleControl1.height;
+//  MyImage.canvas.width:=CastleControl1.width;
   MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help.jpg');
-  image1.visible:=true;
-  destrect:=Rect(0,0,image1.width,image1.height);
-  image1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);
+  CastleControl1.visible:=true;
+  destrect:=Rect(0,0,CastleControl1.width,CastleControl1.height);
+{zzzzzzzzzzzzzzzzzzzzzz}
+  {  CastleControl1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);}
   MyImage.free;
 end;
 
@@ -4813,12 +5001,13 @@ begin
   setcontrols_menu(false);
   gamemode:=gamemode_help;
   MyImage:=TJPEGImage.create;
-//  MyImage.canvas.height:=image1.height;
-//  MyImage.canvas.width:=image1.width;
+//  MyImage.canvas.height:=CastleControl1.height;
+//  MyImage.canvas.width:=CastleControl1.width;
   MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help_menu.jpg');
-  image1.visible:=true;
-  destrect:=Rect(0,0,image1.width,image1.height);
-  image1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);
+  CastleControl1.visible:=true;
+  destrect:=Rect(0,0,CastleControl1.width,CastleControl1.height);
+  {zzzzzzzzzzzzzzzzzzzz}
+  {  CastleControl1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);}
   MyImage.free;
 end;
 
@@ -4920,6 +5109,8 @@ begin
   dispose(mapchanged);
   dispose(LOS_base);
   dispose(botvis);
+  dispose(explosion_area);
+  dispose(highlight_area);
 end;
 
 {================================================================================}
@@ -4927,7 +5118,7 @@ end;
 {================================================================================}
 
 
-procedure TForm1.Image1MouseDown(Sender: TObject; Button: TMouseButton;
+procedure TForm1.CastleControl1MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var // scalex,scaley:float;
     mousex,mousey:integer;
@@ -4935,8 +5126,8 @@ var // scalex,scaley:float;
     found:integer;
 begin
 if gamemode>200 then begin
- mousex:=round(x / (image1.width / viewsizex)+0.5)+viewx;
- mousey:=round(y / (image1.height / viewsizey)+0.5)+viewy;
+ mousex:=round(x / (CastleControl1.width / viewsizex)+0.5)+viewx;
+ mousey:=round(y / (CastleControl1.height / viewsizey)+0.5)+viewy;
  if (Button=mbmiddle) then begin
    center_map(mousex,mousey)
  end else begin
@@ -5013,7 +5204,7 @@ end;
 {================================================================================}
 {================================================================================}
 
-procedure TForm1.Image1MouseMove(Sender: TObject; Shift: TShiftState; X,
+procedure TForm1.CastleControl1MouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
 var {scalex,scaley,}mousex,mousey:integer;
     i:integer;
@@ -5022,24 +5213,24 @@ begin
  { scalex:=;
   scaley:=;}
  if gamemode>200 then begin
-  mousex:=round(x / (image1.width / viewsizex)+0.5)+viewx;
-  mousey:=round(y / (image1.height / viewsizey)+0.5)+viewy;
+  mousex:=round(x / (CastleControl1.width / viewsizex)+0.5)+viewx;
+  mousey:=round(y / (CastleControl1.height / viewsizey)+0.5)+viewy;
   if (mousex>0) and (mousey>0) and (mousex<=maxx) and (mousey<=maxy) then
-  if vis^[mousex,mousey]=0 then image1.Cursor:=crHelp else begin
-    if map^[mousex,mousey]>=map_wall then image1.cursor:=CrNo else begin
+  if vis^[mousex,mousey]=0 then CastleControl1.Cursor:=crHelp else begin
+    if map^[mousex,mousey]>=map_wall then CastleControl1.cursor:=CrNo else begin
       if map^[mousex,mousey]<map_wall then begin
         found:=true;
         for i:=1 to nbot do if (bot[i].x=mousex) and (bot[i].y=mousey) and (bot[i].hp>0) then begin
           found:=false;
-          if bot[i].owner=player then image1.cursor:=CrHandPoint else begin
-            if vis^[mousex,mousey]>oldvisible then image1.cursor:=crCross else found:=true;
+          if bot[i].owner=player then CastleControl1.cursor:=CrHandPoint else begin
+            if vis^[mousex,mousey]>oldvisible then CastleControl1.cursor:=crCross else found:=true;
           end;
         end;
-        if found then image1.cursor:=crdefault;
+        if found then CastleControl1.cursor:=crdefault;
       end;
     end;
   end;
- end else image1.cursor:=crdefault;
+ end else CastleControl1.cursor:=crdefault;
 end;
 
 
@@ -5373,7 +5564,7 @@ procedure TForm1.Image7MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 //var mousex,mousey:integer;
 begin
-  center_map(round(x / (image7.width / maxx)+0.5),round(y / (image7.height/ maxy)+0.5));
+  center_map(round(x / (CastleControl2.width / maxx)+0.5),round(y / (CastleControl2.height/ maxy)+0.5));
 end;
 
 procedure Tform1.set_progressbar(flg:boolean);
@@ -5393,7 +5584,7 @@ end;
 
 procedure Tform1.setcontrols_game(flg:boolean);
 begin
- image1.visible:=flg;
+ CastleControl1.visible:=flg;
  image2.visible:=flg;
  image3.visible:=flg;
  image4.visible:=flg;
@@ -5407,7 +5598,7 @@ begin
  scrollbar4.visible:=flg;
  if debugmode then label1.visible:=flg else label1.visible:=false;
  checkbox2.visible:=flg;
- image7.visible:=flg;
+ CastleControl2.visible:=flg;
 // if gamemode>200 then button1.enabled:=true else button1.enabled:=false;
 end;
 
@@ -5435,15 +5626,12 @@ begin
  label7.visible:=flg;
  edit4.visible:=flg;
  label8.visible:=flg;
- trackbar1.visible:=flg;
- label9.visible:=flg;
  label10.visible:=flg;
  edit5.visible:=flg;
  label11.visible:=flg;
  label12.visible:=flg;
  checkbox1.visible:=flg;
  checkbox3.visible:=flg;
- label13.visible:=flg;
  button7.visible:=flg;
  memo2.visible:=flg;
  checkbox4.visible:=flg;
@@ -5520,21 +5708,6 @@ begin
   draw_map;
 end;
 
-procedure TForm1.TrackBar1Change(Sender: TObject);
-var ix,iy:integer;
-begin
-  viewsizex:=trackbar1.position;
-  label13.caption:=inttostr(viewsizex);
-  viewsizey:=viewsizex;
-  if mapgenerated then begin
-    draw_map_all:=true;
-    center_map(viewx+viewsizex div 2,viewy+viewsizey div 2);
-    for ix:=1 to maxx do
-      for iy:=1 to maxy do mapchanged^[ix,iy]:=255;
-    draw_map;
-  end;
-end;
-
 {--------------------------------------------------------------------------------------}
 const item_box_x=50;
       item_box_y=50;
@@ -5545,11 +5718,12 @@ var starty,startx:integer;
     line_width:integer;
     tmp:integer;
 begin
- if (thisitem.w_id>0) or (thisitem.ammo_id>0) then begin
+ {zzzzzzzzzzzzzzzzzzzzz}
+{ if (thisitem.w_id>0) or (thisitem.ammo_id>0) then begin
   if gamemode<>gamemode_iteminfo then previous_gamemode:=gamemode;
   gamemode:=gamemode_iteminfo;
   create_message_box(item_box_x,item_box_y,item_box_x+300,item_box_y+500);
-  with image1.canvas do begin
+  with CastleControl1.canvas do begin
     brush.Style:=bsclear;
     starty:=item_box_y+2*border_size;
     startx:=item_box_x+2*border_size;
@@ -5635,21 +5809,21 @@ begin
     end;
 
   end;
- end;
+ end; }
 end;
 
 {------------------------------------------}
 
 procedure Tform1.create_message_box(x1,y1,x2,y2:integer);
 begin
- with image1.canvas do begin
+{ with CastleControl1.canvas do begin
    brush.color:=RGB(255,130,130,200);
    brush.style:=bssolid;
    fillrect(x1,y1,x2,y2);
    brush.color:=RGB(255,50,50,70);
    brush.style:=bssolid;
    fillrect(x1+border_size,y1+border_size,x2-border_size,y2-border_size);
- end;
+ end;}
 end;
 
 {-----------------------------------------------------------------------------------}
@@ -5913,22 +6087,29 @@ end;
 {--------------------------------------------------------------------------------------}
 
 procedure TForm1.Draw_map;
-var mx,my,i:integer;
+{var mx,my,i:integer;
     sx,sy:integer;
     scalex,scaley,fx1,fy1,fx2,fy2:float;
     scaleminimapx,scaleminimapy:float;
     minimapx0,minimapy0:integer;
     x1,y1,x2,y2:integer;
     xx1,yy1:integer;
-    thistime:TDatetime;
     tmp_color:byte;
-    btc1,btc2,btc3:byte;
+    btc1,btc2,btc3:byte;}
     //dx,dy,range,maxrange:integer;
+var thistime:TDatetime;
+    ix,iy:integer;
 begin
   thistime:=now;
-  image1.canvas.lock;
-  sx:=image1.width;
-  sy:=image1.height;
+  castlecontrol1.Paint;
+  castlecontrol2.Paint;
+{  for ix:=1 to zoom do
+    for iy:=1 to zoom do
+      MapImage[ix,iy].URL:=ApplicationData('png'+pathdelim+'Wall.png');}
+
+{ CastleControl1.canvas.lock;
+  sx:=CastleControl1.width;
+  sy:=CastleControl1.height;
   scalex:=sx / viewsizex;
   scaley:=sy / viewsizey;
   scaleminimapx:=image7.Width / max_max_value;
@@ -5954,7 +6135,7 @@ begin
     end;
   end;
 
-  with image1.canvas do begin
+  with CastleControl1.canvas do begin
     pen.width:=1;
     {draw_map}
     for mx:=1 to maxx do
@@ -6195,8 +6376,8 @@ begin
      end;
   end;
 
-  image1.canvas.unlock;
-  image1.update;
+  CastleControl1.canvas.unlock;
+  CastleControl1.update; }
 
 
   draw_stats;
