@@ -160,6 +160,7 @@ type
     CheckBox5: TCheckBox;
     CheckBox6: TCheckBox;
     CheckBox7: TCheckBox;
+    CheckBox8: TCheckBox;
     ComboBox1: TComboBox;
     ComboBox2: TComboBox;
     Edit1: TEdit;
@@ -407,6 +408,10 @@ var
   w_types,a_types:integer;
 
   txt:array[1..100]of string;
+
+  firstrun:boolean;
+  infohash:integer;
+  playerid:integer;
 
 //  sintable,costable: array[0..maxangle] of float;
 
@@ -2961,6 +2966,11 @@ var ix,iy,i_bot,j:integer;
     weapon_kind,ammo_type,weapon_type:integer;
     ammo_usable:boolean;
 begin
+  infohash:=0;
+  if firstrun then begin
+    if MessageDlg(txt[80],mtCustom, [mbYes,mbNo], 0)=MrYes then checkbox8.checked:=true else checkbox8.checked:=false;
+  end;
+
   memo1.lines.add('[dbg] ver: '+copy(ExtractFileDir(application.ExeName),length(ExtractFileDir(application.ExeName))-7,8));
 
   map_parameter[0]:=-1;
@@ -3180,6 +3190,7 @@ begin
   memo1.lines.add(txt[24]+' = '+inttostr(nbot-playersn));
   memo1.lines.add(txt[25]+' = '+inttostr(total_bot_hp{ div (nbot-playersn)}));
   if debugmode then memo1.lines.add('Bots together = '+floattostr(round(estimated_botstogether*10)/10));
+  infohash:=infohash+total_player_hp+total_bot_hp;
 
   memo1.lines.add(txt[26]+' = '+saydifficulty(estimated_difficulty));
 
@@ -3379,6 +3390,23 @@ end;
 
 {--------------------------------------------------------------------------------------}
 
+procedure dosaveinfo;
+var f1:textfile;
+begin
+  assignfile(f1,'battle'+inttostr(round(now*24*60*60))+'.txt');
+  rewrite(f1);
+  writeln(f1,'player ID = '+inttostr(playerid));
+  writeln(f1,'......');
+  write(f1,form1.memo2.lines.Text);
+  writeln(f1,'......');
+  write(f1,form1.memo1.lines.Text);
+  writeln(f1,'......');
+  writeln(f1,'Hash = ' + inttostr(infohash));
+  closefile(f1);
+end;
+
+{--------------------------------------------------------------------------------------}
+
 const standardcropsymbol=80;
 Procedure Tform1.create_language_interface;
 var s,caption_text,hint_text,hint_text0:string;
@@ -3490,6 +3518,11 @@ begin
                      checkbox7.caption:=caption_text;
                      checkbox7.showhint:=doshowhint;
                      checkbox7.hint:=hint_text;
+                   end;
+      '-checkbox08': begin
+                     checkbox8.caption:=caption_text;
+                     checkbox8.showhint:=doshowhint;
+                     checkbox8.hint:=hint_text;
                    end;
       '-radiobutton01': begin
                      radiobutton1.caption:=caption_text;
@@ -3656,6 +3689,7 @@ var f1:textfile;
     s,s1:string;
     i,value:integer;
 begin
+ firstrun:=false;
  ininame:=ExtractFilePath(application.ExeName)+pathdelim+inifilename;
  if fileexists(ininame) then begin
    assignfile(f1,ininame);
@@ -3673,6 +3707,7 @@ begin
        value:=valueof(trim(copy(s,i+1,length(s))));
        case s1 of
          'LANGUAGE':combobox2.itemindex:=value;
+         'PLAYERID':Playerid:=value;
          'MAXX':edit2.text:=inttostr(value);
          'MAXY':edit7.text:=inttostr(value);
          'SMOKE':begin
@@ -3692,11 +3727,15 @@ begin
          'CHEATER':trackbar2.position:=value;
          'CAUTION':trackbar3.position:=value;
          'FINISHHIM': if value=1 then checkbox7.checked:=true else checkbox7.checked:=false;
+         'GENERATELOG': if value=1 then checkbox8.checked:=true else checkbox8.checked:=false;
          'CONFIRM': if value=1 then checkbox2.checked:=true else checkbox2.checked:=false;
        end;
      end;
    until eof(f1);
    closefile(f1);
+ end else begin
+   PlayerID:=round(random*999999);
+   firstrun:=true;
  end;
 end;
 
@@ -3705,6 +3744,7 @@ var f1:textfile;
 begin
  assignfile(f1,ExtractFilePath(application.ExeName)+pathdelim+inifilename);
  rewrite(f1);
+ writeln(f1,'^PLAYERID='+inttostr(playerid));
  writeln(f1,'^LANGUAGE='+inttostr(combobox2.itemindex));
  writeln(f1,'^MAXX='+edit2.text);
  writeln(f1,'^MAXY='+edit7.text);
@@ -3723,6 +3763,7 @@ begin
  writeln(f1,'^CHEATER='+inttostr(trackbar2.position));
  writeln(f1,'^CAUTION='+inttostr(trackbar3.position));
  if checkbox7.checked then writeln(f1,'^FINISHHIM=1') else writeln(f1,'^FINISHHIM=0');
+ if checkbox8.checked then writeln(f1,'^GENERATELOG=1') else writeln(f1,'^GENERATELOG=0');
  if checkbox2.checked then writeln(f1,'^CONFIRM=1') else writeln(f1,'^CONFIRM=0');
 
  closefile(f1);
@@ -4540,6 +4581,7 @@ procedure TForm1.start_turn;
 var i:integer;
     ix,iy:integer;
     n1,n2:integer;
+    saveinfo:boolean;
 begin
   this_turn:=player;
   inc(current_turn);
@@ -4570,12 +4612,19 @@ begin
     end;
   end;
   memo1.lines.add(txt[38]+': '+inttostr(n1));
+  saveinfo:=false; {check to save battle result in case of victory or defeat}
   if n1=0 then begin
-    gamemode:=gamemode_victory;
+    if gamemode<>gamemode_victory then begin
+      gamemode:=gamemode_victory;
+      saveinfo:=true;
+    end;
     memo1.lines.add(txt[39]);
   end;
   if n2=0 then begin
-    gamemode:=gamemode_defeat;
+    if gamemode<>gamemode_victory then begin
+      gamemode:=gamemode_defeat;
+      saveinfo:=true;
+    end;
     memo1.lines.add(txt[40]);
   end;
   if (n1=0) or (n2=0) then begin
@@ -4590,6 +4639,9 @@ begin
     for i:=1 to nbot do if bot[i].owner=player then inc(ix,bot[i].hp) else inc(iy,bot[i].hp);
     memo1.lines.add(txt[23]+' = '+inttostr(ix));
     memo1.lines.add(txt[25]+' = '+inttostr(iy));
+    if saveinfo then begin
+      infohash:=infohash+ix+iy;
+    end;
   end;
   n1:=0; n2:=0;
   for ix:=1 to maxx do
@@ -4602,6 +4654,7 @@ begin
   generate_enemy_list(false);
 
   draw_map;
+  if saveinfo then dosaveinfo;
 end;
 
 {================================================================================}
@@ -5356,6 +5409,7 @@ begin
   label19.visible:=flg;
   label20.visible:=flg;
   checkbox7.visible:=flg;
+  checkbox8.visible:=flg;
   trackbar2.visible:=flg;
   trackbar3.visible:=flg;
 

@@ -50,8 +50,8 @@
 	NAME=Sniper Wasp
 	ACC=       100
 	DAM=         2
-	RECHARGE=   40
-	AIM=        20
+	RECHARGE=   25
+	AIM=        25
 	RELOAD=    100
 	MAXSTATE=   80
 	AMMO= 1

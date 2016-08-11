@@ -70,6 +70,10 @@ Enables 'buildings' generation at the map.
 Attack weaker targets
 If checked then computer preffers attacking weaker targets to finish them quicker. Otherwise computer will attack nearest target.
 
+-checkbox08
+Generate battle info
+This checkbox enables generation of battle results as battle*.txt files. Please, send it to loza@i.ua.
+
 #
 
 -radiobutton01
