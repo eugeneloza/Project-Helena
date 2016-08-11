@@ -3964,7 +3964,7 @@ begin
   DrawRectangle(Rectangle(sx, sy, Round((item[i].x+xshift)*mscale)-sx, Round((maxy-item[i].y+1+yshift)*mscale)-sy), shadecolor);
  end;
 
-// if (zoom<maxx) or (zoom<maxy) then
+ if (zoom<maxx) or (zoom<maxy) then
    MinimapRectangle.Draw3x3(Round((viewx+xshift)*mscale),Round((maxy-viewy-zoom+yshift)*mscale),round(zoom*mscale),round(zoom*mscale),1,1,1,1);
 
  for i:=1 to nbot do if (bot[i].hp>0) and (vis^[bot[i].x,bot[i].y]>oldvisible) then begin
