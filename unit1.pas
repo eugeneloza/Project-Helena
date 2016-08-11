@@ -11,6 +11,8 @@ uses
   CastleControl,CastleVectors, CastleGLUtils, castleRectangles, CastleUIControls,
   CastleGLImages, castlecontrols,
 
+  CastleImages, CastleFreeType, CastleFonts, CastleUnicode, CastleStringUtils,
+
   CastleOpenAL, CastleSoundEngine, CastleTimeUtils;
 
 const debugmode=false;
@@ -63,6 +65,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
       shotdelay=200;              {ms}
       hitdelay=200;
       blastdelay=500;             {ms}
+      Info_delay=100;
 
       defensedifficulty=5;
       standard_damage=10;
@@ -156,9 +159,7 @@ type
     Button2: TButton;
     Button3: TButton;
     Button4: TButton;
-    Button5: TButton;
     Button6: TButton;
-    Button7: TButton;
     CastleControl1: TCastleControl;
     CastleControl2: TCastleControl;
     CheckBox1: TCheckBox;
@@ -220,9 +221,7 @@ type
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
-    procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
-    procedure Button7Click(Sender: TObject);
     procedure CastleControl1Render(Sender: TObject);
     procedure CastleControl2Render(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
@@ -301,7 +300,6 @@ type
     procedure setcontrols_game(flg:boolean);
     procedure center_map(tox,toy:integer);
 
-    procedure create_message_box(x1,y1,x2,y2:integer);
     procedure display_item_info(thisitem:item_type);
 
 //    procedure display_message(mess:string);
@@ -420,6 +418,11 @@ var
   txt_out:TStringList;
   txt_x,txt_y:integer;
   do_txt:boolean;
+
+  Info_Text:String;
+  do_info:boolean;
+  info_animation:TDateTime;
+  do_animate_info:boolean;
 
   shot_sound,falcon_sound,unload_sound,reload_sound,clip_sound,unclip_sound,item_sound,drop_sound: TSoundBuffer;
 
@@ -2745,7 +2748,7 @@ until thismapfloor<>thismapwall;
      if map^[ix,iy]<map_wall then inc(nfree);
      if map^[ix,iy]>=map_generation_wall then begin
        if random_tiles then map^[ix,iy]:=map_wall+thismapwall else map^[ix,iy]:=map_wall+(map^[ix,iy]-map_generation_wall);
-       map_status^[ix,iy]:=maxstatus-round(random*4);
+       map_status^[ix,iy]:=maxstatus-round(sqr(random)*maxstatus/1.5);
      end;
    end;
 
@@ -3488,21 +3491,21 @@ begin
                      button4.showhint:=doshowhint;
                      button4.hint:=hint_text;
                    end;
-      '-button05': begin
+{      '-button05': begin
                      button5.caption:=caption_text;
                      button5.showhint:=doshowhint;
                      button5.hint:=hint_text;
-                   end;
+                   end;}
       '-button06': begin
                      button6.caption:=caption_text;
                      button6.showhint:=doshowhint;
                      button6.hint:=hint_text;
                    end;
-      '-button07': begin
+{      '-button07': begin
                      button7.caption:=caption_text;
                      button7.showhint:=doshowhint;
                      button7.hint:=hint_text;
-                   end;
+                   end;}
       '-togglebox01': begin
                      togglebox1.caption:=caption_text;
                      togglebox1.showhint:=doshowhint;
@@ -3701,7 +3704,9 @@ begin
   until eof(f1);
  closefile(f1);
 
+ generate_items_types;
  Edit4Change(nil);
+
 end;
 
 {--------------------------------------------------------------------------------------}
@@ -3801,6 +3806,9 @@ var GLI1:array[1..maxwall] of TGLImage;
     cracks_img:array[1..maxcracks] of TGLImage;
     item_img,img_selected,img_enemyselected:TGLImage;
     expl_img:array[1..10] of TGLImage;
+    TextFrame: TGLImage;
+
+    damagefont,infofont,movefont: TTextureFont;
 
 function getx(mapx:byte):integer;
 begin
@@ -3811,21 +3819,31 @@ begin
  gety:=(zoom-mapy+viewy)*zoomscale
 end;
 
+const maxsteps=maxmaxx;
+
 procedure TForm1.CastleControl1Render(Sender: TObject);
 var ix,iy:integer;
-    ShadeColor: TVector4Single;
-    Shadebright: single;
+    ShadeColor:TVector4Single;
+    Shadebright:single;
     i:integer;
     t:TDAtetime;
 //    srect:TRectangle;
     sx,sy:integer;
     highlight:single;
+    xx1,yy1:integer;
+
+    ax,ay,av:array[1..maxsteps] of integer;
+    tmpv,nv:integer;
+    sv:string;
 begin
  //initialize routines buggy-wooggy
  if img_selected=nil then img_selected:=TGLImage.create(datafolder+'png'+pathdelim + 'selected.png');
  if img_enemyselected=nil then img_enemyselected:=TGLImage.create(datafolder+'png'+pathdelim + 'enemyselected.png');
  for i:=1 to 10 do
-   if expl_img[i]=nil then expl_img[i]:=TGLImage.create(datafolder+'png'+pathdelim + 'expl'+inttostr(i)+'.png');
+   if expl_img[i]=nil then begin
+     expl_img[i]:=TGLImage.create(datafolder+'png'+pathdelim + 'expl'+inttostr(i)+'.png');
+     expl_img[i].alpha:=acFullRange;
+   end;
  for i:=1 to maxwall do
    if GLI1[i]=nil then GLI1[i]:=TGLImage.create(datafolder+'png'+pathdelim + 'wall'+inttostr(i)+'.png');
  for i:=1 to maxpass do
@@ -3833,17 +3851,26 @@ begin
  if Item_Img=nil then Item_img:=TGLImage.create(datafolder+'png'+pathdelim + 'Item.png');
  for ix:=0 to bottypes do
   for iy:=0 to maxangle do if Bot_img[ix,iy]=nil then begin
-     if iy<maxangle then
+     if iy<maxangle then begin
        case ix of
          0:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'T'+inttostr(iy)+'.png');
          1:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'Q'+inttostr(iy)+'.png');
          2:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'N'+inttostr(iy)+'.png');
          3:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'H'+inttostr(iy)+'.png');
          4:Bot_img[ix,iy]:=TGLImage.create(datafolder+'png'+pathdelim + 'M'+inttostr(iy)+'.png');
-       end
+       end;
+       Bot_img[ix,iy].alpha:=acFullRange;
+     end
      else Bot_img[ix,maxangle]:=Bot_img[ix,0];
    end;
- for ix:=1 to maxcracks do if cracks_img[ix]=nil then cracks_img[ix]:=TGLImage.create(datafolder+'png'+pathdelim + 'cracks'+inttostr(ix)+'.png');
+ for ix:=1 to maxcracks do if cracks_img[ix]=nil then begin
+   cracks_img[ix]:=TGLImage.create(datafolder+'png'+pathdelim + 'cracks'+inttostr(ix)+'.png');
+   cracks_img[ix].alpha:=acFullRange;
+ end;
+ if TextFrame=nil then begin
+   TextFrame:=TGLImage.create(datafolder+'png'+pathdelim + 'TextFrame.png');
+   TextFrame.alpha:=acFullRange;
+ end;
 
  t:=now;
  //drawing the map
@@ -3858,17 +3885,15 @@ begin
       ShadeBright:= 0.3;
       ShadeColor:= Vector4Single( shadebright/2, shadebright/2 , shadebright , 1);
     end;
-//    ShadeColor:= Vector4Single( 1, 1 , 1 , shadebright);
-//    GLI2.alpha:=acFullRange;
     if map^[ix,iy]>=Map_wall then begin
       shadecolor[0]:=shadecolor[0]*map_shade[1,1];
       shadecolor[1]:=shadecolor[1]*map_shade[1,2];
       shadecolor[2]:=shadecolor[2]*map_shade[1,3];
       GLI1[map_wall_img].Color:=ShadeColor;
       GLI1[map_wall_img].draw(getx(ix),gety(iy));
-      ShadeBright*= map_status^[ix,iy] / maxstatus;
-      cracks_img[(ix+3*iy) mod maxcracks+1].color:=Vector4Single( shadebright, shadebright , shadebright , 0.7);
-      cracks_img[(ix+3*iy) mod maxcracks+1].draw(getx(ix),gety(iy));
+      highlight:= sqr(map_status^[ix,iy] / maxstatus);
+      cracks_img[(ix+3*iy+sqr(ix)*5+sqr(iy)*7) mod maxcracks+1].color:=Vector4Single( shadebright, shadebright , shadebright , 0.4+0.6*(1-highlight));
+      cracks_img[(ix+3*iy+sqr(ix)*5+sqr(iy)*7) mod maxcracks+1].draw(getx(ix),gety(iy));
     end else begin
       highlight:=0;
       if do_highlight then begin
@@ -3904,6 +3929,56 @@ begin
     if i=selectedenemy then img_enemyselected.draw(getx(bot[i].x),gety(bot[i].y)) else
   end;
 
+{--------}
+
+ {draw movement path}
+ if (selectedx>0) and (selected>0) and (form1.checkbox2.checked) then begin
+   if (movement^[selectedx,selectedy]<9) and (selected=movement_map_for) and ((selectedx<>bot[selected].x) or (selectedy<>bot[selected].y)) then begin
+     xx1:=selectedx;
+     yy1:=selectedy;
+     nv:=0;
+     tmpv:=0;
+     repeat
+       if nv<maxmaxx then inc(nv);
+       ax[nv]:=xx1;
+       ay[nv]:=yy1;
+       av[nv]:=tmpv;
+       case movement^[xx1,yy1] of
+         5: begin inc(xx1); dec(yy1); tmpv+=round(bot[selected].speed*sqrt(2)) end;
+         6: begin           dec(yy1); tmpv+=bot[selected].speed end;
+         7: begin dec(xx1); dec(yy1); tmpv+=round(bot[selected].speed*sqrt(2)) end;
+         8: begin dec(xx1)          ; tmpv+=bot[selected].speed end;
+         1: begin dec(xx1); inc(yy1); tmpv+=round(bot[selected].speed*sqrt(2)) end;
+         2: begin           inc(yy1); tmpv+=bot[selected].speed end;
+         3: begin inc(xx1); inc(yy1); tmpv+=round(bot[selected].speed*sqrt(2)) end;
+         4: begin inc(xx1)          ; tmpv+=bot[selected].speed end;
+       end;
+     until (xx1=bot[selected].x) and (yy1=bot[selected].y);
+
+     i:=nv;
+       repeat
+         if nv<maxmaxx then begin
+           sv:=inttostr(bot[selected].tu-tmpv+av[i]);
+           if abs(bot[selected].tu-tmpv+av[i])>=1000 then sv:='X';
+           if bot[selected].tu-tmpv+av[i]>=0 then begin
+             if tmpv-av[i]<=bot[selected].items[1].rechargestate then ShadeColor:=Vector4Single(1,1,0.2,1) else ShadeColor:=Vector4Single(0.2,1,0.2,1)
+           end else ShadeColor:=Vector4Single(1,0.1,0.1,1);
+         end else begin
+           sv:='X';
+           ShadeColor:=Vector4Single(1,1,0.2,1)
+         end;
+         try
+         movefont.Print(getx(ax[i])+2-1,gety(ay[i])+zoomscale div 3+1, Vector4Single(0,0,0,1), sv);
+         movefont.Print(getx(ax[i])+2+1,gety(ay[i])+zoomscale div 3-1, Vector4Single(0,0,0,1), sv);
+         movefont.Print(getx(ax[i])+2  ,gety(ay[i])+zoomscale div 3  , ShadeColor, sv);
+         finally end;
+         dec(i);
+       until i=0;
+   end;
+ end;
+
+{--------}
+
   if do_explosion then begin
     i:=trunc(9*(now-animationtimer)*24*60*60*1000/blastdelay)+1;
     if i<1 then i:=1;
@@ -3920,10 +3995,24 @@ begin
 
   if do_txt then
     try
-      UIFont.PrintStrings(txt_x+1, txt_y-1, Vector4Single(0,0,0,1), txt_out, false, 0);
-      UIFont.PrintStrings(txt_x-1, txt_y+1, Vector4Single(0,0,0,1), txt_out, false, 0);
-      UIFont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,1), txt_out, false, 0);
+      damagefont.PrintStrings(txt_x+1, txt_y-1, Vector4Single(0,0,0,1), txt_out, false, 0);
+      damagefont.PrintStrings(txt_x-1, txt_y+1, Vector4Single(0,0,0,1), txt_out, false, 0);
+      damagefont.PrintStrings(txt_x, txt_y, Vector4Single(0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,0.7+0.3*(now-animationtimer)*24*60*60*1000/hitdelay,1), txt_out, false, 0);
     finally end;
+
+  if do_info then begin
+    if do_animate_info then begin
+      i:=20+round(580*(Now-info_animation)*24*60*60*1000 / Info_delay);
+      if i>600 then i:=600;
+      TextFrame.Color:=Vector4single(1,1,1,0.8*i/600);
+      TextFrame.draw3x3(50,50,600,i,7,7,7,7)
+    end else begin
+     TextFrame.Color:=Vector4single(1,1,1,0.8);
+     TextFrame.draw3x3(50,50,600,600,7,7,7,7);
+     try InfoFont.PrintBrokenString(60,650-30,Vector4Single(1,1,0.5,1),Info_Text,580,true,1);
+     finally end;
+    end;
+  end;
 
  form1.label1.caption:=inttostr(round((now-t)*24*60*60*1000));
 end;
@@ -3932,7 +4021,7 @@ var MinimapRectangle:TGLImage;
 
 procedure TForm1.CastleControl2Render(Sender: TObject);
 var ix,iy:integer;
-    ShadeColor: TVector4Single;
+    ShadeColor:TVector4Single;
     shadebright:single;
     i:integer;
     mscale:single;
@@ -3982,6 +4071,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var Duration: TFloatTime;
+    CharSet:TUnicodeCharList;
 begin
    txt_out:=TStringList.create;
    animationtimer:=0;
@@ -4014,6 +4104,14 @@ begin
 
    SoundEngine.ParseParameters;
    SoundEngine.MinAllocatedSources := 1;
+
+   CharSet:=TUnicodeCharList.Create;
+   CharSet.add(SimpleAsciiCharacters);
+   CharSet.add('ЁЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮёйцукенгшщзхъфывапролджэячсмитьбю');
+   damagefont:= TTextureFont.Create('Arial',20,true);
+   infofont:= TTextureFont.Create('Arial',18,true,CharSet);
+   movefont:= TTextureFont.create('Arial',9,true);
+   FreeAndNil(CharSet);
 
 //   castlecontrol1.DoubleBuffered:=true;
 {$IFDEF WINDOWS}
@@ -4095,7 +4193,6 @@ begin
 
   gamemode:=gamemode_none;
   form1.DoubleBuffered:=true;
-  generate_items_types;
 
   read_buildings;
 
@@ -4267,26 +4364,6 @@ begin
              if ix<1 then ix:=1;
              memo1.lines.add(bot[i].name+' '+txt[31]+' '+inttostr(ix)+' '+txt[32]);
              hit_bot(i,ix);
- {            if vis^[bot[i].x,bot[i].y]>oldvisible then
-{zzzzzzzzzzzzzzzzzzzzz}
-              with CastleControl1.canvas do begin
-               brush.style:=bsclear;
-               iy:=255;
-               mytimer:=now;
-               repeat
-                 x2:=round((bot[i].x-viewx-0.5)*CastleControl1.width / viewsizex);
-                 y2:=round((bot[i].y-viewy-0.5)*CastleControl1.height / viewsizey);
-                 font.color:=RGB(iy,255,10,10);
-                 font.size:=17;
-                 textout(x2-10,y2-15,inttostr(ix));
-                 CastleControl1.update;
-                 iy:=255-round(100*(now-mytimer)*24*60*60*1000/blastdelay);
-               until iy<=155;
-             end;
-             for ix:=-1 to 1 do
-               for iy:=-1 to 1 do mapchanged^[bot[i].x+ix,bot[i].y+iy]:=255;
-             draw_map;
-             }
            end;
          end else begin
            ix:=map_status^[ax+dx,ay+dy] - round((ablast/generationsum)/sqrt(area^[dx,dy]-60)/wallhardness);
@@ -4453,33 +4530,7 @@ begin
          else
            SoundEngine.PlaySound(falcon_sound, false, false, 0, 1, 0, 1, ZeroVector3Single);
 
-{zzzzzzzzzzzzzzzzzzzzzzzzzzzz}
- {        with CastleControl1.canvas do begin
-         brush.style:=bsclear;
-         i:=255;
-
-
-         mytimer:=now;
-         repeat
-           pen.color:=RGB(i,255,255,200);
-           pen.width:=1;
-           x1:=round((bot[attacker].x-viewx-0.5)*CastleControl1.width / viewsizex);
-           y1:=round((bot[attacker].y-viewy-0.5)*CastleControl1.height / viewsizey);
-           x2:=round((bot[defender].x-viewx-0.5)*CastleControl1.width / viewsizex);
-           y2:=round((bot[defender].y-viewy-0.5)*CastleControl1.height / viewsizey);
-           moveto(x1,y1);
-           lineto(x2,y2);
-           font.color:=RGB(i,255,10,10);
-           font.size:=17;
-           textout(x2-10,y2-15,inttostr(damage));
-           CastleControl1.update;
-           i:=255-round(100*(now-mytimer)*24*60*60*1000/shotdelay);
-         until i<=155;
-         range:=(visibleaccuracy*sqrt(sqr(bot[defender].x-bot[attacker].x)+sqr(bot[defender].y-bot[attacker].y)));
-         for i:=0 to round(range) do mapchanged^[bot[attacker].x+round((bot[defender].x-bot[attacker].x)*i/range),bot[attacker].y+round((bot[defender].y-bot[attacker].y)*i/range)]:=255;
-         for dx:=-1 to 1 do
-           for dy:=-1 to 1 do mapchanged^[bot[defender].x+dx,bot[defender].y+dy]:=255;
-      end;   }
+       //todo: draw shot here
 
        if ammo_specifications[bot[attacker].items[1].ammo_id].area>0 then begin
          calculate_area(bot[defender].x,bot[defender].y,ammo_specifications[bot[attacker].items[1].ammo_id].AREA,ammo_specifications[bot[attacker].items[1].ammo_id].SMOKE,ammo_specifications[bot[attacker].items[1].ammo_id].EXPLOSION);
@@ -5025,58 +5076,14 @@ begin
   togglebox1.state:=cbUnchecked;
 end;
 
-procedure TForm1.Button5Click(Sender: TObject);
-var MyImage:TJPEGImage;
-    destrect:TRect;
-begin
-{help}
-  previous_gamemode:=gamemode;
-  togglebox1.checked:=false;
-  togglebox1.state:=cbUnchecked;
-  setcontrols_game(false);
-  setcontrols_menu(false);
-  gamemode:=gamemode_help;
-  MyImage:=TJPEGImage.create;
-//  MyImage.canvas.height:=CastleControl1.height;
-//  MyImage.canvas.width:=CastleControl1.width;
-  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help.jpg');
-  CastleControl1.visible:=true;
-  {destrect:=Rect(0,0,CastleControl1.width,CastleControl1.height);}
-{zzzzzzzzzzzzzzzzzzzzzz}
-  {  CastleControl1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);}
-  MyImage.free;
-end;
-
 procedure TForm1.Button6Click(Sender: TObject);
 begin
   form1.close;
 end;
 
-procedure TForm1.Button7Click(Sender: TObject);
-var MyImage:TJPEGImage;
-    destrect:TRect;
-begin
-{help}
-  previous_gamemode:=gamemode;
-  togglebox1.checked:=false;
-  togglebox1.state:=cbUnchecked;
-  setcontrols_game(false);
-  setcontrols_menu(false);
-  gamemode:=gamemode_help;
-  MyImage:=TJPEGImage.create;
-//  MyImage.canvas.height:=CastleControl1.height;
-//  MyImage.canvas.width:=CastleControl1.width;
-  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+datafolder+'help_menu.jpg');
-  CastleControl1.visible:=true;
-  destrect:=Rect(0,0,CastleControl1.width,CastleControl1.height);
-  {zzzzzzzzzzzzzzzzzzzz}
-  {  CastleControl1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);}
-  MyImage.free;
-end;
-
 procedure TForm1.CheckBox2Change(Sender: TObject);
 begin
-  writeinifile;
+  //writeinifile;
 end;
 
 procedure TForm1.CheckBox5Change(Sender: TObject);
@@ -5147,7 +5154,7 @@ begin
   dispose(botvis);
   dispose(explosion_area);
   freeandnil(txt_out);
-
+  //todo: destroy images!!!
 end;
 
 {================================================================================}
@@ -5235,6 +5242,7 @@ if gamemode>200 then begin
      togglebox1.state:=cbChecked;
    end;
    gamemode:=previous_gamemode;
+   do_info:=false;
    draw_map_all:=true;
    if (previous_gamemode>100) and (mapgenerated) then draw_map;
  end;
@@ -5286,7 +5294,7 @@ begin
      if load_weapon(selected,selecteditem) then begin
        selectedonfloor:=-1;
        selecteditem:=-1;
-       if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+       if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; do_info:=false; draw_map end else draw_stats;
      end;
  end else {button=mbright} begin
    if selected>0 then display_item_info(bot[selected].items[1]);
@@ -5384,7 +5392,7 @@ begin
            selecteditem:=-1;
         end;
       end;
-         if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+         if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; draw_map end else draw_stats;
       //draw_map;
    end else {button=mbright} begin
      display_item_info(bot[selected].items[selectednew]);
@@ -5477,7 +5485,7 @@ begin
       selectedonfloor:=selectednew;
       selecteditem:=-1;
     end;
-     if gamemode=gamemode_iteminfo then begin draw_map_all:=true; gamemode:=previous_gamemode; draw_map end else draw_stats;
+     if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; draw_map end else draw_stats;
     //draw_map;
    end else {button=mbright} begin
      display_item_info(item[onfloor[selectednew]].item);
@@ -5502,7 +5510,7 @@ begin
     selected:=playerunits[selectednew];
     if (bot[selected].x<=viewx) or (bot[selected].y<=viewy) or (bot[selected].x>viewx+viewsizey) or (bot[selected].y>viewy+viewsizey) then center_map(bot[selected].x,bot[selected].y);
     mapchanged^[bot[selected].x,bot[selected].y]:=255;
-    if gamemode=gamemode_iteminfo then begin draw_map_all:=true;  gamemode:=previous_gamemode; end;
+    if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; end;
     draw_map;
   end;
 end;
@@ -5531,7 +5539,7 @@ begin
           center_map(bot[selectedenemy].x,bot[selectedenemy].y);
     end;
     mapchanged^[bot[selectedenemy].x,bot[selectedenemy].y]:=255;
-    if gamemode=gamemode_iteminfo then begin draw_map_all:=true;  gamemode:=previous_gamemode; end;
+    if gamemode=gamemode_iteminfo then begin draw_map_all:=true; do_info:=false; gamemode:=previous_gamemode; end;
     draw_map;
   end;
 end;
@@ -5670,7 +5678,7 @@ begin
  button4.visible:=flg;
  edit1.visible:=flg;
  label4.visible:=flg;
- button5.visible:=flg;
+// button5.visible:=flg;
  button6.visible:=flg;
  label5.visible:=flg;
  edit2.visible:=flg;
@@ -5687,7 +5695,7 @@ begin
  label12.visible:=flg;
  checkbox1.visible:=flg;
  checkbox3.visible:=flg;
- button7.visible:=flg;
+// button7.visible:=flg;
  memo2.visible:=flg;
  checkbox4.visible:=flg;
  label14.visible:=flg;
@@ -5765,87 +5773,48 @@ const item_box_x=50;
       item_box_y=50;
       font_size10=15;
 procedure Tform1.display_item_info(thisitem:item_type);
-{var starty,startx:integer;
+var {starty,startx:integer;
     descr:string;
-    line_width:integer;
-    tmp:integer;      }
+    line_width:integer;}
+    tmp:integer;
 begin
- {zzzzzzzzzzzzzzzzzzzzz}
-{ if (thisitem.w_id>0) or (thisitem.ammo_id>0) then begin
-  if gamemode<>gamemode_iteminfo then previous_gamemode:=gamemode;
-  gamemode:=gamemode_iteminfo;
-  create_message_box(item_box_x,item_box_y,item_box_x+300,item_box_y+500);
-  with CastleControl1.canvas do begin
-    brush.Style:=bsclear;
-    starty:=item_box_y+2*border_size;
-    startx:=item_box_x+2*border_size;
-    if thisitem.w_id>0 then begin
-      {weapon stats}
-     font.color:=clwhite;
-     font.size:=16;
-     textout(startx,starty,WEAPON_SPECIFICATIONS[thisitem.w_id].name);
-     font.size:=10;
-     textout(startx,starty+25,txt[59]+': '+inttostr(thisitem.state)+'/'+inttostr(thisitem.maxstate)+'('+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].maxstate)+')      = '+inttostr(round(100*thisitem.state/thisitem.maxstate))+'%');
-     textout(startx,starty+25+font_size10,txt[60]+': +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].dam)+'         '+txt[63]+': +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].acc));
-     textout(startx,starty+25+2*font_size10,txt[61]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].aim));
-     textout(startx,starty+25+3*font_size10,txt[62]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].recharge));
-     textout(startx,starty+25+4*font_size10,txt[64]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].reload));
-
-     font.color:=clyellow;
-     starty:=starty+25+5*font_size10;
-     descr:= WEAPON_SPECIFICATIONS[thisitem.w_id].description;
-     repeat
-       line_width:=text_width+1;
-       if line_width>length(descr) then line_width:=length(descr) else
-         repeat
-          dec(line_width);
-         until (copy(descr,line_width,1)=' ') or (line_width<=text_width div 2);
-       textout(startx,starty,copy(descr,1,line_width));
-       descr:=trim(copy(descr,line_width,999));
-       starty:=starty+font_size10;
-     until length(descr)<=1;
-     starty:=starty+font_size10;
+ if (thisitem.w_id>0) or (thisitem.ammo_id>0) then begin
+   do_info:=true;
+   Info_Text:='';
+   if gamemode<>gamemode_iteminfo then begin
+     do_animate_info:=true;
+     previous_gamemode:=gamemode;
+   end;
+   gamemode:=gamemode_iteminfo;
+   {weapon info}
+   if thisitem.w_id>0 then begin
+     Info_Text+= WEAPON_SPECIFICATIONS[thisitem.w_id].name+slinebreak;
+     Info_Text+= txt[59]+': '+inttostr(thisitem.state)+'/'+inttostr(thisitem.maxstate)+'('+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].maxstate)+')      = '+inttostr(round(100*thisitem.state/thisitem.maxstate))+'%'+slinebreak;
+     Info_Text+= txt[60]+': +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].dam)+'         '+txt[63]+': +'+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].acc)+slinebreak;
+     Info_Text+= txt[61]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].aim)+slinebreak;
+     Info_Text+= txt[62]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].recharge)+slinebreak;
+     Info_Text+= txt[64]+': '+inttostr(WEAPON_SPECIFICATIONS[thisitem.w_id].reload)+slinebreak;
+     Info_Text+= WEAPON_SPECIFICATIONS[thisitem.w_id].description+slinebreak;
+     Info_Text+= slinebreak;
     end;
     if thisitem.ammo_id>0 then begin
       {ammo stats}
-      font.color:=clwhite;
-      font.size:=16;
-      textout(startx,starty,AMMO_SPECIFICATIONS[thisitem.ammo_id].name);
-      font.size:=10;
-      textout(startx,starty+25,txt[65]+': '+inttostr(thisitem.n)+'/'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].quantity));
-      textout(startx,starty+25+1*font_size10,txt[60]+': +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].dam)+'         '+txt[63]+': +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc));
-      textout(startx,starty+25+2*font_size10,txt[66]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion)+' / '+txt[67]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Area)+' / '+txt[68]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Smoke));
+      Info_Text+= AMMO_SPECIFICATIONS[thisitem.ammo_id].name+slinebreak;
+      Info_Text+= txt[65]+': '+inttostr(thisitem.n)+'/'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].quantity)+slinebreak;
+      Info_Text+= txt[60]+': +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].dam)+'         '+txt[63]+': +'+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc)+slinebreak;
+      Info_Text+= txt[66]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion)+' / '+txt[67]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Area)+' / '+txt[68]+': '+inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].Smoke)+slinebreak;
 
-      font.color:=clyellow;
-      starty:=starty+25+3*font_size10;
-      descr:= AMMO_SPECIFICATIONS[thisitem.ammo_id].description;
-      repeat
-        line_width:=text_width+1;
-        if line_width>length(descr) then line_width:=length(descr) else
-          repeat
-           dec(line_width);
-          until (copy(descr,line_width,1)=' ') or (line_width<=text_width div 2);
-        textout(startx,starty,copy(descr,1,line_width));
-        descr:=trim(copy(descr,line_width,999));
-        starty:=starty+font_size10;
-      until length(descr)<=1;
-      starty:=starty+font_size10+10;
+      Info_Text+= AMMO_SPECIFICATIONS[thisitem.ammo_id].description+slinebreak;
 
       if thisitem.w_id>0 then begin
+        Info_Text+= slinebreak;
         {summary stats}
-        font.color:=clwhite-255;
-        font.size:=16;
-        textout(startx,starty,txt[69]);
-        font.size:=10;
-        if thisitem.state>thisitem.maxstate div 3 then tmp:=thisitem.maxstate div 3 else begin tmp:=thisitem.state; font.color:=clred; end;
-        textout(startx,starty+25,txt[60]+': '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))));
-        font.color:=clwhite-255;
-        textout(startx,starty+font_size10+25,txt[63]+': '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc+WEAPON_SPECIFICATIONS[thisitem.w_id].acc));
-        textout(startx,starty+2*font_size10+25,txt[70]+': '+ inttostr(trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge))));
-        if thisitem.state>thisitem.maxstate div 3 then tmp:=thisitem.maxstate div 3 else begin tmp:=thisitem.state; font.color:=clred; end;
-        textout(startx,starty+3*font_size10+25,txt[71]+': '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))*trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge))));
-        font.color:=clwhite-255;
-
+        if thisitem.state>thisitem.maxstate div 3 then tmp:=thisitem.maxstate div 3 else tmp:=thisitem.state;
+        Info_Text+= txt[60]+': '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3)))+slinebreak;
+        Info_Text+= txt[63]+': '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].acc+WEAPON_SPECIFICATIONS[thisitem.w_id].acc)+slinebreak;
+        Info_Text+= txt[70]+': '+ inttostr(trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge)))+slinebreak;
+        if thisitem.state>thisitem.maxstate div 3 then tmp:=thisitem.maxstate div 3 else tmp:=thisitem.state;
+        Info_Text+= txt[71]+': '+ inttostr(round((AMMO_SPECIFICATIONS[thisitem.ammo_id].dam+WEAPON_SPECIFICATIONS[thisitem.w_id].dam)*tmp/(thisitem.maxstate div 3))*trunc(255/(WEAPON_SPECIFICATIONS[thisitem.w_id].aim+WEAPON_SPECIFICATIONS[thisitem.w_id].recharge)))+slinebreak;
         if AMMO_SPECIFICATIONS[thisitem.ammo_id].Area>0 then begin
           case AMMO_SPECIFICATIONS[thisitem.ammo_id].Area of
                1 ..   9: tmp:=9;
@@ -5855,27 +5824,19 @@ begin
               82 .. 121: tmp:=121;
              else tmp:=AMMO_SPECIFICATIONS[thisitem.ammo_id].Area;
           end;
-          textout(startx,starty+4*font_size10+25,txt[72]+': '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion div tmp));
+          Info_Text+= txt[72]+': '+ inttostr(AMMO_SPECIFICATIONS[thisitem.ammo_id].explosion div tmp)+slinebreak;
         end;
       end;
+
     end;
 
-  end;
- end; }
-end;
-
-{------------------------------------------}
-
-procedure Tform1.create_message_box(x1,y1,x2,y2:integer);
-begin
-{ with CastleControl1.canvas do begin
-   brush.color:=RGB(255,130,130,200);
-   brush.style:=bssolid;
-   fillrect(x1,y1,x2,y2);
-   brush.color:=RGB(255,50,50,70);
-   brush.style:=bssolid;
-   fillrect(x1+border_size,y1+border_size,x2-border_size,y2-border_size);
- end;}
+ end;
+ if do_animate_info then begin
+   info_animation:=now;
+   repeat CastleControl1.paint until (now-Info_animation)*20*60*60*1000>=Info_delay;
+   do_animate_info:=false;
+ end;
+ CastleControl1.paint;
 end;
 
 {-----------------------------------------------------------------------------------}
@@ -6155,50 +6116,9 @@ begin
   castlecontrol1.Paint;
   castlecontrol2.Paint;
 
-{     if (show_los) and (selectedenemy>0) then begin
-      for mx:=2 to maxx-1 do
-        for my:=2 to maxy-1 do if (check_los(mx,my,bot[selectedenemy].x,bot[selectedenemy].y,true)>0) and (vis^[mx,my]>0) and (map^[mx,my]<map_wall) then mapchanged^[mx,my]:=255;
-     end;
 
-     draw_map_all:=false;
 
-     image7.canvas.brush.style:=bsclear;
-     image7.canvas.pen.color:=$FFFFFF;
-     image7.canvas.rectangle(round((viewx+0.3)*scaleminimapx)+minimapx0, round((viewy+0.3)*scaleminimapy)+minimapy0, round((viewx+viewsizex-0.3)*scaleminimapx)+minimapx0, round((viewy+viewsizey-0.3)*scaleminimapy)+minimapy0);
 
-     {draw movement path}
-     if (selectedx>0) and (selected>0) and (checkbox2.checked) then begin
-       if (movement^[selectedx,selectedy]<9) and (selected=movement_map_for) and ((selectedx<>bot[selected].x) or (selectedy<>bot[selected].y)) then begin
-         xx1:=selectedx;
-         yy1:=selectedy;
-         repeat
-           mapchanged^[xx1,yy1]:=255;
-
-           fx1:=(xx1-1)*scalex;
-           fy1:=(yy1-1)*scaley;
-           fx2:=xx1*scalex-1;
-           fy2:=yy1*scaley-1;
-           pen.color:=$00dd00;
-           moveto(round(fx1+scalex / 3), round(fy1+scaley / 3));
-           lineto(round(fx2-scalex / 3), round(fy2-scaley / 3));
-           moveto(round(fx2-scalex / 3), round(fy1+scaley / 3));
-           lineto(round(fx1+scalex / 3), round(fy2-scaley / 3));
-
-           case movement^[xx1,yy1] of
-             5: begin inc(xx1); dec(yy1) end;
-             6: begin           dec(yy1) end;
-             7: begin dec(xx1); dec(yy1) end;
-             8: begin dec(xx1)           end;
-             1: begin dec(xx1); inc(yy1) end;
-             2: begin           inc(yy1) end;
-             3: begin inc(xx1); inc(yy1) end;
-             4: begin inc(xx1);          end;
-           end;
-         until (xx1=bot[selected].x) and (yy1=bot[selected].y);
-       end;
-     end;
-  end;
-}
 
   draw_stats;
   if debugmode then label1.Caption:=inttostr(round(((now-thistime)*24*60*60*1000)))+'ms';
