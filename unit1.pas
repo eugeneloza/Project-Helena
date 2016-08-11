@@ -43,7 +43,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
       defensedifficulty=5;
       standard_damage=10;
-      average_los_value=45;
+      average_los_value=47.06;
 
 const itemdamagerate=0.4;           //40% damage taken by armed weapon
 
@@ -101,7 +101,7 @@ const gamemode_game=255;
       gamemode_none=0;
 
 const datafolder='DAT'+pathdelim;
-      scriptfolder=datafolder+'script'+pathdelim;
+      scriptfolder=datafolder+'default'+pathdelim;
 
 //const tutorial_
 
@@ -141,6 +141,7 @@ type
     Label11: TLabel;
     Label12: TLabel;
     Label13: TLabel;
+    Label14: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
@@ -175,6 +176,8 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer
       );
+    procedure Image2MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure Image3MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure Image3MouseWheel(Sender: TObject; Shift: TShiftState;
@@ -2571,11 +2574,12 @@ begin
         if random<0.93 then item[itemsn].item.w_id:=1 else item[itemsn].item.w_id:=4;
         if random<0.09 then item[itemsn].item.w_id:=2;
         if random<0.09 then item[itemsn].item.w_id:=3;
+        if random<0.09 then item[itemsn].item.w_id:=5;
         item[itemsn].item.maxstate:=round((weapon_specifications[item[itemsn].item.w_id].maxstate*3/4)*random+weapon_specifications[item[itemsn].item.w_id].maxstate/4);
         item[itemsn].item.state:=round(item[itemsn].item.maxstate*random);
         item[itemsn].item.rechargestate:=0;
       end;
-      if item[itemsn].item.w_id<4 then begin
+      if item[itemsn].item.w_id<>4 then begin
         if random<0.7 then item[itemsn].item.ammo_id:=1 else item[itemsn].item.ammo_id:=2;
         if random>0.8 then item[itemsn].item.ammo_id:=3;
         if random>0.7 then item[itemsn].item.ammo_id:=4;
@@ -2602,6 +2606,13 @@ begin
       inc(total_bot_firepower,standard_damage);
     end;
   end;
+
+
+  memo1.lines.add('Player units = '+inttostr(playersn));
+  memo1.lines.add('Average Player HP = '+inttostr(total_player_hp div playersn));
+  memo1.lines.add('Enemy bots = '+inttostr(nbot-playersn));
+  memo1.lines.add('Average bot HP = '+inttostr(total_bot_hp div (nbot-playersn)));
+
   memo1.lines.add('Average LOS = '+inttostr(round(averageLOS)));
   if checkbox1.checked then ix:=defensedifficulty else ix:=1;
 
@@ -2652,7 +2663,7 @@ function valueof(s:string):integer;
 var v1,v2:integer;
 begin
   val(s,v1,v2);
-  if v2<>0 then showmessage('Scripting error! Cannot read value.');
+  if v2<>0 then showmessage('Script error: unable to process number.');
   valueof:=v1;
 end;
 
@@ -2669,7 +2680,7 @@ begin
      inc(w_types);
      if w_types>255 then begin
        w_types:=255;
-       showmessage('Scripting error: No more than 255 weapon/item types allowed');
+       showmessage('weapon.ini error: No more than 255 weapon/item types allowed!');
      end;
      with weapon_specifications[w_types] do begin
        for i:=1 to maxusableammo do AMMO[i]:=0;
@@ -2685,7 +2696,7 @@ begin
        repeat
          readln(f1,s);
          s:=trim(s);
-         if copy(s,1,5)='NAME=' then NAME:=copy(s,6,99) else
+         if copy(s,1,5)='NAME=' then NAME:=trim(copy(s,6,99)) else
          if copy(s,1,4)='ACC=' then ACC:=valueof(copy(s,5,99)) else
          if copy(s,1,4)='DAM=' then DAM:=valueof(copy(s,5,99)) else
          if copy(s,1,9)='RECHARGE=' then RECHARGE:=valueof(copy(s,10,99)) else
@@ -2695,7 +2706,7 @@ begin
          if copy(s,1,5)='AMMO=' then begin
            inc(i);
            if i>maxusableammo then begin
-             showmessage('Scripting error: max usable ammo types = '+inttostr(maxusableammo));
+             showmessage('weapon.ini error: max usable ammo types = '+inttostr(maxusableammo));
              i:=maxusableammo;
            end;
            AMMO[i]:=valueof(copy(s,6,99))
@@ -2715,7 +2726,7 @@ begin
      inc(a_types);
      if a_types>255 then begin
        a_types:=255;
-       showmessage('Scripting error: No more than 255 ammo types allowed');
+       showmessage('ammo.ini error: No more than 255 ammo types allowed!');
      end;
      with ammo_specifications[a_types] do begin
        NAME        := 'no name';
@@ -2728,7 +2739,7 @@ begin
        repeat
          readln(f1,s);
          s:=trim(s);
-         if copy(s,1, 5)='NAME=' then NAME:=copy(s,6,99) else
+         if copy(s,1, 5)='NAME=' then NAME:=trim(copy(s,6,99)) else
          if copy(s,1, 4)='ACC=' then ACC:=valueof(copy(s,5,99)) else
          if copy(s,1, 4)='DAM=' then DAM:=valueof(copy(s,5,99)) else
          if copy(s,1, 9)='QUANTITY=' then QUANTITY:=valueof(copy(s,10,99)) else
@@ -2755,9 +2766,9 @@ begin
 
   label5.caption:='Map size (min '+inttostr(minmaxx)+' ... max '+inttostr(maxmaxx)+'):';
   edit2.text:=inttostr(40);
-  label11.caption:='(1..'+inttostr(maxbots-maxplayers)+'):';
+  label11.caption:='(1..'+inttostr(maxbots-maxplayers)+')';
   edit1.text:=inttostr(37);
-  label12.caption:='(1..'+inttostr(maxplayers)+'):';
+  label12.caption:='(1..'+inttostr(maxplayers)+')';
   edit5.text:=inttostr(4);
 
   new(map);
@@ -3441,9 +3452,17 @@ begin
     end;
   end;
   memo1.lines.add('bots remaining: '+inttostr(n1));
-  if n1=0 then gamemode:=gamemode_victory;
-  if n2=0 then gamemode:=gamemode_defeat;
+  if n1=0 then begin
+    gamemode:=gamemode_victory;
+    memo1.lines.add('---- VICTORY!!! ----');
+  end;
+  if n2=0 then begin
+    gamemode:=gamemode_defeat;
+    memo1.lines.add('---- DEFEAT... ----');
+  end;
   if (n1=0) or (n2=0) then begin
+   memo1.lines.add('Players = '+inttostr(n2));
+   memo1.lines.add('Bots = '+inttostr(n1));
    for n1:=1 to maxx do
     for n2:=1 to maxy do begin
       vis^[n1,n2]:=maxvisible;
@@ -3774,9 +3793,22 @@ begin
 end;
 
 
+
 {================================================================================}
 {================================================================================}
 {================================================================================}
+
+procedure TForm1.Image2MouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+ if (selected>0) and (selecteditem>1) then
+  if (bot[selected].items[selecteditem].n>0) and (bot[selected].items[selecteditem].ammo_id>0) and (bot[selected].items[selecteditem].w_id=0) and (bot[selected].items[1].w_id>0) and (bot[selected].items[1].ammo_id=0) then
+   if load_weapon(selected,selecteditem) then begin
+     selectedonfloor:=-1;
+     selecteditem:=-1;
+     draw_stats
+   end;
+end;
 
 
 function TForm1.load_weapon(thisbot,thisitem:integer):boolean;
@@ -4147,6 +4179,8 @@ begin
  button7.visible:=flg;
  memo2.visible:=flg;
  checkbox4.visible:=flg;
+ label14.visible:=flg;
+
  {$IFDEF UNIX}
  label13.visible:=false;
  {$ENDIF}
