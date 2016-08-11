@@ -2915,7 +2915,7 @@ begin
       y1:=round(random*(maxy-3)+2);
       flg:=true;
       for ix:=1 to playersn do begin
-        if (check_LOS(x1,y1,bot[ix].x,bot[iy].y,true)>0) and (random<0.99) then flg:=false;
+        if (check_LOS(x1,y1,bot[ix].x,bot[ix].y,true)>0) and (random<0.99) then flg:=false;
         if (sqr(x1-bot[ix].x)+sqr(y1-bot[ix].y)<sqr(visiblerange/3)) and
            (sqr(x1-bot[ix].x)+sqr(y1-bot[ix].y)<sqr(maxx/4)) and (random<0.95) then flg:=false
       end;
