@@ -294,6 +294,8 @@ end;
 type bottype=record
   name:string[30];
   action:byte;
+  caution:byte;
+  bottype:byte;
   target:integer;
   hp,maxhp:word;
   tu:byte;
@@ -2661,6 +2663,26 @@ begin
     if bot[nbot].owner<>player then begin
       if random<0.3 then weapon_kind:=2;
       if random<0.05 then weapon_kind:=3;
+      bot[nbot].caution:=round(random*50);
+      bot[nbot].bottype:=2;
+      if random<0.1 then begin
+        bot[nbot].bottype:=3;
+        bot[nbot].maxhp:=bot[nbot].maxhp*3;
+        bot[nbot].hp:=bot[nbot].maxhp;
+        bot[nbot].caution:=0;
+        bot[nbot].name:=name+'(H)';
+      end else
+      if random<0.1 then begin
+        bot[nbot].bottype:=4;
+        bot[nbot].maxhp:=bot[nbot].maxhp div 2;
+        bot[nbot].hp:=bot[nbot].maxhp;
+        bot[nbot].speed:=15;
+        bot[nbot].caution:=100;
+        bot[nbot].name:=name+'(Q)';
+      end;
+
+    end else begin
+      bot[nbot].bottype:=1;
     end;
     if form1.checkbox3.checked then weapon_kind:=3;
     repeat
@@ -2957,6 +2979,7 @@ begin
       x1:=5;
     end;
     if bot[nbot].hp>15 then inc(total_player_hp,bot[nbot].hp) else inc(total_player_hp,15);
+    bot[nbot].bottype:=1;
 //      inc(total_player_firepower,standard_damage);
   end;
   //  bot[1].items[1].w_id:=4;
@@ -3000,9 +3023,9 @@ begin
   until (i_flag) or (nbot>maxbots) or (nbot>=mapfreespace);
 
   memo1.lines.add('Player units = '+inttostr(playersn));
-  memo1.lines.add('Average Player HP = '+inttostr(total_player_hp div playersn));
+  memo1.lines.add('Total Player HP = '+inttostr(total_player_hp));
   memo1.lines.add('Enemy bots = '+inttostr(nbot-playersn));
-  memo1.lines.add('Average bot HP = '+inttostr(total_bot_hp div (nbot-playersn)));
+  memo1.lines.add('Total bot HP = '+inttostr(total_bot_hp{ div (nbot-playersn)}));
   memo1.lines.add('Bots together = '+floattostr(round(estimated_botstogether*10)/10));
 
   memo1.lines.add('True difficulty = '+saydifficulty(estimated_difficulty));
@@ -3678,6 +3701,7 @@ var LOS_targets:array[1..max_los_targets] of integer;
     lastrange,aim:integer;
     x1,y1,dx,dy:integer;
     timetoshot:integer;
+    cautiontime:integer;
     passcount:byte;
     I_am_visible:boolean;
 begin
@@ -3780,7 +3804,9 @@ begin
 
     //Escape visible range or at least minimize LOS
     timetoshot:=bot[thisbot].items[1].rechargestate+weapon_specifications[bot[thisbot].items[1].w_id].aim;
-    if (bot[thisbot].tu<timetoshot) and (bot[thisbot].tu>=bot[thisbot].speed) and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) then begin
+    cautiontime:=timetoshot+bot[thisbot].caution;
+    if 255-cautiontime<timetoshot then cautiontime:=timetoshot;
+    if (bot[thisbot].tu<cautiontime) and (bot[thisbot].tu>=bot[thisbot].speed) and (vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible) then begin
       x1:=bot[thisbot].x;
       y1:=bot[thisbot].y;
       generatemovement(thisbot,bot[bot[thisbot].target].x,bot[bot[thisbot].target].y); //buggy
@@ -5133,6 +5159,7 @@ var mx,my,i:integer;
     xx1,yy1:integer;
     thistime:TDatetime;
     tmp_color:byte;
+    btc1,btc2,btc3:byte;
     //dx,dy,range,maxrange:integer;
 begin
   thistime:=now;
@@ -5293,7 +5320,13 @@ begin
            fy1:=(bot[mx].y-viewy-1)*scaley;
            fx2:=(bot[mx].x-viewx  )*scalex-1;
            fy2:=(bot[mx].y-viewy  )*scaley-1;
-           pen.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,140,140,170);
+           case bot[mx].bottype of
+              2:begin btc1:=120; btc2:=150; btc3:=150 end;
+              3:begin btc1:=140; btc2:=140; btc3:=220 end;
+              4:begin btc1:=200; btc2:=140; btc3:=140 end;
+              else begin btc1:=140; btc2:=140; btc3:=170 end;
+           end;
+           pen.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,btc1,btc2,btc3);
            if scalex>6 then pen.width:=round (scalex / 6) else pen.width:=1;
            moveto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*(bot[mx].angle+75)/maxangle)),round((fy1+fy2)/2+0.4*scaley*sin(2*Pi*(bot[mx].angle+75)/maxangle)));
            lineto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*(bot[mx].angle+25)/maxangle)),round((fy1+fy2)/2+0.4*scaley*sin(2*Pi*(bot[mx].angle+25)/maxangle)));
@@ -5315,7 +5348,7 @@ begin
 
          if (bot[mx].x-viewx>0) and (bot[mx].y-viewy>0) and (bot[mx].x-viewx<=viewsizex) and (bot[mx].y-viewy<=viewsizey) then begin
            ellipse(round(fx1+scalex / 6), round(fy1+scaley / 6), round(fx2-scalex / 6), round(fy2-scaley / 6));
-           pen.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,150,150,150);
+           pen.color:=RGB(round(150*((vis^[bot[mx].x,bot[mx].y]-oldvisible)/(maxvisible-oldvisible)))+55,btc1+10,btc2+10,btc3);
            if scalex>6 then pen.width:=round (scalex / 6) else pen.width:=1;
            moveto(round((fx1+fx2)/2), round((fy1+fy2)/2));
            lineto(round((fx1+fx2)/2+0.4*scalex*cos(2*Pi*bot[mx].angle/maxangle)),round((fy1+fy2)/2+0.4*scalex*sin(2*Pi*bot[mx].angle/maxangle)));

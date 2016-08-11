@@ -28,7 +28,7 @@
 	ID=2
 	NAME=Hv. Wasp
 	ACC=         0
-	DAM=         5
+	DAM=        10
 	RECHARGE=   50
 	AIM=        10
 	RELOAD=    100
