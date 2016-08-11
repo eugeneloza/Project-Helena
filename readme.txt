@@ -8,6 +8,7 @@ libpng
 zlib1g
 libvorbis
 libfreetype6
+libfreetype6-dev
 
 See ProjectHelenaHelp.pdf in DAT folder for more information.
 
