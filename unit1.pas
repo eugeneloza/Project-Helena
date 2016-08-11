@@ -16,15 +16,15 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
       maxplayers=16;          // max 16 fit in bunker
 
-      maxitems=maxbots*3;  //make limits
-      maxonfloor=50; // max displayed onfloor items
-      maxunitslist=maxbots div 2;
-
       backpacksize=12;
       changeweapontime=100;
       //fixweapontime=255;
       dropitemtime=20;
       pickupitemtime=40;
+
+      maxitems=maxbots*backpacksize+100;
+      maxonfloor=50; // max displayed onfloor items
+      maxunitslist=maxbots;
 
       minimumtuusable=29;
 
@@ -36,7 +36,7 @@ const maxmaxx={113}226;  //max 'reasonable' 50x50
 
 const itemdamagerate=0.4;           //40% damage taken by armed weapon
 
-const maxbot_hp_const=65535;
+const maxbot_hp_const=3000;
       maxplayer_hp_const=3000;
 
 const action_attack=1;
@@ -81,6 +81,7 @@ type
     Button4: TButton;
     Button5: TButton;
     Button6: TButton;
+    Button7: TButton;
     CheckBox1: TCheckBox;
     CheckBox2: TCheckBox;
     ComboBox1: TComboBox;
@@ -126,6 +127,7 @@ type
     procedure Button4Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
+    procedure Button7Click(Sender: TObject);
     procedure Edit4Change(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -180,6 +182,7 @@ type
     function spend_tu(thisbot:integer;tus:byte):boolean;
     function load_weapon(thisbot,thisitem:integer):boolean;
     procedure pick_up(thisbot,thisitem:integer);
+    procedure drop_item(thisbot,thisitem:integer);
     procedure setcontrols_menu(flg:boolean);
     procedure setcontrols_game(flg:boolean);
     procedure center_map(tox,toy:integer);
@@ -553,8 +556,11 @@ begin
      bot[thisbot].x:=waypointx[waypointn];
      bot[thisbot].y:=waypointy[waypointn];
       if vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible then mapchanged^[bot[thisbot].x,bot[thisbot].y]:=255;
-     if (bot[thisbot].x<=viewx-1+2) or (bot[thisbot].y<=viewy-1+2) or (bot[thisbot].x>=viewx+viewsizex-2) or (bot[thisbot].y>=viewy+viewsizey-2) then
-       if vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible then center_map(bot[thisbot].x,bot[thisbot].y);
+      i:=3;   //buggy
+      if (viewx<=1) or (viewy<=1) or (viewx+viewsizex>=maxx-2) or (viewy+viewsizey>=maxy-2) then i:=1;
+      if (bot[thisbot].x<=viewx+i) or (bot[thisbot].y<=viewy+i) or (bot[thisbot].x>=viewx+viewsizex+1-i) or (bot[thisbot].y>=viewy+viewsizey+1-i) then
+       if vis^[bot[thisbot].x,bot[thisbot].y]>oldvisible then
+         center_map(bot[thisbot].x,bot[thisbot].y);
 
      if bot[thisbot].owner=player then begin
        look_around(thisbot);
@@ -2086,11 +2092,14 @@ begin
   repeat
     inc(i);
     bot[nbot].items[i].w_id:=1;
-    if (random<0.03) and (i=1) then bot[nbot].items[i].w_id:=4;
-    if random<0.05 then bot[nbot].items[i].w_id:=2;
-    if random<0.05 then bot[nbot].items[i].w_id:=3;
+    if bot[nbot].owner<>player then begin
+      if (random<0.03) and (i=1) then bot[nbot].items[i].w_id:=4;
+      if random<0.05 then bot[nbot].items[i].w_id:=2;
+      if random<0.05 then bot[nbot].items[i].w_id:=3;
+    end;
     bot[nbot].items[i].maxstate:=weapon_specifications[bot[nbot].items[i].w_id].maxstate-round(0.1*weapon_specifications[bot[nbot].items[i].w_id].maxstate*random);
     bot[nbot].items[i].state:=round((bot[nbot].items[i].maxstate-0.2*bot[nbot].items[i].maxstate*random)*(11/(i+10)));
+    //if i>1 then  bot[nbot].items[i].state:=0; //*
     bot[nbot].items[i].rechargestate:=0;
     inc(weaponhp,bot[nbot].items[i].state);
 
@@ -2100,7 +2109,7 @@ begin
       if random<0.05 then bot[nbot].items[i].ammo_id:=3;
     end else bot[nbot].items[i].ammo_id:=5;
     bot[nbot].items[i].n:=ammo_specifications[bot[nbot].items[i].ammo_id].quantity;
-  until (bot[nbot].HP*itemdamagerate<weaponhp) or (i=backpacksize);
+  until (bot[nbot].HP*itemdamagerate<weaponhp) or (i=backpacksize) or (bot[nbot].owner=player);
 
   if map^[bot[nbot].x,bot[nbot].y]<=map_smoke then flg:=true else flg:=false;
   if (flg) and (nbot>1) then
@@ -2157,7 +2166,7 @@ end;
 
 procedure TForm1.generate_map;
 var ix,iy:integer;
-    x1,y1:integer;
+    x1,y1,count:integer;
     map_type:byte;
     generatedbots:integer;
     bot_hp_const,player_hp_const:integer;
@@ -2263,10 +2272,12 @@ begin
   if generatedbots>maxbots then generatedbots:=maxbots;
   edit1.text:=inttostr(generatedbots-playersn);
   for ix:=playersn+1 to generatedbots do begin
+    count:=0;
     repeat
+      inc(count);
       x1:=round(random*(maxx-4)+2);
       y1:=round(random*(maxy-4)+2);
-    until (((x1>12) or (y1>12)) or (random>0.999)) and createbot(computer,'d'+inttostr(round(random*99))+inttostr(ix),{round(random*30)+}bot_hp_const,x1,y1);
+    until ((((x1>12) or (y1>12)) or (random>0.999)) and createbot(computer,'d'+inttostr(round(random*99))+inttostr(ix),{round(random*30)+}bot_hp_const,x1,y1)) or (count>10000);
     if checkbox1.checked then bot[nbot].action:=action_attack else bot[nbot].action:=action_random;
     bot[nbot].target:=round(random*(playersn-1))+1;
   end;
@@ -2275,7 +2286,11 @@ begin
   for ix:=1 to nbot do if bot[ix].owner=computer then begin
     inc(iy,bot[ix].hp);
   end;
-  While (iy>playersn*20*10+(nbot-playersn)*10*10+itemsn*10*10) or (random<0.9) do begin
+
+  //generate ground items
+  count:=0;
+  While ((iy>playersn*20*10+(nbot-playersn)*10*10+itemsn*10*10) or (random<0.9) or (count<maxx/4)) and (itemsn<maxitems) do begin
+      inc(count);
       inc(itemsn);
       repeat
         x1:=round(random*(maxx-2)+1);
@@ -2284,7 +2299,7 @@ begin
       item[itemsn].x:=x1;
       item[itemsn].y:=y1;
       item[itemsn].item.w_id:=0;
-      if random<nbot*75/(iy/(nbot-playersn)*itemdamagerate) then begin
+      if (random<nbot*75/(iy/(nbot-playersn)*itemdamagerate)) or (random<0.1) then begin
         if random<0.95 then item[itemsn].item.w_id:=1 else item[itemsn].item.w_id:=4;
         item[itemsn].item.maxstate:=round((weapon_specifications[item[itemsn].item.w_id].maxstate*3/4)*random+weapon_specifications[item[itemsn].item.w_id].maxstate/4);
         item[itemsn].item.state:=round(item[itemsn].item.maxstate*random);
@@ -2577,8 +2592,9 @@ begin
          end;
          if bot[defender].owner=player then clear_visible;
          //drop items//drop corpse
-         for dx:=1 to backpacksize do if (bot[defender].items[dx].w_id>0) or (bot[defender].items[dx].ammo_id>0) then begin
-           inc(itemsn);
+         for dx:=1 to backpacksize do if ((bot[defender].items[dx].w_id>0) or (bot[defender].items[dx].ammo_id>0)) then begin
+           if itemsn=maxitems then showmessage('TOO MANY ITEMS!!!') else
+             inc(itemsn);
            item[itemsn].x:=bot[defender].x;
            item[itemsn].y:=bot[defender].y;
            item[itemsn].item:=bot[defender].items[dx];
@@ -2751,17 +2767,29 @@ begin
         for k:=1 to nbot do if (bot[k].hp>0) and (k<>thisbot) and (bot[k].x=item[j].x) and (bot[k].y=item[j].y) then flg:=false;
         if (aim>0) and (item[j].item.state<item[j].item.maxstate div 3) and (item[j].item.n<4) then flg:=false;
         if flg then generatemovement(thisbot,item[j].x,item[j].y);
-        if (flg) and (movement^[item[j].x,item[j].y]<10) then
+        if (flg) and (movement^[item[j].x,item[j].y]<10) then begin
           aim:=j;
+          lastrange:=sqr(bot[thisbot].x-item[j].x)+sqr(bot[thisbot].y-item[j].y)
+        end;
       end;
-      if aim=0 then stopactions:=true {!} else
+      if (aim=0) or (bot[thisbot].items[backpacksize].ammo_id>0) or (bot[thisbot].items[backpacksize].w_id>0) then begin
+        if aim>0 then for j:=2 to backpacksize do drop_item(thisbot,j);
+        stopactions:=true {!}
+      end else
         move_bot(thisbot,item[aim].x,item[aim].y,100);
     end;
     //see items on the ground and take if vis<0 or needed
     find_onfloor(bot[thisbot].x,bot[thisbot].y);
-    if (onfloorn>0) and ((weaponneeded) or (vis^[bot[thisbot].x,bot[thisbot].y]<=oldvisible)) then
-      pick_up(thisbot,1);
-
+    if (onfloorn>0) and ((weaponneeded) or (vis^[bot[thisbot].x,bot[thisbot].y]<=oldvisible)) then begin
+      j:=1;
+      repeat
+        if item[onfloor[j]].item.state>0 then begin
+          pick_up(thisbot,j);
+          j:=onfloorn;
+        end;
+        inc(j);
+      until j>onfloorn;
+    end;
     //get LOS tagets
     if (bot[thisbot].action=action_attack) and (bot[bot[thisbot].target].hp=0) then begin
       for j:=1 to nbot do if (bot[j].owner=player) and (bot[j].hp>0) then bot[thisbot].target:=j;
@@ -2788,7 +2816,30 @@ begin
     end;
 
     timetoshot:=bot[thisbot].items[1].rechargestate+weapon_specifications[bot[thisbot].items[1].w_id].aim;
-    if (bot[thisbot].tu<timetoshot) then stopactions:=true;
+    if (bot[thisbot].tu<timetoshot) then begin
+      if bot[thisbot].tu>=bot[thisbot].speed then begin
+        //escape visible range;
+        dx:=-1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=+1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:= 0;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:= 0;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=+1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=-1;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (vis^[bot[thisbot].x+dx,bot[thisbot].y+dy]<=oldvisible) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+
+        //try to minimize LOS
+        dx:=-1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=+1;dy:= 0; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:= 0;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:= 0;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=+1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=-1;dy:=-1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+        dx:=-1;dy:=+1; if (map^[bot[thisbot].x+dx,bot[thisbot].y+dy]=map_free) and (LOS_base^[bot[thisbot].x+dx,bot[thisbot].y+dy]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) then move_bot(thisbot,bot[thisbot].x+dx,bot[thisbot].y+dy,1);
+      end;
+//      stopactions:=true;
+    end;
     //action/attack - go to the nearest LOS
     if (bot[thisbot].action=action_attack) and (bot[bot[thisbot].target].hp>0) then begin
       if (k=0) or (bot[thisbot].items[1].rechargestate>=bot[thisbot].speed) then begin
@@ -2821,7 +2872,7 @@ begin
     if (bot[thisbot].action=action_random) or (passcount>100) then begin
       x1:=bot[thisbot].x+round(2*(random-0.5));
       y1:=bot[thisbot].y+round(2*(random-0.5));
-      if (map^[x1,y1]<map_wall) and ((x1<>bot[thisbot].x) or (y1<>bot[thisbot].y)) then
+      if (map^[x1,y1]<map_wall) and ((x1<>bot[thisbot].x) or (y1<>bot[thisbot].y)) and ((LOS_base^[x1,y1]<LOS_base^[bot[thisbot].x,bot[thisbot].y]) or (random<0.05+(bot[thisbot].tu-50)/100)) then
         move_bot(thisbot,x1,y1,2)
       //may be blocked and inable to use all tus!!!
     end;
@@ -3017,9 +3068,9 @@ begin
  if (mapgenerated) and (gamemode=gamemode_game) then buttonpressed:=(MessageDlg('Are you sure? Current map will be lost.',mtCustom, [mbYes,mbCancel], 0)=MrYes) else buttonpressed:=true;
  if buttonpressed then begin
   memo1.clear;
+  generate_map;
   togglebox1.checked:=false;
   togglebox1.state:=cbUnchecked;
-  generate_map;
   gamemode:=gamemode_game;
 {  setcontrols_game(true);
   setcontrols_menu(false);}
@@ -3081,6 +3132,27 @@ begin
   form1.close;
 end;
 
+procedure TForm1.Button7Click(Sender: TObject);
+var MyImage:TJPEGImage;
+    destrect:TRect;
+begin
+{help}
+  previous_gamemode:=gamemode;
+  togglebox1.checked:=false;
+  togglebox1.state:=cbUnchecked;
+  setcontrols_game(false);
+  setcontrols_menu(false);
+  gamemode:=gamemode_help;
+  MyImage:=TJPEGImage.create;
+//  MyImage.canvas.height:=image1.height;
+//  MyImage.canvas.width:=image1.width;
+  MyImage.LoadFromFile(ExtractFilePath(application.ExeName)+'help_menu.jpg');
+  image1.visible:=true;
+  destrect:=Rect(0,0,image1.width,image1.height);
+  image1.Canvas.CopyRect(destrect,MyImage.canvas,destrect);
+  MyImage.free;
+end;
+
 
 procedure TForm1.Edit4Change(Sender: TObject);
 var botsquantity,hpquantity,playerhp,playerquantity,i:integer;
@@ -3103,7 +3175,7 @@ begin
     label8.caption:='Enemies will not be able to kill you';
     label8.color:=$0000FF;
   end;
-  if botsquantity+playerquantity>maxx*maxy*0.2 then begin
+  if botsquantity+playerquantity>mapsize*mapsize*0.2 then begin
     label8.caption:='Not enough space on the map to place bots';
     label8.color:=$0000FF;
   end;
@@ -3303,6 +3375,8 @@ begin
  load_weapon:=loadw;
 end;
 
+{--------------------------------------------------------------------------}
+
 const fontsize=13;
       font7size=10;
 procedure TForm1.Image3MouseDown(Sender: TObject; Button: TMouseButton;
@@ -3317,18 +3391,9 @@ begin
     if selectednew<2 then selectednew:=2;
     if selectednew>backpacksize then selectednew:=backpacksize;
     if ssShift in shift then begin
-      if (bot[selected].items[selectednew].w_id>0) or (bot[selected].items[selectednew].ammo_id>0) then begin
-       if spend_tu(selected,dropitemtime) then begin
-        inc(itemsn);
-        item[itemsn].item:=bot[selected].items[selectednew];
-        item[itemsn].x:=bot[selected].x;
-        item[itemsn].y:=bot[selected].y;
-        bot[selected].items[selectednew].ammo_id:=0;
-        bot[selected].items[selectednew].w_id:=0;
-        selectedonfloor:=-1;
-        selecteditem:=-1;
-       end
-      end else
+      if (bot[selected].items[selectednew].ammo_id>0) or (bot[selected].items[selectednew].w_id>0) then
+        drop_item(selected,selectednew)
+      else
       if (bot[selected].items[1].ammo_id>0) and (bot[selected].items[selectednew].w_id=0) and (bot[selected].items[selectednew].ammo_id=0) then begin
        if spend_tu(selected,weapon_specifications[bot[selected].items[1].w_id].reload) then begin
         bot[selected].items[selectednew].ammo_id:=bot[selected].items[1].ammo_id;
@@ -3360,6 +3425,27 @@ begin
      scrollbar1.position:=scrollbar1.position+changerate;
  end;
 end;
+
+{------------------------------------------------------------------------------------}
+
+procedure TForm1.drop_item(thisbot,thisitem:integer);
+begin
+if (bot[thisbot].items[thisitem].w_id>0) or (bot[thisbot].items[thisitem].ammo_id>0) then
+  if spend_tu(thisbot,dropitemtime) then begin
+   if itemsn=maxitems then showmessage('TOO MANY ITEMS!!!') else
+    inc(itemsn);
+   item[itemsn].item:=bot[thisbot].items[thisitem];
+   item[itemsn].x:=bot[thisbot].x;
+   item[itemsn].y:=bot[thisbot].y;
+   bot[thisbot].items[thisitem].ammo_id:=0;
+   bot[thisbot].items[thisitem].w_id:=0;
+   selectedonfloor:=-1;
+   selecteditem:=-1;
+  end;
+
+end;
+
+{-------------------------------------------------------------------------------------}
 
 procedure TForm1.pick_up(thisbot,thisitem:integer);
 var i:integer;
@@ -3589,6 +3675,7 @@ begin
  label12.visible:=flg;
  checkbox1.visible:=flg;
  label13.visible:=flg;
+ button7.visible:=flg;
  {$IFDEF UNIX}
  label13.visible:=false;
  {$ENDIF}
@@ -3935,27 +4022,32 @@ begin
   scaleminimapy:=image7.height / maxy;
   image7.canvas.brush.style:=bssolid;
   with image1.canvas do begin
-    brush.style:=bssolid;
     pen.width:=1;
     {draw_map}
     for mx:=1 to maxx do
       for my:=1 to maxy do if (mapchanged^[mx,my]>0) or (draw_map_all) {or ((map^[mx,my]>0) and (map^[mx,my]<=map_smoke) and (vis^[mx,my]>oldvisible){ and (random>0.5)})} then begin
         //mapchanged^[mx,my]:=1;
-        if vis^[mx,my]=0 then brush.color:=$220000 else begin
+        if vis^[mx,my]=0 then begin
+//          brush.style:= bsDiagCross;
+          brush.color:=$330000
+        end else begin
           if vis^[mx,my]=oldvisible then begin
-             if map^[mx,my]=map_wall then brush.color:=RGB(50,255,220,220) else
+             if map^[mx,my]=map_wall then brush.color:=RGB(99,255,220,220) else
                                           brush.color:=RGB(50,80,99,80);
            end else begin
-             if map^[mx,my]=map_wall then brush.color:=RGB(round(200*sqr((vis^[mx,my]-oldvisible)/(maxvisible-oldvisible)))+55,255,220,220) else
+             if map^[mx,my]=map_wall then brush.color:=RGB(round(155*sqr((vis^[mx,my]-oldvisible)/(maxvisible-oldvisible)))+100,255,220,220) else
                                           brush.color:=RGB(round(200*sqr((vis^[mx,my]-oldvisible)/(maxvisible-oldvisible)))+55,80,99,80);
            end;
+//           brush.style:=bssolid;
         end;
+
 
         if mapchanged^[mx,my]=255 then begin
           image7.canvas.brush.color:=brush.color;
           image7.canvas.fillrect(round((mx-1)*scaleminimapx), round((my-1)*scaleminimapy), round(mx*scaleminimapx), round(my*scaleminimapy));
         end;
         if (mx>viewx) and (my>viewy) and (mx<=viewx+viewsizex) and (my<=viewy+viewsizey) then begin
+          brush.style:=bssolid;
           fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
           if (map^[mx,my]>0) and (map^[mx,my]<=map_smoke) and (vis^[mx,my]>oldvisible) then begin
             for i:=1 to round(sqr(scalex*scaley)/(sqr(sqr(map_smoke-map^[mx,my]+3))))+1 do begin
@@ -3965,6 +4057,11 @@ begin
               fillrect(x1,y1,x1+1,y1+1);
             end;
           end;
+          if vis^[mx,my]=0 then begin
+            brush.style:= bsDiagCross;
+            brush.color:=$990000;
+            fillrect(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), round((mx-viewx)*scalex), round((my-viewy)*scaley));
+          end;
           //*******
           //font.size:=5;textout(round((mx-1-viewx)*scalex), round((my-1-viewy)*scaley), inttostr(LOS_base^[mx,my]));
         end;
@@ -3972,6 +4069,7 @@ begin
      //     if (selectedx>0) and (movement^[mx,my]<10) then textout((mx-1)*scalex,(my-1)*scaley, inttostr(movement^[mx,my]));
       end;
 
+    brush.style:=bssolid;
     {draw_items}
      pen.width:=1;
      if itemsn>0 then
@@ -3982,7 +4080,7 @@ begin
         end
         else begin
           pen.color:=RGB(99,50,50,99);
-          brush.color:=RGB(50,80,99,80);
+          brush.color:=RGB(150,80,99,80);
         end;
         if (item[i].x-viewx>0) and (item[i].y-viewy>0) and (item[i].x-viewx<=viewsizex) and (item[i].y-viewy<=viewsizey) then begin
           fx1:=(item[i].x-viewx-1)*scalex;
