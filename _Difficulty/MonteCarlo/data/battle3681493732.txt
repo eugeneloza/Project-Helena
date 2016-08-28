@@ -1,0 +1,33 @@
+player ID = 483806
+......
+[dbg] ver: -1 Win32
+Map size: 35x35
+EGG MAP * no
+Map free area: 35%
+Average LOS = 25
+LOS adjusted = 28
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 4
+Total bot HP = 366
+Difficulty = EASY (12%) 
+......
+TURN: 12
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 4
+Enemy bots = 0
+Total Player HP = 593
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 1759
+
+Comment = The score is bad due to enemy shooting bazooka

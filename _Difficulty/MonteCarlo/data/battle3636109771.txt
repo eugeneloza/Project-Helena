@@ -1,0 +1,78 @@
+player ID = 548813
+......
+[dbg] ver: 150207-1
+Generating map...
+Map size: 50x50
+Adding building 011_7x5.HMP
+Bunker building created.
+Map error rate: 1%
+Map inhomogenity: 12%
+UNTANGLE MAP * 11/rooms=13circle shape 24
+Map free area: 18%
+...
+Box building created.
+Adding building 065_9x9.HMP
+Bunker building created.
+Map error rate: 3%
+Map inhomogenity: 30%
+UNTANGLE MAP * 12/rooms=11random circle shape 20
+Map free area: 16%
+...
+Box building created.
+Adding building 045_8x8.HMP
+Bunker building created.
+Map error rate: 0%
+Map inhomogenity: 14%
+UNTANGLE MAP * 11/rooms=13circle shape 21
+Map free area: 19%
+...
+Box building created.
+Adding building 065_9x9.HMP
+Bunker building created.
+Map error rate: 0%
+Map inhomogenity: 10%
+UNTANGLE MAP * 16/rooms=13circle shape 24
+Map free area: 36%
+...
+Calculating map strategy...
+Generating LOS base map...
+Average LOS = 57
+Map ready. Setting bots.
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 19
+Total bot HP = 1950
+Bots together = 1,2
+Difficulty = NORMAL (99%) 
+Creating items...
+......
+[dbg] damncheater
+[dbg] visible recalculated
+[dbg/recalc] player1 lastseen: 24.10 / 5 tu
+[dbg/recalc] player2 lastseen: 26.12 / 65 tu
+[dbg/recalc] player3 lastseen: 22.7 / 255 tu
+[dbg/recalc] player4 lastseen: 24.9 / 183 tu
+[dbg] damncheater
+TURN: 84
+[dbg/newturn] player1 lastseen: 24.10 / 255 tu
+[dbg/newturn] player2 lastseen: 26.12 / 255 tu
+[dbg/spend] player3 lastseen: 22.7 / 210 tu
+[dbg/newturn] player3 lastseen: 22.7 / 255 tu
+[dbg/spend] player4 lastseen: 24.9 / 173 tu
+[dbg/newturn] player4 lastseen: 24.9 / 255 tu
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 4
+Enemy bots = 0
+Total Player HP = 198
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 2948

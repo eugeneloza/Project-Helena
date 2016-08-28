@@ -1,0 +1,32 @@
+player ID = 483806
+......
+[dbg] ver: -1 Win32
+Map size: 35x35
+SNOWFLAKE MAP * equal=4/8
+Map free area: 53%
+Average LOS = 42
+LOS adjusted = 42
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 24
+Total bot HP = 2214
+Difficulty = VERY HARD (173%) 
+......
+TURN: 76
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 3
+Enemy bots = 0
+Total Player HP = 322
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 3336
+comment = Very lucky use of bottlenecks

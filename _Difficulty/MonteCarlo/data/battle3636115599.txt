@@ -1,0 +1,55 @@
+player ID = 548813
+......
+[dbg] ver: 150207-1
+Generating map...
+Map size: 35x35
+Adding building 006_6x6.HMP
+Bunker building created.
+Map error rate: 1%
+Map inhomogenity: 8%
+WORMHOLE MAP * no
+Map free area: 48%
+...
+Calculating map strategy...
+Generating LOS base map...
+Average LOS = 63
+Map ready. Setting bots.
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 15
+Total bot HP = 1650
+Bots together = 1,6
+Difficulty = HARD (107%) 
+Creating items...
+......
+[dbg] damncheater
+[dbg] visible recalculated
+[dbg/recalc] player1 lastseen: 4.20 / 255 tu
+[dbg/recalc] player2 lastseen: 11.22 / 255 tu
+[dbg/recalc] player3 lastseen: 9.21 / 255 tu
+[dbg/recalc] player4 lastseen: 12.22 / 95 tu
+[dbg] damncheater
+TURN: 56
+[dbg/spend] player1 lastseen: 4.20 / 255 tu
+[dbg/newturn] player1 lastseen: 4.20 / 255 tu
+[dbg/spend] player2 lastseen: 11.22 / 255 tu
+[dbg/newturn] player2 lastseen: 11.22 / 255 tu
+[dbg/spend] player3 lastseen: 9.21 / 255 tu
+[dbg/newturn] player3 lastseen: 9.21 / 255 tu
+[dbg/newturn] player4 lastseen: 12.22 / 255 tu
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 4
+Enemy bots = 0
+Total Player HP = 364
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 2814

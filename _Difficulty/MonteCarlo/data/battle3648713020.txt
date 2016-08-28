@@ -1,0 +1,38 @@
+player ID = 205942
+......
+[dbg] ver: 150408-1
+Map size: 35x35
+T MAP * 24
+Map free area: 51%
+Average LOS = 35
+LOS adjusted = 40
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 1200
+Enemy bots = 19
+Total bot HP = 3333
+Difficulty = HARD (120%) 
+......
+d148 shots player3 for 15
+d148 shots player3 for 15
+d148 shots player3 for 15
+d662(Q) shots player3 for 1
+d215 shots player3 for 15
+d215 shots player3 for 15
+player3 is destroyed
+TURN: 20
+bots remaining: 11
+---- DEFEAT... ----
+Player units = 0
+Enemy bots = 11
+Total Player HP = 0
+Total bot HP = 1961
+MapExplored: 100%
+------------------------------
+......
+Hash = 6494

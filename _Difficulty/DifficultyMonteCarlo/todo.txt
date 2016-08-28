@@ -1,1 +1,0 @@
-if sqrt(LOS)*30>250 then 'shot from distance : player dam/2 but has a good chance of not taking damage)

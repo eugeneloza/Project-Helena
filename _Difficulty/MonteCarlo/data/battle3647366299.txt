@@ -1,0 +1,30 @@
+player ID = 205942
+......
+[dbg] ver: 150408-1
+Map size: 50x50
+SNOWFLAKE MAP * different /11
+Map free area: 38%
+Average LOS = 38
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 5
+Total bot HP = 2600
+Difficulty = HARD (102%) 
+......
+TURN: 50
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 2
+Enemy bots = 0
+Total Player HP = 72
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 3472

@@ -1,0 +1,30 @@
+player ID = 205942
+......
+[dbg] ver: 150408-1
+Map size: 35x35
+EGGRE MAP * 97
+Map free area: 60%
+Average LOS = 88
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 19
+Total bot HP = 1232
+Difficulty = HARD (120%) 
+......
+TURN: 42
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 4
+Enemy bots = 0
+Total Player HP = 633
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 2665

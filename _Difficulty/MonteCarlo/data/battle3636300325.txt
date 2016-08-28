@@ -1,0 +1,30 @@
+player ID = 548813
+......
+[dbg] ver: 150207-1
+Map size: 50x50
+ANTI-CIRCLES MAP * 56
+Map free area: 42%
+Average LOS = 66
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 1200
+Enemy bots = 36
+Total bot HP = 1975
+Difficulty = HARD (133%) 
+......
+TURN: 107
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 3
+Enemy bots = 0
+Total Player HP = 297
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 3472

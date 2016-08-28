@@ -1,0 +1,53 @@
+player ID = 548813
+......
+[dbg] ver: 1 CASTLE
+Generating map...
+Map size: 50x50
+Adding building 043_6x6.HMP
+Bunker building created.
+Map error rate: 10%
+Map inhomogenity: 15%
+DIAMONDS MAP * 32
+Map free area: 36%
+...
+Calculating map strategy...
+Generating LOS base map...
+Average LOS = 40
+Map ready. Setting bots.
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 20
+Total bot HP = 2300
+Bots together = 1
+Difficulty = NORMAL (98%) 
+Creating items...
+......
+[dbg/clear] weak cheater
+[dbg] visible recalculated
+[dbg/recalc] player4 lastseen: 40.25 / 95 tu
+[dbg] damncheater
+d323 shots player4 for 15
+d323 shots player4 for 15
+d323 shots player4 for 15
+d323 shots player4 for 15
+[dbg] d323 caution time used 65 of 89
+d592 shots player4 for 18
+d592 shots player4 for 18
+player4 is destroyed
+TURN: 86
+bots remaining: 2
+---- DEFEAT... ----
+Player units = 0
+Enemy bots = 2
+Total Player HP = 0
+Total bot HP = 128
+MapExplored: 100%
+------------------------------
+......
+Hash = 3228

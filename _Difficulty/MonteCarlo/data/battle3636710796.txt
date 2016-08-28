@@ -1,0 +1,30 @@
+player ID = 548813
+......
+[dbg] ver: 150328-2
+Map size: 35x35
+LINEAR SINUS MAP * type1
+Map free area: 36%
+Average LOS = 29
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 17
+Total bot HP = 2082
+Difficulty = HARD (106%) 
+......
+TURN: 63
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 3
+Enemy bots = 0
+Total Player HP = 505
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 3387

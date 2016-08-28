@@ -1,0 +1,48 @@
+player ID = 548813
+......
+[dbg] ver: 150207-1
+Map size: 40x40
+UNTANGLE MAP * 21/rooms=8 random shape
+Map free area: 31%
+Average LOS = 19
+LOS adjusted = 24
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 1200
+Enemy bots = 22
+Total bot HP = 2925
+Difficulty = NORMAL (93%) 
+......
+d385(H) shots player1 for 25
+d385(H) shots player1 for 25
+d385(H) shots player1 for 25
+d88(Q) shots player1 for 15
+d88(Q) shots player1 for 16
+d88(Q) shots player1 for 16
+d88(Q) shots player1 for 16
+d557 shots player1 for 11
+d557 shots player1 for 11
+d557 shots player1 for 11
+d557 shots player1 for 11
+d557 shots player1 for 11
+d557 shots player1 for 11
+d308 shots player1 for 15
+d193 shots player1 for 12
+d193 shots player1 for 12
+player1 is destroyed
+TURN: 65
+bots remaining: 9
+---- DEFEAT... ----
+Player units = 0
+Enemy bots = 9
+Total Player HP = 0
+Total bot HP = 1194
+MapExplored: 100%
+------------------------------
+......
+Hash = 5319

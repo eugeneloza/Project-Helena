@@ -1,0 +1,30 @@
+player ID = 548813
+......
+[dbg] ver: 150207-1
+Map size: 20x20
+WORMHOLE MAP * no
+Map free area: 46%
+Average LOS = 37
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 11
+Total bot HP = 900
+Difficulty = NORMAL (94%) 
+......
+TURN: 19
+bots remaining: 0
+---- VICTORY!!! ----
+Player units = 3
+Enemy bots = 0
+Total Player HP = 383
+Total bot HP = 0
+MapExplored: 100%
+------------------------------
+......
+Hash = 2083

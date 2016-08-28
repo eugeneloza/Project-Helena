@@ -1,0 +1,44 @@
+player ID = 483806
+......
+[dbg] ver: -1 Win32
+Map size: 35x35
+ANTI-CIRCLES MAP * 61
+Map free area: 50%
+Average LOS = 65
+...
+Strategy settings:
+Cheater: 90 tu
+Caution: 100 %
+Shall attack WEAKER target
+...
+Player units = 4
+Total Player HP = 800
+Enemy bots = 19
+Total bot HP = 1982
+Difficulty = VERY HARD (173%) 
+......
+d972 shots player2 for 10
+d972 shots player2 for 11
+d972 shots player2 for 11
+d602 shots player2 for 11
+d602 shots player2 for 11
+d602 shots player2 for 11
+d602 shots player2 for 11
+d602 shots player2 for 11
+d602 shots player2 for 11
+d602 shots player2 for 11
+d592 shots player2 for 20
+d283 shots player2 for 15
+d283 shots player2 for 15
+player2 is destroyed
+TURN: 18
+bots remaining: 14
+---- DEFEAT... ----
+Player units = 0
+Enemy bots = 14
+Total Player HP = 0
+Total bot HP = 1461
+MapExplored: 100%
+------------------------------
+......
+Hash = 4243
